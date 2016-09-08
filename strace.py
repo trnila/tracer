@@ -157,9 +157,7 @@ class SyscallTracer(Application):
         error(text)
 
         if syscall.process.pid not in self.data:
-            cmdline = []
-            with open("/proc/%d/cmdline" % syscall.process.pid) as f:
-                cmdline = f.read().split("\0")
+            cmdline = self.findArguments(syscall)
 
             self.data[syscall.process.pid] = {
                 "parent": syscall.process.parent.pid if syscall.process.parent else 0,
@@ -169,6 +167,12 @@ class SyscallTracer(Application):
                 "read": {},
                 "write": {}
             }
+
+        if syscall.name == 'execve':
+            cmdline = self.findArguments(syscall)
+            self.data[syscall.process.pid]['executable'] = cmdline[0]
+            self.data[syscall.process.pid]['arguments'] = cmdline[1:-1]
+
 
         if syscall.name in ["read", "write"]:
             import fd_resolve
@@ -192,7 +196,11 @@ class SyscallTracer(Application):
             with open(file, "ab") as myfile:
                 myfile.write(value)
 
-
+    def findArguments(self, syscall):
+        cmdline = []
+        with open("/proc/%d/cmdline" % syscall.process.pid) as f:
+            cmdline = f.read().split("\0")
+        return cmdline
 
     def syscallTrace(self, process):
         # First query to break at next syscall
