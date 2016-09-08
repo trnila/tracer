@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import json
+from _ctypes import sizeof
 
 from ptrace import PtraceError
 from ptrace.debugger import (PtraceDebugger, Application,
@@ -15,6 +16,8 @@ from ptrace.syscall.socketcall_constants import SOCKETCALL
 from ptrace.error import PTRACE_ERRORS, writeError
 from ptrace.ctypes_tools import formatAddress
 import re
+from struct import Struct, unpack
+
 
 class SyscallTracer(Application):
     def __init__(self):
@@ -172,29 +175,48 @@ class SyscallTracer(Application):
             cmdline = self.findArguments(syscall)
             self.data[syscall.process.pid]['executable'] = cmdline[0]
             self.data[syscall.process.pid]['arguments'] = cmdline[1:-1]
-
-
-        if syscall.name in ["read", "write"]:
+        elif syscall.name in ["read", "write", "sendmsg", "recvmsg", "sendto", "recvfrom"]:
             import fd_resolve
             name = fd_resolve.resolve(syscall.process.pid, syscall.arguments[0].value)
+
+            type = {
+                "read": "read",
+                "write": "write",
+                "sendmsg": "write",
+                "recvmsg": "read",
+                "sendto": "write",
+                "recvfrom": "read"
+            }[syscall.name]
 
             if name.startswith("/usr/lib"):
                 return
 
-            wrote = 0
-            if syscall.name == 'read':
-                wrote = syscall.result
+            if name not in self.data[syscall.process.pid][type]:
+                self.data[syscall.process.pid][type][name] = "/tmp/" + type + "__" + str(
+                    syscall.process.pid) + "_" + name.replace('/', '_')
+            file = self.data[syscall.process.pid][type][name]
+
+
+            content = b""
+
+            if syscall.name in ['sendmsg', 'recvmsg']:
+                data = syscall.process.readBytes(syscall.arguments[1].value, sizeof(structs.MsgHdr))
+                items = unpack("PIPL", data)
+
+                for i in range(0, items[3]):
+                    data = syscall.process.readBytes(items[2] + 16*i, 16)
+                    i = unpack("PL", data)
+                    content += syscall.process.readBytes(i[0], i[1])
             else:
-                wrote = syscall.arguments[2].value
-
-            value = syscall.process.readBytes(syscall.arguments[1].value, wrote)
-            if name not in self.data[syscall.process.pid][syscall.name]:
-                self.data[syscall.process.pid][syscall.name][name] = "/tmp/" + syscall.name + "__" + str(syscall.process.pid) + "_" + name.replace('/', '_')
-
-            file = self.data[syscall.process.pid][syscall.name][name]
+                wrote = 0
+                if type == 'read':
+                    wrote = syscall.result
+                else:
+                    wrote = syscall.arguments[2].value
+                content = syscall.process.readBytes(syscall.arguments[1].value, wrote)
 
             with open(file, "ab") as myfile:
-                myfile.write(value)
+                myfile.write(content)
 
     def findArguments(self, syscall):
         cmdline = []
