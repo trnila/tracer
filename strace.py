@@ -167,6 +167,7 @@ class SyscallTracer(Application):
                 "executable": cmdline[0],
                 "arguments": cmdline[1:-1],
                 "thread": syscall.process.is_thread,
+                "env": self.findEnvironments(syscall.process.pid),
                 "read": {},
                 "write": {}
             }
@@ -223,6 +224,11 @@ class SyscallTracer(Application):
         with open("/proc/%d/cmdline" % syscall.process.pid) as f:
             cmdline = f.read().split("\0")
         return cmdline
+
+    def findEnvironments(self, pid):
+        with open("/proc/%d/environ" % pid) as file:
+            return dict([i.split("=", 1) for i in file.read().split("\0")][:-1])
+        return {}
 
     def syscallTrace(self, process):
         # First query to break at next syscall
