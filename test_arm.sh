@@ -1,7 +1,7 @@
 #!/bin/bash
-HOST=build@pi.home.trnila.eu
+HOST=build@trnila.eu
 BUILD_DIR=/tmp/$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 10 | head -n 1)
-SSH_ARGS=
+SSH_ARGS="-p 2222"
 
 if [ -f .travis_key ]; then
 	SSH_ARGS="$SSH_ARGS -i .travis_key"

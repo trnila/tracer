@@ -11,6 +11,4 @@ before_install:
 
 script:
     - python test.py
-
-after_success:
     - ./test_arm.sh
