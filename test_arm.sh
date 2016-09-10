@@ -1,23 +1,18 @@
 #!/bin/bash
-HOST=build@trnila.eu
+HOST=build@pi
 BUILD_DIR=/tmp/$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 10 | head -n 1)
-SSH_ARGS="-p 2222"
-
-if [ -f .travis_key ]; then
-	SSH_ARGS="$SSH_ARGS -i .travis_key"
-fi
 
 clean() {
 	echo cleaning up
-	ssh $SSH_ARGS $HOST "rm -r $BUILD_DIR"
+	ssh $HOST "rm -r $BUILD_DIR"
 }
 
 trap clean EXIT
 
-ssh $SSH_ARGS $HOST "mkdir -p $BUILD_DIR"
-rsync -e "ssh $SSH_ARGS" -avz . $HOST:$BUILD_DIR/.
+ssh $HOST "mkdir -p $BUILD_DIR"
+rsync -avz . $HOST:$BUILD_DIR/.
 
-ssh $SSH_ARGS $HOST 'bash -s' <<BUILD
+ssh $HOST 'bash -s' <<BUILD
 set -ex
 cd $BUILD_DIR
 source ~/tracer/bin/activate
