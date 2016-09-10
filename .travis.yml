@@ -7,6 +7,10 @@ before_install:
     - sudo apt-get install -y mercurial
     -  hg clone https://bitbucket.org/MichaelHTW/python-ptrace-withclone /tmp/lib
     - (cd /tmp/lib/; python setup.py install)
+    -  openssl aes-256-cbc -K $encrypted_7c4d0fa59f2c_key -iv $encrypted_7c4d0fa59f2c_iv -in .travis_key.enc -out .travis_key -d
 
 script:
     - python test.py
+
+after_success:
+    - ./test_arm.sh
