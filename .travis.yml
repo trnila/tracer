@@ -8,6 +8,9 @@ before_install:
     -  hg clone https://bitbucket.org/MichaelHTW/python-ptrace-withclone /tmp/lib
     - (cd /tmp/lib/; python setup.py install)
     -  openssl aes-256-cbc -K $encrypted_7c4d0fa59f2c_key -iv $encrypted_7c4d0fa59f2c_iv -in .travis_key.enc -out .travis_key -d
+    - chmod 600 .travis_key
+    - echo -e "Host *\n\tStrictHostKeyChecking no\n" >> ~/.ssh/config
+
 
 script:
     - python test.py
