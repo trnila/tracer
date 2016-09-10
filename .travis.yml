@@ -1,0 +1,12 @@
+language: python
+python:
+    - 3.5
+
+before_install:
+    - sudo apt-get -qq update
+    - sudo apt-get install -y mercurial
+    -  hg clone https://bitbucket.org/MichaelHTW/python-ptrace-withclone /tmp/lib
+    - (cd /tmp/lib/; python setup.py install)
+
+script:
+    - python test.py
