@@ -201,7 +201,7 @@ class SyscallTracer(Application):
             content = b""
 
             if syscall.name in ['sendmsg', 'recvmsg']:
-                data = syscall.process.readBytes(syscall.arguments[1].value, sizeof(structs.MsgHdr))
+                data = syscall.process.readBytes(syscall.arguments[1].value, 32)
                 items = unpack("PIPL", data)
 
                 for i in range(0, items[3]):
