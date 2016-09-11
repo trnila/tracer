@@ -19,6 +19,7 @@ from ptrace.error import PTRACE_ERRORS, writeError
 from ptrace.ctypes_tools import formatAddress
 import re
 from struct import Struct, unpack
+import utils
 
 
 class SyscallTracer(Application):
@@ -255,13 +256,12 @@ class SyscallTracer(Application):
     def syscall(self, process):
         state = process.syscall_state
         syscall = state.event(self.syscall_options)
-        if syscall.name == "execve":
-            self.data[syscall.process.pid]['executable'] = syscall.process.readCString(syscall.arguments[0].value, 256)[0].decode('utf-8')
-            self.data[syscall.process.pid]['arguments'] = self.parseCStringArray(syscall.arguments[1].value, syscall)
+        if syscall.name == "execve" and syscall.result is not None:
+            self.data[syscall.process.pid]['executable'] = syscall.arguments[0].text.strip("'")
+            self.data[syscall.process.pid]['arguments'] = utils.parseArgs(syscall.arguments[1].text)
 
-            assignments = self.parseCStringArray(syscall.arguments[2].value, syscall)
-            self.data[syscall.process.pid]['env'] = dict([i.split("=", 1) for i in assignments])
-
+            env = dict([i.split("=", 1) for i in utils.parseArgs(syscall.arguments[2].text)])
+            self.data[syscall.process.pid]['env'] = env
 
         if syscall and (syscall.result is not None or self.options.enter):
             self.displaySyscall(syscall)
@@ -341,12 +341,14 @@ class SyscallTracer(Application):
             self.runDebugger()
         except ProcessExit as event:
             self.processExited(event)
-        except PtraceError as err:
-            error("ptrace() error: %s" % err)
+        #except PtraceError as err:
+        #    error("ptrace() error: %s" % err)
         except KeyboardInterrupt:
             error("Interrupted.")
         except PTRACE_ERRORS as err:
             writeError(getLogger(), err, "Debugger error")
+        except err:
+            raise err
         self.debugger.quit()
         print(json.dumps(self.data, sort_keys=True, indent=4))
         json.dump(self.data, open("/tmp/data.json", "w"))
