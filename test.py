@@ -3,6 +3,8 @@ from subprocess import Popen, PIPE
 import json
 import unittest
 import shutil
+import os
+from pathlib import Path
 
 
 def read(fileName):
@@ -30,6 +32,13 @@ class TestStringMethods(unittest.TestCase):
     def execute(self, program, args = []):
         process = Popen(['python3', 'strace.py', '-f', '--',  program] + args, stdout=PIPE, stderr=PIPE)
         stdout, stderr = process.communicate()
+
+        path = '/tmp/output/' + self._testMethodName
+        Path(path).mkdir(parents=True, exist_ok=True)
+        with open(path + "/stdout", 'w') as out:
+            out.write(stdout.decode('utf-8'))
+        with open(path + "/stderr", 'w') as out:
+            out.write(stdout.decode('utf-8'))
 
         self.assertEqual(0, process.returncode)
 

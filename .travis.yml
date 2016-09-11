@@ -20,6 +20,10 @@ script:
 - "./test_on build@pi"
 after_success:
 - "./test_on build@freebsd"
+after_failure:
+- RESULT_ID=tracer_result_$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 10 | head -n 1)
+- echo Result ID: $RESULT_ID
+- rsync -avz /tmp/output/. build@pi:/tmp/$RESULT_ID
 env:
   global:
   - secure: W6CSy9KLCOIL4hsQaLf6/ScOzpkrpI2saPddpraZI1hfwCN+7+IvTzMxgP4C5TZumlwIu4b3589gZFiczgmelP3+gRGLgY/ZswdPtW/+HVaPN3pWObzDjmSko5FO9CjlMxJiRNpcEPQ1wCVwiRfAj42yjbvbuNdJ4eTo9QfzXCi7PsDsZus8nn5fe7FI+aX5quFoSSCIgSpy3TIvjRdP1hP8zTUQ0k1K5rK6x4iZ08Vm616boEYMIAJbsXovnso9UwaDeb5FKFGDRWYCkK2mV7QKzG0qwuTaS5FQuNNLJ3xtLO3S5DrzBOt775pYVReN01yeEKt03QOb4/HoPCstHjWcR78mvDLfGHoe9LQPVfyMbRaK47LWNhVzilMBePA+N8GezOYoUAGthwhKQdbHpL8ycoeaNYTDYu0hd9LWPPGVj71xzkPgiM+X9lMgqFmEy5NtEsleuMbn6bNLoAGjsYEWH5cCf1tP+CtM2fA4KPq7x0UGrME/paZ1aCoiueEzWCHw0qX6CWZ0+LbBLzDbgUt60qwA3seUrEmdXVL9DRCM1LgHCPCnWAOhgDUxUEQCde34I/EZgSpdE+J39BpA1OrakC8bfGn/w+WXBa8yemqLpk9wxPXv4tZ95Ra8Wgv3Xa2tJ79QuaagqOnMcX68GesPed2hB7CNktUpvbonjoQ=
