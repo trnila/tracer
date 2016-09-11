@@ -16,7 +16,7 @@ before_install:
 - ssh-add .travis/.travis_key
 - rm .travis/.travis_key
 script:
-- python test.py
+- python test.py -v
 - "./test_on build@pi"
 after_success:
 - "./test_on build@freebsd"
