@@ -4,6 +4,7 @@ import json
 from _ctypes import sizeof
 
 from ptrace import PtraceError
+from ptrace.cpu_info import CPU_WORD_SIZE
 from ptrace.debugger import (PtraceDebugger, Application,
     ProcessExit, ProcessSignal, NewProcessEvent, ProcessExecution)
 from ptrace.syscall import (SYSCALL_NAMES, SYSCALL_PROTOTYPES,
@@ -160,23 +161,13 @@ class SyscallTracer(Application):
         error(text)
 
         if syscall.process.pid not in self.data:
-            cmdline = self.findArguments(syscall)
+            self.addProcess(
+                syscall.process.pid,
+                syscall.process.parent.pid if syscall.process.parent else 0,
+                syscall.process.is_thread
+            )
 
-            self.data[syscall.process.pid] = {
-                "parent": syscall.process.parent.pid if syscall.process.parent else 0,
-                "executable": cmdline[0],
-                "arguments": cmdline[1:-1],
-                "thread": syscall.process.is_thread,
-                "env": self.findEnvironments(syscall.process.pid),
-                "read": {},
-                "write": {}
-            }
-
-        if syscall.name == 'execve':
-            cmdline = self.findArguments(syscall)
-            self.data[syscall.process.pid]['executable'] = cmdline[0]
-            self.data[syscall.process.pid]['arguments'] = cmdline[1:-1]
-        elif syscall.name in ["read", "write", "sendmsg", "recvmsg", "sendto", "recvfrom"]:
+        if syscall.name in ["read", "write", "sendmsg", "recvmsg", "sendto", "recvfrom"]:
             import fd_resolve
             name = fd_resolve.resolve(syscall.process.pid, syscall.arguments[0].value)
 
@@ -219,11 +210,16 @@ class SyscallTracer(Application):
             with open(file, "ab") as myfile:
                 myfile.write(content)
 
-    def findArguments(self, syscall):
-        cmdline = []
-        with open("/proc/%d/cmdline" % syscall.process.pid) as f:
-            cmdline = f.read().split("\0")
-        return cmdline
+    def addProcess(self, pid, parent, is_thread):
+        self.data[pid] = {
+            "parent": parent,
+            "executable": None,
+            "arguments": [],
+            "thread": is_thread,
+            "env": self.findEnvironments(pid),
+            "read": {},
+            "write": {}
+        }
 
     def findEnvironments(self, pid):
         with open("/proc/%d/environ" % pid) as file:
@@ -263,11 +259,27 @@ class SyscallTracer(Application):
     def syscall(self, process):
         state = process.syscall_state
         syscall = state.event(self.syscall_options)
+        if syscall.name == "execve":
+            self.data[syscall.process.pid]['executable'] = syscall.process.readCString(syscall.arguments[0].value, 256)[0].decode('utf-8')
+            self.data[syscall.process.pid]['arguments'] = self.parseCStringArray(syscall.arguments[1].value, syscall)
+
+
         if syscall and (syscall.result is not None or self.options.enter):
             self.displaySyscall(syscall)
 
         # Break at next syscall
         process.syscall()
+
+    def parseCStringArray(self, address, syscall):
+        text = []
+        while True:
+            str_addr = syscall.process.readWord(address)
+            if not str_addr:
+                break
+
+            address += CPU_WORD_SIZE
+            text.append(syscall.process.readCString(str_addr, 1000)[0].decode('utf-8'))
+        return text
 
     def processExited(self, event):
         # Display syscall which has not exited
@@ -342,8 +354,10 @@ class SyscallTracer(Application):
 
     def createChild(self, program):
         pid = Application.createChild(self, program)
-        error("execve(%s, %s, [/* 40 vars */]) = %s" % (
-            program[0], program, pid))
+        error("execve(%s, %s, [/* 40 vars */]) = %s" % (program[0], program, pid))
+        self.addProcess(pid, 0, False)
+        self.data[pid]['executable'] = program[0]
+        self.data[pid]['arguments'] = program
         return pid
 
 if __name__ == "__main__":
