@@ -214,6 +214,7 @@ class SyscallTracer(Application):
 
     def addProcess(self, pid, parent, is_thread):
         self.data[pid] = {
+            "pid": pid,
             "parent": parent,
             "executable": None,
             "arguments": [],
