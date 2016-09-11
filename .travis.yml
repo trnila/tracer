@@ -18,6 +18,7 @@ before_install:
 script:
 - python test.py
 - "./test_on build@pi"
+after_success:
 - "./test_on build@freebsd"
 env:
   global:
