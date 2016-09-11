@@ -23,6 +23,10 @@ class TestStringMethods(unittest.TestCase):
         with open(file1) as f1, open(file2) as f2:
             self.assertEqual(f1.read(), f2.read())
 
+    def assertAllProcessExitedOk(self, data):
+        for pid, proc in data.items():
+            self.assertEqual(0, proc['exitCode'])
+
     def execute(self, program, args = []):
         process = Popen(['python3', 'strace.py', '-f', '--',  program] + args, stdout=PIPE, stderr=PIPE)
         stdout, stderr = process.communicate()
@@ -81,6 +85,11 @@ class TestStringMethods(unittest.TestCase):
         data = self.execute("sh", ['-c', 'export _MYENV=ok; sh -c "uname; ls"'])
         uname = findByExecutable(data, 'uname')
         self.assertEqual('ok', uname['env']['_MYENV'])
+
+    def test_exit_code(self):
+        data = self.execute("cat", ['/nonexistent/file.txt'])
+        uname = findByExecutable(data, 'cat')
+        self.assertEqual(1, uname['exitCode'])
 
 
 

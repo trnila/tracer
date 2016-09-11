@@ -216,6 +216,7 @@ class SyscallTracer(Application):
         self.data[pid] = {
             "pid": pid,
             "parent": parent,
+            "exitCode": None,
             "executable": None,
             "arguments": [],
             "thread": is_thread,
@@ -291,6 +292,7 @@ class SyscallTracer(Application):
 
         # Display exit message
         error("*** %s ***" % event)
+        self.data[event.process.pid]['exitCode'] = event.exitcode
 
     def prepareProcess(self, process):
         process.syscall()
