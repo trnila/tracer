@@ -8,15 +8,20 @@ before_install:
 - "(cd /tmp/lib/; python setup.py install)"
 
 - openssl aes-256-cbc -K $encrypted_7c4d0fa59f2c_key -iv $encrypted_7c4d0fa59f2c_iv -in .travis/travis_key.enc -out .travis/.travis_key -d
-- echo -e "Host pi\n\tHostname $PI_HOST\n\tPort $PI_PORT\n\tStrictHostKeyChecking no\n\tUserKnownHostsFile /dev/null\n\tLogLevel QUIET" >> ~/.ssh/config
+- echo -e "Host *\n\tStrictHostKeyChecking no\n\tUserKnownHostsFile /dev/null\n\tLogLevel QUIET" >> ~/.ssh/config
+- echo -e "Host pi\n\tHostname $PI_HOST\n\tPort $PI_PORT" >> ~/.ssh/config
+- echo -e "Host freebsd\n\tHostname $FREEBSD_HOST" >> ~/.ssh/config
 - eval "$(ssh-agent -s)"
 - chmod 600 .travis/.travis_key
 - ssh-add .travis/.travis_key
 - rm .travis/.travis_key
 script:
 - python test.py
-- "./test_arm.sh"
+- "./test_on build@pi"
+- "./test_on build@freebsd"
 env:
   global:
   - secure: W6CSy9KLCOIL4hsQaLf6/ScOzpkrpI2saPddpraZI1hfwCN+7+IvTzMxgP4C5TZumlwIu4b3589gZFiczgmelP3+gRGLgY/ZswdPtW/+HVaPN3pWObzDjmSko5FO9CjlMxJiRNpcEPQ1wCVwiRfAj42yjbvbuNdJ4eTo9QfzXCi7PsDsZus8nn5fe7FI+aX5quFoSSCIgSpy3TIvjRdP1hP8zTUQ0k1K5rK6x4iZ08Vm616boEYMIAJbsXovnso9UwaDeb5FKFGDRWYCkK2mV7QKzG0qwuTaS5FQuNNLJ3xtLO3S5DrzBOt775pYVReN01yeEKt03QOb4/HoPCstHjWcR78mvDLfGHoe9LQPVfyMbRaK47LWNhVzilMBePA+N8GezOYoUAGthwhKQdbHpL8ycoeaNYTDYu0hd9LWPPGVj71xzkPgiM+X9lMgqFmEy5NtEsleuMbn6bNLoAGjsYEWH5cCf1tP+CtM2fA4KPq7x0UGrME/paZ1aCoiueEzWCHw0qX6CWZ0+LbBLzDbgUt60qwA3seUrEmdXVL9DRCM1LgHCPCnWAOhgDUxUEQCde34I/EZgSpdE+J39BpA1OrakC8bfGn/w+WXBa8yemqLpk9wxPXv4tZ95Ra8Wgv3Xa2tJ79QuaagqOnMcX68GesPed2hB7CNktUpvbonjoQ=
   - secure: POi0V3AzcafyIwwez1EQfwRISf3YSwo1zZs6D+A2SzWslLd8RSp/YlDQewlflEAs6iAURBQcrlWCew/KVD6IasWOnLcSTezJBGcL1efdDJIzGInMm/bGkmzbaH0zbcjCu0HRPCBTnAIzqbUJGnJi3+g+6wKaEpNAEbtag6pRv8IuVXEsB1mEH8ZeHcF4Q+FQ4ibMPA4rDJqyl0uV5VWgE1DZRua80DRCK7NafS+ZRoIzM1K/O9Z3OO81Yk3qG5Xi1qTley3AmsuUDf8CjuGQwctOn2QSOg7wlVxGS9ZiOcOhELt57+0kKf0p6ERZbwrs5uw0DcUjcMCXUxhdvluKCzxQmGeF/+oQZJD1eIzb+7RuekI+IWXFH+EoLY+57yRYSQn+T+6hf6O3d7+6UbNEHMLWpQlUt6YmOFASzmn5oU2cNyXw8b0rSnT97rp6+M0kc774KrnaaIwpWh67pqQG+GO+TIkzwt4N4MDyUsOzuiyJuKcLS8rxEcQBuvILLkTimy+o9fxWcZSYL9fTlJKsorN5ioFV5Vif4yQk4VfSROpyQRnemQY2nbSiifmoSl9ois1gbpOWMLxzx+tPdgOT1Yv0U0CR4eXttcZ4kTh1VqpRtXc717Vy0RuSquHnsYCrUyhgBXDT0SePzaK7VA0A5m04VGmBlFRIBeUTsttK/GA=
+  - secure: TlaSbIUITrNO4ZVgfrFUGImfJkPpuPaDhJaek5+LKzD+so7yf7i8YG5dJOQupVt2ZNWfQbJ0ZW5BoJ18eomEwXXYb/EBWxwOTKiX7m8Pirf8PWcj6cZqZGebhjU34kw5LahMiSp9s57c33nqRkN9Symq2qOjARe2UaRvzN3JSFpPHxlSQJCpfmoWyiyvddsfJ3JtW17C32y/HEA8hFm2elYtsTWdubRd4FDazUMqDnVjAnoRCutqWqv7BGLJiz3PsGBaS5UjBi14UO7umWnbOpdg0SERdpnFZxmtfBr8jF5AzYFi4eZU8bpcL6IYALfXPLH/en0XHA3LIuepI1loMA3RRk2orb5fJ3aeJBtXEb44oWH7FMqH44NUBqgwoU9ji8u0eH1+qBNCBrSQgNIpcjezOnZbn6YX+z0lgXsv6A9hhTzPamn9o+cQBLY5Z6MapdHMZrCAhws6ZBTNQvEA8i68NbYnzNtmRDYCVYavYFTEFW/4YJu0NRDcYJ7QxcBvplTxiQSIkCx2jtVdfeZKDcWOg9SHGqCS0YVHE4t/dB1kzqgxqtDDMRgfvhTKB9yynXi01swxR7J2jTvn2WG1a8OlfQ+5yef84XdoflZdG+Z24+X40x6e21OQv986C2bw/3DlIirV39Qyia/91ezRcjjEK1YIfXE/9P8mhbcuhCs=
+

@@ -1,5 +1,10 @@
 #!/bin/bash
-HOST=build@pi
+HOST=$1
+if [ -z $HOST ]; then
+	echo $0 user@server
+	exit
+fi
+
 BUILD_DIR=/tmp/$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 10 | head -n 1)
 
 clean() {
@@ -16,5 +21,5 @@ ssh $HOST 'bash -s' <<BUILD
 set -ex
 cd $BUILD_DIR
 source ~/tracer/bin/activate
-python test.py
+python3 test.py
 BUILD
