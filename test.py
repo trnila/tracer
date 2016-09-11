@@ -71,12 +71,16 @@ class TestStringMethods(unittest.TestCase):
 
         # check pipe
         pipe = getKey(cat['write'], 'pipe:')
-        print(cat['read'])
         self.assertFileEqual(cat['read'][getKey(cat['read'], '/etc/passwd')], '/etc/passwd')
         self.assertFileEqual(cat['write'][pipe], tr['read'][pipe])
 
         pipe = getKey(tr['write'], 'pipe:')
         self.assertFileEqual(tr['write'][pipe], tac['read'][pipe])
+
+    def test_env_propagation(self):
+        data = self.execute("sh", ['-c', 'export _MYENV=ok; sh -c "uname; ls"'])
+        uname = findByExecutable(data, 'uname')
+        self.assertEqual('ok', uname['env']['_MYENV'])
 
 
 
