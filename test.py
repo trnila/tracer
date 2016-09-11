@@ -2,6 +2,7 @@ import subprocess
 from subprocess import Popen, PIPE
 import json
 import unittest
+import shutil
 
 
 def read(fileName):
@@ -10,7 +11,8 @@ def read(fileName):
 
 class TestStringMethods(unittest.TestCase):
     def test_me(self):
-        process = Popen(['python', 'strace.py', '/bin/uname'], stdout=PIPE, stderr=PIPE)
+        path = shutil.which("uname")
+        process = Popen(['python3', 'strace.py', path], stdout=PIPE, stderr=PIPE)
         stdout, stderr = process.communicate()
 
         self.assertEqual(0, process.returncode)
@@ -21,12 +23,12 @@ class TestStringMethods(unittest.TestCase):
 
             p = data[root]
 
-            self.assertEqual("/bin/uname", p['executable'])
-            self.assertEqual([], p['arguments'])
+            self.assertEqual(path, p['executable'])
+            self.assertEqual([path], p['arguments'])
             self.assertEqual(0, p['parent'])
             self.assertFalse(p['thread'])
 
-            output = subprocess.Popen(["/bin/uname"], stdout=subprocess.PIPE).communicate()[0]
+            output = subprocess.Popen([path], stdout=subprocess.PIPE).communicate()[0]
             self.assertEqual(output.decode('utf-8'), read(p['write'][list(p['write'].keys())[0]]))
 
 
