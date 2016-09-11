@@ -1,6 +1,7 @@
 from __future__ import print_function
 
 import json
+import os
 from _ctypes import sizeof
 
 from ptrace import PtraceError
@@ -216,15 +217,10 @@ class SyscallTracer(Application):
             "executable": None,
             "arguments": [],
             "thread": is_thread,
-            "env": self.findEnvironments(pid),
+            "env": {},
             "read": {},
             "write": {}
         }
-
-    def findEnvironments(self, pid):
-        with open("/proc/%d/environ" % pid) as file:
-            return dict([i.split("=", 1) for i in file.read().split("\0")][:-1])
-        return {}
 
     def syscallTrace(self, process):
         # First query to break at next syscall
@@ -262,6 +258,9 @@ class SyscallTracer(Application):
         if syscall.name == "execve":
             self.data[syscall.process.pid]['executable'] = syscall.process.readCString(syscall.arguments[0].value, 256)[0].decode('utf-8')
             self.data[syscall.process.pid]['arguments'] = self.parseCStringArray(syscall.arguments[1].value, syscall)
+
+            assignments = self.parseCStringArray(syscall.arguments[2].value, syscall)
+            self.data[syscall.process.pid]['env'] = dict([i.split("=", 1) for i in assignments])
 
 
         if syscall and (syscall.result is not None or self.options.enter):
@@ -358,6 +357,7 @@ class SyscallTracer(Application):
         self.addProcess(pid, 0, False)
         self.data[pid]['executable'] = program[0]
         self.data[pid]['arguments'] = program
+        self.data[pid]['env'] = dict(os.environ)
         return pid
 
 if __name__ == "__main__":
