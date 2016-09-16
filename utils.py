@@ -16,3 +16,15 @@ def parseArgs(str):
         pos +=1
 
     return args
+
+
+def parse_ipv4(s):
+    try:
+        return "%d.%d.%d.%d" % (
+            int(s[6:8], 16),
+            int(s[4:6], 16),
+            int(s[2:4], 16),
+            int(s[0:2], 16),
+        )
+    except:
+        raise ValueError('Invalid address')

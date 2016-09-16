@@ -125,7 +125,7 @@ class SyscallTracer(Application):
 
         if syscall.name in ["read", "write", "sendmsg", "recvmsg", "sendto", "recvfrom"]:
             import fd_resolve
-            name = fd_resolve.resolve(syscall.process.pid, syscall.arguments[0].value)
+            data = fd_resolve.resolve(syscall.process.pid, syscall.arguments[0].value)
 
             type = {
                 "read": "read",
@@ -136,13 +136,19 @@ class SyscallTracer(Application):
                 "recvfrom": "read"
             }[syscall.name]
 
-            if name.startswith("/usr/lib"):
+            if 'file' in data and '/usr/lib' in data['file']:
                 return
 
+            name = json.dumps(data, sort_keys=True)
+            import hashlib
+            name = hashlib.md5(name.encode('utf-8')).hexdigest()
+
+            data['content'] = str(name)
+
             if name not in self.data[syscall.process.pid][type]:
-                self.data[syscall.process.pid][type][name] = self.options.output + "/" + type + "__" + str(
-                    syscall.process.pid) + "_" + name.replace('/', '_')
-            file = self.data[syscall.process.pid][type][name]
+                self.data[syscall.process.pid][type][name] = data
+                # self.options.output + "/" + type + "__" + str(syscall.process.pid) + "_" + str(name)
+            file = self.data[syscall.process.pid][type][name]['content']
 
 
             content = b""
@@ -163,7 +169,7 @@ class SyscallTracer(Application):
                     wrote = syscall.arguments[2].value
                 content = syscall.process.readBytes(syscall.arguments[1].value, wrote)
 
-            with open(file, "ab") as myfile:
+            with open(self.options.output + '/' + file, "ab") as myfile:
                 myfile.write(content)
 
     def addProcess(self, pid, parent, is_thread):
@@ -279,8 +285,10 @@ class SyscallTracer(Application):
         self.debugger.traceClone()
         self.debugger.traceExec()
         self.debugger.traceFork()
+        self.runDebugger()
         try:
-            self.runDebugger()
+            pass
+            #self.runDebugger()
         except ProcessExit as event:
             self.processExited(event)
         #except PtraceError as err:

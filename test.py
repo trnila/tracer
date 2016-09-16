@@ -30,7 +30,7 @@ class TestStringMethods(unittest.TestCase):
             self.assertEqual(0, proc['exitCode'])
 
     def execute(self, program, args = []):
-        process = Popen(['python3', 'strace.py', '-f', '--',  program] + args, stdout=PIPE, stderr=PIPE)
+        process = Popen(['python3', 'strace.py', '-o', '/tmp', '-f', '--',  program] + args, stdout=PIPE, stderr=PIPE)
         stdout, stderr = process.communicate()
 
         path = '/tmp/output/' + self._testMethodName
@@ -38,7 +38,7 @@ class TestStringMethods(unittest.TestCase):
         with open(path + "/stdout", 'w') as out:
             out.write(stdout.decode('utf-8'))
         with open(path + "/stderr", 'w') as out:
-            out.write(stdout.decode('utf-8'))
+            out.write(stderr.decode('utf-8'))
 
         self.assertEqual(0, process.returncode)
 
@@ -59,7 +59,7 @@ class TestStringMethods(unittest.TestCase):
         self.assertFalse(p['thread'])
 
         output = subprocess.Popen([path], stdout=subprocess.PIPE).communicate()[0]
-        self.assertEqual(output.decode('utf-8'), read(p['write'][list(p['write'].keys())[0]]))
+        self.assertEqual(output.decode('utf-8'), read('/tmp/' + p['write'][list(p['write'].keys())[0]]['content']))
 
     def test_pipes(self):
         data = self.execute("sh", ['-c', "cat /etc/passwd | tr a-z A-Z | tac"])
@@ -83,12 +83,11 @@ class TestStringMethods(unittest.TestCase):
         self.assertEqual(sh['pid'], tac['parent'])
 
         # check pipe
-        pipe = getKey(cat['write'], 'pipe:')
-        self.assertFileEqual(cat['read'][getKey(cat['read'], '/etc/passwd')], '/etc/passwd')
-        self.assertFileEqual(cat['write'][pipe], tr['read'][pipe])
+        pipe = [i for i, c in cat['write'].items() if c['type'] == 'pipe'][0]
+        self.assertFileEqual('/tmp/' + cat['write'][pipe]['content'], '/tmp/' + tr['read'][pipe]['content'])
 
-        pipe = getKey(tr['write'], 'pipe:')
-        self.assertFileEqual(tr['write'][pipe], tac['read'][pipe])
+        pipe = [i for i, c in tr['write'].items() if c['type'] == 'pipe'][0]
+        self.assertFileEqual('/tmp/' + tr['write'][pipe]['content'], '/tmp/' + tac['read'][pipe]['content'])
 
     def test_env_propagation(self):
         data = self.execute("sh", ['-c', 'export _MYENV=ok; sh -c "uname; ls"'])
@@ -99,6 +98,14 @@ class TestStringMethods(unittest.TestCase):
         data = self.execute("cat", ['/nonexistent/file.txt'])
         uname = findByExecutable(data, 'cat')
         self.assertEqual(1, uname['exitCode'])
+
+    def test_ipv4_resolve(self):
+        data = self.execute('curl', ['http://93.184.216.34/'])
+        root = data[list(data.keys())[0]]
+        file = [p for i, p in root['write'].items() if p['type'] == 'socket'][0]
+
+        self.assertEqual('93.184.216.34', file['dst']['address'])
+        self.assertEqual(80, file['dst']['port'])
 
 
 
@@ -112,6 +119,16 @@ class TestUtils(unittest.TestCase):
 
     def test_multiple(self):
         self.assertEqual(['ls', '-l', '/tmp'], utils.parseArgs("<'ls', '-l', '/tmp', NULL>"))
+
+class Ipv4Test(unittest.TestCase):
+    def test_ipv4(self):
+        self.assertEqual('93.184.216.34', utils.parse_ipv4('22D8B85D'))
+        self.assertEqual('255.255.255.255', utils.parse_ipv4('ffffffff'))
+        self.assertEqual('0.0.0.0', utils.parse_ipv4('00000000'))
+
+    def test_ipv4_invalid(self):
+        with self.assertRaises(ValueError):
+            utils.parse_ipv4('inva')
 
 if __name__ == '__main__':
         unittest.main()
