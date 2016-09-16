@@ -95,6 +95,8 @@ class SyscallTracer(Application):
 
         self.processOptions()
 
+        os.makedirs(self.options.output, exist_ok=True)
+
     def ignoreSyscall(self, syscall):
         name = syscall.name
         if self.only and (name not in self.only):
@@ -292,7 +294,6 @@ class SyscallTracer(Application):
         self.debugger.quit()
         print(json.dumps(self.data, sort_keys=True, indent=4))
 
-        os.makedirs(self.options.output, exist_ok=True)
         with open(self.options.output + '/data.json', 'w') as out:
             json.dump(self.data, out)
 
