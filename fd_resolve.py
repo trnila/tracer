@@ -5,15 +5,15 @@ import re
 import utils
 
 
-def resolve_socket(inode):
+def resolve_socket(inode, read):
     with open('/proc/net/tcp') as file:
         content = file.read().splitlines()[1:]
         for i in content:
             parts = i.split()
             print(parts)
             if parts[9] == inode:
-                ip, port = parts[2].split(':')
-                ip2, port2 = parts[1].split(':')
+                ip, port = parts[1 if read else 2].split(':')
+                ip2, port2 = parts[2 if read else 1].split(':')
 
                 return {
                     "type": "socket",
@@ -28,7 +28,7 @@ def resolve_socket(inode):
                 }
 
 
-def resolve(pid, fd):
+def resolve(pid, fd, read):
     if 'bsd' in platform.system().lower():
         # TODO: use procstat
         return str(fd)
@@ -50,7 +50,7 @@ def resolve(pid, fd):
             'inode': inode
         }
     elif type == 'socket':
-        a = resolve_socket(inode)
+        a = resolve_socket(inode, read)
         if a:
             return a
 

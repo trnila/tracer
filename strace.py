@@ -124,9 +124,6 @@ class SyscallTracer(Application):
             )
 
         if syscall.name in ["read", "write", "sendmsg", "recvmsg", "sendto", "recvfrom"]:
-            import fd_resolve
-            data = fd_resolve.resolve(syscall.process.pid, syscall.arguments[0].value)
-
             type = {
                 "read": "read",
                 "write": "write",
@@ -135,6 +132,10 @@ class SyscallTracer(Application):
                 "sendto": "write",
                 "recvfrom": "read"
             }[syscall.name]
+
+            import fd_resolve
+            data = fd_resolve.resolve(syscall.process.pid, syscall.arguments[0].value, type == 'read')
+
 
             if 'file' in data and '/usr/lib' in data['file']:
                 return

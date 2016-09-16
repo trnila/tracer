@@ -102,10 +102,20 @@ class TestStringMethods(unittest.TestCase):
     def test_ipv4_resolve(self):
         data = self.execute('curl', ['http://93.184.216.34/'])
         root = data[list(data.keys())[0]]
-        file = [p for i, p in root['write'].items() if p['type'] == 'socket'][0]
+        write = [p for i, p in root['write'].items() if p['type'] == 'socket'][0]
+        read = [p for i, p in root['read'].items() if p['type'] == 'socket'][0]
 
-        self.assertEqual('93.184.216.34', file['dst']['address'])
-        self.assertEqual(80, file['dst']['port'])
+        self.assertEqual('93.184.216.34', write['dst']['address'])
+        self.assertEqual(80, write['dst']['port'])
+
+        self.assertEqual('93.184.216.34', read['src']['address'])
+        self.assertEqual(80, read['src']['port'])
+
+        self.assertEqual(write['src']['port'], read['dst']['port'])
+        self.assertEqual(write['src']['address'], read['dst']['address'])
+
+
+
 
 
 
