@@ -1,27 +1,21 @@
-from __future__ import print_function
-
 import json
 import os
 import random
+import re
 import string
-from _ctypes import sizeof
-
-from ptrace import PtraceError
+from logging import getLogger, error
+from optparse import OptionParser
+from struct import unpack
+from sys import stderr, exit
 from ptrace.cpu_info import CPU_WORD_SIZE
 from ptrace.debugger import (PtraceDebugger, Application,
     ProcessExit, ProcessSignal, NewProcessEvent, ProcessExecution)
-from ptrace.syscall import (SYSCALL_NAMES, SYSCALL_PROTOTYPES,
-    FILENAME_ARGUMENTS, SOCKET_SYSCALL_NAMES)
-from ptrace.func_call import FunctionCallOptions
-from sys import stderr, exit
-from optparse import OptionParser
-from logging import getLogger, error
-from ptrace.syscall.socketcall_constants import SOCKETCALL
 from ptrace.error import PTRACE_ERRORS, writeError
-from ptrace.ctypes_tools import formatAddress
-import re
-from struct import Struct, unpack
+from ptrace.func_call import FunctionCallOptions
+from ptrace.syscall import (SYSCALL_NAMES, SYSCALL_PROTOTYPES,
+                            FILENAME_ARGUMENTS)
 import utils
+from TracedData import TracedData
 
 
 class SyscallTracer(Application):
@@ -30,7 +24,7 @@ class SyscallTracer(Application):
 
         # Parse self.options
         self.parseOptions()
-        self.data = {}
+        self.data = TracedData(self.options.output)
 
     def parseOptions(self):
         parser = OptionParser(usage="%prog [options] -- program [arg1 arg2 ...]")
@@ -170,8 +164,7 @@ class SyscallTracer(Application):
                     wrote = syscall.arguments[2].value
                 content = syscall.process.readBytes(syscall.arguments[1].value, wrote)
 
-            with open(self.options.output + '/' + file, "ab") as myfile:
-                myfile.write(content)
+            self.data.append_file(file, content)
 
     def addProcess(self, pid, parent, is_thread):
         self.data[pid] = {
@@ -301,10 +294,9 @@ class SyscallTracer(Application):
         except err:
             raise err
         self.debugger.quit()
-        print(json.dumps(self.data, sort_keys=True, indent=4))
+        print(json.dumps(self.data.data, sort_keys=True, indent=4))
 
-        with open(self.options.output + '/data.json', 'w') as out:
-            json.dump(self.data, out, sort_keys=True, indent=4)
+        self.data.save()
 
     def createChild(self, program):
         pid = Application.createChild(self, program)
