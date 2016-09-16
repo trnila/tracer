@@ -2,6 +2,8 @@ from __future__ import print_function
 
 import json
 import os
+import random
+import string
 from _ctypes import sizeof
 
 from ptrace import PtraceError
@@ -40,9 +42,14 @@ class SyscallTracer(Application):
         parser.add_option("--filename", help="Show only syscall using filename",
             action="store_true", default=False)
 
+        parser.add_option('--output', '-o')
+
         self.createLogOptions(parser)
 
         self.options, self.program = parser.parse_args()
+
+        if not self.options.output:
+            self.options.output = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(10))
 
         self.options.enter = True
 
@@ -131,7 +138,7 @@ class SyscallTracer(Application):
                 return
 
             if name not in self.data[syscall.process.pid][type]:
-                self.data[syscall.process.pid][type][name] = "/tmp/" + type + "__" + str(
+                self.data[syscall.process.pid][type][name] = self.options.output + "/" + type + "__" + str(
                     syscall.process.pid) + "_" + name.replace('/', '_')
             file = self.data[syscall.process.pid][type][name]
 
@@ -284,7 +291,10 @@ class SyscallTracer(Application):
             raise err
         self.debugger.quit()
         print(json.dumps(self.data, sort_keys=True, indent=4))
-        json.dump(self.data, open("/tmp/data.json", "w"))
+
+        os.makedirs(self.options.output, exist_ok=True)
+        with open(self.options.output + '/data.json', 'w') as out:
+            json.dump(self.data, out)
 
     def createChild(self, program):
         pid = Application.createChild(self, program)
