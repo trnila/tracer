@@ -114,10 +114,20 @@ class TestStringMethods(unittest.TestCase):
         self.assertEqual(write['src']['port'], read['dst']['port'])
         self.assertEqual(write['src']['address'], read['dst']['address'])
 
+    def test_ipv6_resolve(self):
+        data = self.execute('curl', ['http://[2606:2800:220:1:248:1893:25c8:1946]/'])
+        root = data[list(data.keys())[0]]
+        write = [p for i, p in root['write'].items() if p['type'] == 'socket'][0]
+        read = [p for i, p in root['read'].items() if p['type'] == 'socket'][0]
 
+        self.assertEqual('2606:2800:0220:0001:0248:1893:25c8:1946', write['dst']['address'])
+        self.assertEqual(80, write['dst']['port'])
 
+        self.assertEqual('2606:2800:0220:0001:0248:1893:25c8:1946', read['src']['address'])
+        self.assertEqual(80, read['src']['port'])
 
-
+        self.assertEqual(write['src']['port'], read['dst']['port'])
+        self.assertEqual(write['src']['address'], read['dst']['address'])
 
 import utils
 class TestUtils(unittest.TestCase):
@@ -139,6 +149,9 @@ class Ipv4Test(unittest.TestCase):
     def test_ipv4_invalid(self):
         with self.assertRaises(ValueError):
             utils.parse_ipv4('inva')
+
+    def test_ipv6(self):
+        self.assertEqual('2606:2800:0220:0001:0248:1893:25c8:1946', utils.parse_ipv6('0028062601002002931848024619C825'))
 
 if __name__ == '__main__':
         unittest.main()

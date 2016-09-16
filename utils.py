@@ -28,3 +28,14 @@ def parse_ipv4(s):
         )
     except:
         raise ValueError('Invalid address')
+
+def parse_ipv6(s):
+    result = ""
+    parts = [s[i * 8:i * 8+8] for i, y in enumerate(s[::8])]
+    for i in range(0, 4):
+        for j in range(0, 4):
+            result += format(((int(parts[i], 16) >> (8*j)) & 0xFF), '02x')
+            if j == 1 or j == 3:
+                result += ':'
+
+    return result.strip(':')

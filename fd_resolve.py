@@ -6,26 +6,26 @@ import utils
 
 
 def resolve_socket(inode, read):
-    with open('/proc/net/tcp') as file:
-        content = file.read().splitlines()[1:]
-        for i in content:
-            parts = i.split()
-            print(parts)
-            if parts[9] == inode:
-                ip, port = parts[1 if read else 2].split(':')
-                ip2, port2 = parts[2 if read else 1].split(':')
+    for file_location, addr_resolver in [('/proc/net/tcp', utils.parse_ipv4), ('/proc/net/tcp6', utils.parse_ipv6)]:
+        with open(file_location) as file:
+            content = file.read().splitlines()[1:]
+            for i in content:
+                parts = i.split()
+                if parts[9] == inode:
+                    ip, port = parts[1 if read else 2].split(':')
+                    ip2, port2 = parts[2 if read else 1].split(':')
 
-                return {
-                    "type": "socket",
-                    "dst": {
-                        "address": utils.parse_ipv4(ip),
-                        "port": int(port, 16)
-                    },
-                    "src": {
-                        "address": utils.parse_ipv4(ip2),
-                        "port": int(port2, 16)
+                    return {
+                        "type": "socket",
+                        "dst": {
+                            "address": addr_resolver(ip),
+                            "port": int(port, 16)
+                        },
+                        "src": {
+                            "address": addr_resolver(ip2),
+                            "port": int(port2, 16)
+                        }
                     }
-                }
 
 
 def resolve(pid, fd, read):
@@ -54,4 +54,6 @@ def resolve(pid, fd, read):
         if a:
             return a
 
-    return {}
+    return {
+        'type': 'unknown'
+    }
