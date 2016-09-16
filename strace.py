@@ -28,70 +28,23 @@ class SyscallTracer(Application):
 
         # Parse self.options
         self.parseOptions()
-
-        # Setup output (log)
-        self.setupLog()
-
         self.data = {}
-
-    def setupLog(self):
-        if self.options.output:
-            fd = open(self.options.output, 'w')
-            self._output = fd
-        else:
-            fd = stderr
-            self._output = None
-        self._setupLog(fd)
 
     def parseOptions(self):
         parser = OptionParser(usage="%prog [options] -- program [arg1 arg2 ...]")
         self.createCommonOptions(parser)
-        parser.add_option("--enter", help="Show system call enter and exit",
-            action="store_true", default=False)
-        parser.add_option("--profiler", help="Use profiler",
-            action="store_true", default=False)
-        parser.add_option("--type", help="Display arguments type and result type (default: no)",
-            action="store_true", default=False)
-        parser.add_option("--name", help="Display argument name (default: no)",
-            action="store_true", default=False)
-        parser.add_option("--string-length", "-s", help="String max length (default: 300)",
-            type="int", default=300)
-        parser.add_option("--array-count", help="Maximum number of array items (default: 20)",
-            type="int", default=20)
-        parser.add_option("--raw-socketcall", help="Raw socketcall form",
-            action="store_true", default=False)
-        parser.add_option("--output", "-o", help="Write output to specified log file",
-            type="str")
         parser.add_option("--ignore-regex", help="Regex used to filter syscall names (eg. --ignore='^(gettimeofday|futex|f?stat)')",
             type="str")
-        parser.add_option("--address", help="Display structure addressl",
-            action="store_true", default=False)
         parser.add_option("--syscalls", '-e', help="Comma separated list of shown system calls (other will be skipped)",
             type="str", default=None)
-        parser.add_option("--socket", help="Show only socket functions",
-            action="store_true", default=False)
         parser.add_option("--filename", help="Show only syscall using filename",
-            action="store_true", default=False)
-        parser.add_option("--show-pid",
-            help="Prefix line with process identifier",
-            action="store_true", default=False)
-        parser.add_option("--list-syscalls",
-            help="Display system calls and exit",
-            action="store_true", default=False)
-        parser.add_option("-i", "--show-ip",
-            help="print instruction pointer at time of syscall",
             action="store_true", default=False)
 
         self.createLogOptions(parser)
 
         self.options, self.program = parser.parse_args()
 
-        if self.options.list_syscalls:
-            syscalls = list(SYSCALL_NAMES.items())
-            syscalls.sort(key=lambda data: data[0])
-            for num, name in syscalls:
-                print("% 3s: %s" % (num, name))
-            exit(0)
+        self.options.enter = True
 
         if self.options.pid is None and not self.program:
             parser.print_help()
@@ -122,8 +75,6 @@ class SyscallTracer(Application):
                 restype, arguments = format
                 if any(argname in FILENAME_ARGUMENTS for argtype, argname in arguments):
                     only.add(syscall)
-        if self.options.socket:
-            only |= SOCKET_SYSCALL_NAMES
         self.only = only
         if self.options.ignore_regex:
             try:
@@ -134,9 +85,6 @@ class SyscallTracer(Application):
                 exit(1)
         else:
             self.ignore_regex = None
-
-        if self.options.fork:
-            self.options.show_pid = True
 
         self.processOptions()
 
@@ -154,10 +102,7 @@ class SyscallTracer(Application):
         if syscall.result is not None:
             text = "%-40s = %s" % (text, syscall.result_text)
         prefix = []
-        if self.options.show_pid:
-            prefix.append("[%s]" % syscall.process.pid)
-        if self.options.show_ip:
-            prefix.append("[%s]" % formatAddress(syscall.instr_pointer))
+        prefix.append("[%s]" % syscall.process.pid)
         if prefix:
             text = ''.join(prefix) + ' ' + text
         error(text)
@@ -265,7 +210,7 @@ class SyscallTracer(Application):
             env = dict([i.split("=", 1) for i in utils.parseArgs(syscall.arguments[2].text)])
             self.data[syscall.process.pid]['env'] = env
 
-        if syscall and (syscall.result is not None or self.options.enter):
+        if syscall and (syscall.result is not None):
             self.displaySyscall(syscall)
 
         # Break at next syscall
@@ -316,30 +261,15 @@ class SyscallTracer(Application):
         if not process:
             return
 
-        self.syscall_options = FunctionCallOptions(
-            write_types=self.options.type,
-            write_argname=self.options.name,
-            string_max_length=self.options.string_length,
-            replace_socketcall=not self.options.raw_socketcall,
-            write_address=self.options.address,
-            max_array_count=self.options.array_count,
-        )
-        self.syscall_options.instr_pointer = self.options.show_ip
+        self.syscall_options = FunctionCallOptions()
 
         self.syscallTrace(process)
 
     def main(self):
-        if self.options.profiler:
-            from ptrace.profiler import runProfiler
-            runProfiler(getLogger(), self._main)
-        else:
-            self._main()
-        if self._output is not None:
-            self._output.close()
-
-    def _main(self):
         self.debugger = PtraceDebugger()
         self.debugger.traceClone()
+        self.debugger.traceExec()
+        self.debugger.traceFork()
         try:
             self.runDebugger()
         except ProcessExit as event:
