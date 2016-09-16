@@ -144,7 +144,7 @@ class SyscallTracer(Application):
             import hashlib
             name = hashlib.md5(name.encode('utf-8')).hexdigest()
 
-            data['content'] = str(name)
+            data['content'] = type + '_' + str(name)
 
             if name not in self.data[syscall.process.pid][type]:
                 self.data[syscall.process.pid][type][name] = data
@@ -304,7 +304,7 @@ class SyscallTracer(Application):
         print(json.dumps(self.data, sort_keys=True, indent=4))
 
         with open(self.options.output + '/data.json', 'w') as out:
-            json.dump(self.data, out)
+            json.dump(self.data, out, sort_keys=True, indent=4)
 
     def createChild(self, program):
         pid = Application.createChild(self, program)

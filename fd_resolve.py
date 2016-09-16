@@ -27,6 +27,18 @@ def resolve_socket(inode, read):
                         }
                     }
 
+    with open('/proc/net/unix') as file:
+        content = file.read().splitlines()[1:]
+        for i in content:
+            parts = i.split()
+            if parts[6] == inode:
+                path = parts[7] if len(parts) > 7 else None
+                return {
+                    "type": "socket",
+                    "path": path
+                }
+
+
 
 def resolve(pid, fd, read):
     if 'bsd' in platform.system().lower():

@@ -5,6 +5,7 @@ import unittest
 import shutil
 import os
 from pathlib import Path
+from time import sleep
 
 
 def read(fileName):
@@ -128,6 +129,19 @@ class TestStringMethods(unittest.TestCase):
 
         self.assertEqual(write['src']['port'], read['dst']['port'])
         self.assertEqual(write['src']['address'], read['dst']['address'])
+
+    def test_unix(self):
+        with open('/dev/null', 'w') as null:
+            srv = Popen(['python3', 'strace.py', '-o', '/tmp/server', '--', 'python', 'examples/unix_socket_server.py'], stdout=null, stderr=null)
+            sleep(2) # TODO: check when ready
+            data = self.execute('sh', ['-c', 'echo hello world | nc -U /tmp/reverse.sock'])
+            #print(json.dumps(data, sort_keys=True, indent=4))
+            stdout, stderr = srv.communicate()
+            with open("/tmp/data.json") as file:
+                srv_data = json.load(file)
+
+            # TODO: write test
+
 
 import utils
 class TestUtils(unittest.TestCase):
