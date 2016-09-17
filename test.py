@@ -3,6 +3,8 @@ from subprocess import Popen, PIPE
 import json
 import unittest
 
+import sys
+
 import os
 
 import shutil
@@ -36,13 +38,8 @@ class TestStringMethods(unittest.TestCase):
     def execute(self, program, args = []):
         process = Popen(['python3', 'strace.py', '-o', '/tmp', '-f', '--',  program] + args, stdout=PIPE, stderr=PIPE)
         stdout, stderr = process.communicate()
-
-        path = '/tmp/output/' + self._testMethodName
-        Path(path).mkdir(parents=True, exist_ok=True)
-        with open(path + "/stdout", 'w') as out:
-            out.write(stdout.decode('utf-8'))
-        with open(path + "/stderr", 'w') as out:
-            out.write(stderr.decode('utf-8'))
+        print(stdout.decode('utf-8'))
+        print(stderr.decode('utf-8'), file=sys.stderr)
 
         self.assertEqual(0, process.returncode)
 
@@ -168,4 +165,5 @@ class TestUtils(unittest.TestCase):
         self.assertEqual('2606:2800:0220:0001:0248:1893:25c8:1946', utils.parse_ipv6('0028062601002002931848024619C825'))
 
 if __name__ == '__main__':
-        unittest.main()
+    sys.argv.append('-b')
+    unittest.main()
