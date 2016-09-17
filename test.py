@@ -2,8 +2,11 @@ import subprocess
 from subprocess import Popen, PIPE
 import json
 import unittest
-import shutil
+
 import os
+
+import shutil
+import utils
 from pathlib import Path
 from time import sleep
 
@@ -115,6 +118,7 @@ class TestStringMethods(unittest.TestCase):
         self.assertEqual(write['src']['port'], read['dst']['port'])
         self.assertEqual(write['src']['address'], read['dst']['address'])
 
+    @unittest.skipIf("TRAVIS" in os.environ and os.environ["TRAVIS"] == "true", "ipv6 not supported on travis")
     def test_ipv6_resolve(self):
         data = self.execute('curl', ['http://[2606:2800:220:1:248:1893:25c8:1946]/'])
         root = data[list(data.keys())[0]]
@@ -131,6 +135,7 @@ class TestStringMethods(unittest.TestCase):
         self.assertEqual(write['src']['address'], read['dst']['address'])
 
     def test_unix(self):
+        self.skipTest('not yet implemented')
         with open('/dev/null', 'w') as null:
             srv = Popen(['python3', 'strace.py', '-o', '/tmp/server', '--', 'python', 'examples/unix_socket_server.py'], stdout=null, stderr=null)
             sleep(2) # TODO: check when ready
@@ -140,10 +145,6 @@ class TestStringMethods(unittest.TestCase):
             with open("/tmp/data.json") as file:
                 srv_data = json.load(file)
 
-            # TODO: write test
-
-
-import utils
 class TestUtils(unittest.TestCase):
     def test_empty(self):
         self.assertEqual([], utils.parseArgs("<>"))
@@ -154,7 +155,6 @@ class TestUtils(unittest.TestCase):
     def test_multiple(self):
         self.assertEqual(['ls', '-l', '/tmp'], utils.parseArgs("<'ls', '-l', '/tmp', NULL>"))
 
-class Ipv4Test(unittest.TestCase):
     def test_ipv4(self):
         self.assertEqual('93.184.216.34', utils.parse_ipv4('22D8B85D'))
         self.assertEqual('255.255.255.255', utils.parse_ipv4('ffffffff'))
