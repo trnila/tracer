@@ -212,6 +212,10 @@ class SyscallTracer(Application):
     def syscall(self, process):
         state = process.syscall_state
         syscall = state.event(self.syscall_options)
+
+        if syscall.process.pid not in self.data:
+            self.addProcess(syscall.process.pid, syscall.process.parent.pid, syscall.process.is_thread)
+
         if syscall.name == "execve" and syscall.result is not None:
             self.data[syscall.process.pid]['executable'] = syscall.arguments[0].text.strip("'")
             self.data[syscall.process.pid]['arguments'] = utils.parseArgs(syscall.arguments[1].text)
