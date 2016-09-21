@@ -117,7 +117,7 @@ class SyscallTracer(Application):
                 syscall.process.is_thread
             )
 
-        if syscall.name in ["read", "write", "sendmsg", "recvmsg", "sendto", "recvfrom"]:
+        if syscall.name in ["read", "write", "sendmsg", "recvmsg", "sendto", "recvfrom"] and syscall.result > 0:
             type = {
                 "read": "read",
                 "write": "write",
