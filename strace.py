@@ -171,10 +171,10 @@ class SyscallTracer(Application):
             "pid": pid,
             "parent": parent,
             "exitCode": None,
-            "executable": None,
-            "arguments": [],
+            "executable": self.data[parent]['executable'] if parent else None,
+            "arguments": self.data[parent]['arguments'] if parent else None,
             "thread": is_thread,
-            "env": {},
+            "env": self.data[parent]['env'] if parent else None,
             "read": {},
             "write": {}
         }

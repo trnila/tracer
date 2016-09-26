@@ -142,6 +142,20 @@ class TestStringMethods(unittest.TestCase):
             with open("/tmp/data.json") as file:
                 srv_data = json.load(file)
 
+    def test_thread(self):
+        data = self.execute('python', ['examples/threads.py'])
+
+        process = data[list(data.keys())[0]]
+        thread = data[list(data.keys())[1]]
+
+        self.assertTrue(thread['thread'])
+        self.assertFalse(process['thread'])
+        self.assertEqual(process['executable'], thread['executable'])
+        self.assertEqual(process['arguments'], thread['arguments'])
+        self.assertEqual(process['env'], thread['env'])
+
+
+
 class TestUtils(unittest.TestCase):
     def test_empty(self):
         self.assertEqual([], utils.parseArgs("<>"))
