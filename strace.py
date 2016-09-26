@@ -283,16 +283,13 @@ class SyscallTracer(Application):
         self.debugger.traceClone()
         self.debugger.traceExec()
         self.debugger.traceFork()
-        self.runDebugger()
         try:
-            pass
-            #self.runDebugger()
+            self.runDebugger()
         except ProcessExit as event:
             self.processExited(event)
-        #except PtraceError as err:
-        #    error("ptrace() error: %s" % err)
         except KeyboardInterrupt:
             error("Interrupted.")
+            self.debugger.quit()
         except PTRACE_ERRORS as err:
             writeError(getLogger(), err, "Debugger error")
         except err:
