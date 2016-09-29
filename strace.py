@@ -17,7 +17,6 @@ from ptrace.syscall import (SYSCALL_NAMES, SYSCALL_PROTOTYPES,
 import utils
 from TracedData import TracedData
 
-
 class SyscallTracer(Application):
     def __init__(self):
         Application.__init__(self)
@@ -117,6 +116,37 @@ class SyscallTracer(Application):
                 syscall.process.is_thread
             )
 
+        if syscall.result >= 0:
+            if syscall.name == 'open':
+                self.pids[syscall.process.pid][str(syscall.result)] = syscall.arguments[0].text
+                print("%d: %s" % (syscall.process.pid, self.pids[syscall.process.pid]))
+                os.system("ls /proc/%d/fd -l" % syscall.process.pid)
+            if syscall.name == 'pipe':
+                pipe = syscall.process.readBytes(syscall.arguments[0].value, 8)
+                fd1, fd2 = unpack("ii", pipe)
+                self.pids[syscall.process.pid][str(fd1)] = fd1
+                self.pids[syscall.process.pid][str(fd2)] = fd2
+                print("PIPE: %d %d" % (fd1, fd2))
+                print("%d: %s" % (syscall.process.pid, self.pids[syscall.process.pid]))
+                os.system("ls /proc/%d/fd -l" % syscall.process.pid)
+
+            if syscall.name == 'dup2':
+                a = str(syscall.arguments[0].value)
+                b = str(syscall.arguments[1].value)
+                self.pids[syscall.process.pid][b] = self.pids[syscall.process.pid][a]
+                print("%d: %s" % (syscall.process.pid, self.pids[syscall.process.pid]))
+                os.system("ls /proc/%d/fd -l" % syscall.process.pid)
+
+            if syscall.name == 'close':
+                def removekey(d, key):
+                    r = dict(d)
+                    del r[key]
+                    return r
+
+                self.pids[syscall.process.pid] = removekey(self.pids[syscall.process.pid], str(syscall.arguments[0].value))
+                print("%d: %s" % (syscall.process.pid, self.pids[syscall.process.pid]))
+                os.system("ls /proc/%d/fd -l" % syscall.process.pid)
+
         if syscall.name in ["read", "write", "sendmsg", "recvmsg", "sendto", "recvfrom"] and syscall.result > 0:
             type = {
                 "read": "read",
@@ -129,6 +159,8 @@ class SyscallTracer(Application):
 
             import fd_resolve
             data = fd_resolve.resolve(syscall.process.pid, syscall.arguments[0].value, type == 'read')
+            print(self.pids[syscall.process.pid][str(syscall.arguments[0].value)])
+            data['label'] = self.pids[syscall.process.pid][str(syscall.arguments[0].value)]
 
             if 'file' in data and '/usr/lib' in data['file']:
                 return
@@ -255,6 +287,7 @@ class SyscallTracer(Application):
     def newProcess(self, event):
         process = event.process
         error("*** New process %s ***" % process.pid)
+        self.pids[process.pid] = self.pids[process.parent.pid]
         self.prepareProcess(process)
         process.parent.syscall()
 
@@ -275,12 +308,16 @@ class SyscallTracer(Application):
         self.syscallTrace(process)
 
     def main(self):
+        self.pids = {}
         self.debugger = PtraceDebugger()
         self.debugger.traceClone()
         self.debugger.traceExec()
         self.debugger.traceFork()
+        self.runDebugger()
+
         try:
-            self.runDebugger()
+            pass
+            #self.runDebugger()
         except ProcessExit as event:
             self.processExited(event)
         except KeyboardInterrupt:
@@ -291,7 +328,7 @@ class SyscallTracer(Application):
         except err:
             raise err
         self.debugger.quit()
-        print(json.dumps(self.data.data, sort_keys=True, indent=4))
+        #print(json.dumps(self.data.data, sort_keys=True, indent=4))
 
         self.data.save()
 
@@ -302,6 +339,8 @@ class SyscallTracer(Application):
         self.data[pid]['executable'] = program[0]
         self.data[pid]['arguments'] = program
         self.data[pid]['env'] = dict(os.environ)
+
+        self.pids[pid] = {'0': 'stdin', '1': 'stdout', '2': 'stdout'}
         return pid
 
 if __name__ == "__main__":
