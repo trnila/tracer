@@ -130,14 +130,10 @@ class SyscallTracer(Application):
             import fd_resolve
             data = fd_resolve.resolve(syscall.process.pid, syscall.arguments[0].value, type == 'read')
 
-
             if 'file' in data and '/usr/lib' in data['file']:
                 return
 
-            name = json.dumps(data, sort_keys=True)
-            import hashlib
-            name = hashlib.md5(name.encode('utf-8')).hexdigest()
-
+            name = data['id']
             data['content'] = type + '_' + str(name)
 
             if name not in self.data[syscall.process.pid][type]:

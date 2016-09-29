@@ -17,6 +17,7 @@ def resolve_socket(inode, read):
 
                     return {
                         "type": "socket",
+                        "id": "".join(sorted([ip, port, ip2, port2])),
                         "dst": {
                             "address": addr_resolver(ip),
                             "port": int(port, 16)
@@ -35,22 +36,19 @@ def resolve_socket(inode, read):
                 path = parts[7] if len(parts) > 7 else None
                 return {
                     "type": "socket",
+                    'id': inode,
                     "path": path
                 }
 
 
-
 def resolve(pid, fd, read):
-    if 'bsd' in platform.system().lower():
-        # TODO: use procstat
-        return str(fd)
-
     dst = os.readlink("/proc/" + str(pid) + "/fd/" + str(fd))
     match = re.search('^(?P<type>socket|pipe):\[(?P<inode>\d+)\]$', dst)
 
     if not match:
         return {
             'type': 'file',
+            'id': dst.replace('/', '_'),
             'file': dst
         }
 
@@ -59,6 +57,7 @@ def resolve(pid, fd, read):
     if type == 'pipe':
         return {
             'type': 'pipe',
+            'id': inode,
             'inode': inode
         }
     elif type == 'socket':
@@ -67,5 +66,6 @@ def resolve(pid, fd, read):
             return a
 
     return {
-        'type': 'unknown'
+        'type': 'unknown',
+        'id': 'unknown'
     }
