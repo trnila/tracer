@@ -127,7 +127,9 @@ class SyscallTracer(Application):
             if syscall.name == 'open':
                 self.add_descriptor(syscall.process.pid, fd.File(self.data, syscall.result, syscall.arguments[0].text))
             elif syscall.name == 'socket':
-                self.add_descriptor(syscall.process.pid, fd.Socket(self.data, syscall.result))
+                descriptor = fd.Socket(self.data, syscall.result)
+                descriptor.family = syscall.arguments[0].value
+                self.add_descriptor(syscall.process.pid, descriptor)
             elif syscall.name == 'pipe':
                 pipe = syscall.process.readBytes(syscall.arguments[0].value, 8)
                 fd1, fd2 = unpack("ii", pipe)
@@ -150,7 +152,7 @@ class SyscallTracer(Application):
 
                 family = unpack("H", bytes[0:2])[0]
                 descriptor = self.get_descriptor(syscall.process.pid, fdnum)
-                descriptor.family = family
+                descriptor.family = family # TODO: redundant
 
                 if family == socket.AF_UNIX:
                     descriptor.addr = bytes[2:].decode('utf-8')
@@ -185,7 +187,7 @@ class SyscallTracer(Application):
 
             descriptor = self.get_descriptor(syscall.process.pid, syscall.arguments[0].value)
 
-            if '/usr/lib' in descriptor.getLabel():
+            if descriptor.getLabel() and '/usr/lib' in descriptor.getLabel():
                 return
 
             content = b""
