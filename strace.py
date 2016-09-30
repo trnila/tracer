@@ -133,6 +133,8 @@ class SyscallTracer(Application):
                 fd1, fd2 = unpack("ii", pipe)
                 self.add_descriptor(syscall.process.pid, fd.Pipe(self.data, fd1))
                 self.add_descriptor(syscall.process.pid, fd.Pipe(self.data, fd2))
+            elif syscall.name == 'bind':
+                self.get_descriptor(syscall.process.pid, syscall.arguments[0].value).server = True
             elif syscall.name in ['connect', 'accept']:
                 # struct sockaddr { unsigned short family; }
                 if syscall.name == 'connect':
