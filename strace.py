@@ -9,6 +9,7 @@ from logging import getLogger, error
 from optparse import OptionParser
 from struct import unpack
 from sys import stderr, exit
+
 from ptrace.cpu_info import CPU_WORD_SIZE
 from ptrace.debugger import (PtraceDebugger, Application,
     ProcessExit, ProcessSignal, NewProcessEvent, ProcessExecution)
@@ -16,9 +17,11 @@ from ptrace.error import PTRACE_ERRORS, writeError
 from ptrace.func_call import FunctionCallOptions
 from ptrace.syscall import (SYSCALL_NAMES, SYSCALL_PROTOTYPES,
                             FILENAME_ARGUMENTS)
+
+import fd
 import utils
 from TracedData import TracedData
-import fd
+from json_encode import AppJSONEncoder
 
 
 class SyscallTracer(Application):
@@ -122,22 +125,23 @@ class SyscallTracer(Application):
 
         if syscall.result >= 0 or syscall.result == -115: # EINPROGRESS
             if syscall.name == 'open':
-                self.add_descriptor(syscall.process.pid, fd.FileDescriptor(syscall.result, syscall.arguments[0].text))
-            if syscall.name == 'socket':
-                self.add_descriptor(syscall.process.pid, fd.Socket(syscall.result))
-            if syscall.name == 'pipe':
+                self.add_descriptor(syscall.process.pid, fd.File(self.data, syscall.result, syscall.arguments[0].text))
+            elif syscall.name == 'socket':
+                self.add_descriptor(syscall.process.pid, fd.Socket(self.data, syscall.result))
+            elif syscall.name == 'pipe':
                 pipe = syscall.process.readBytes(syscall.arguments[0].value, 8)
                 fd1, fd2 = unpack("ii", pipe)
-                self.add_descriptor(syscall.process.pid, fd.Pipe(fd1))
-                self.add_descriptor(syscall.process.pid, fd.Pipe(fd2))
-
-            if syscall.name == 'connect':
+                self.add_descriptor(syscall.process.pid, fd.Pipe(self.data, fd1))
+                self.add_descriptor(syscall.process.pid, fd.Pipe(self.data, fd2))
+            elif syscall.name == 'connect':
                 # struct sockaddr { unsigned short family; }
                 bytes = syscall.process.readBytes(syscall.arguments[1].value, syscall.arguments[2].value)
                 family = unpack("H", bytes[0:2])[0]
+                descriptor = self.get_descriptor(syscall.process.pid, syscall.arguments[0].value)
+                descriptor.family = family
 
                 if family == socket.AF_UNIX:
-                    self.get_descriptor(syscall.process.pid, syscall.arguments[0].value).addr = bytes[2:].decode('utf-8')
+                    descriptor.addr = bytes[2:].decode('utf-8')
                 elif family in [socket.AF_INET6, socket.AF_INET]:
                     port = unpack(">H", bytes[2:4])[0]
 
@@ -146,20 +150,15 @@ class SyscallTracer(Application):
                     else:
                         addr = ipaddress.ip_address(bytes[4:8])
 
-                    descriptor = self.get_descriptor(syscall.process.pid, syscall.arguments[0].value)
                     descriptor.addr = addr
                     descriptor.port = port
-                    descriptor.family = family
                 else:
                     raise NotImplemented("family not implemented")
-
-
-            if syscall.name == 'dup2':
+            elif syscall.name == 'dup2':
                 a = syscall.arguments[0].value
                 b = syscall.arguments[1].value
                 self.pids[syscall.process.pid][b] = self.pids[syscall.process.pid][a]
-
-            if syscall.name == 'close':
+            elif syscall.name == 'close':
                 self.close_descriptor(syscall.process.pid, syscall.arguments[0].value)
 
         if syscall.name in ["read", "write", "sendmsg", "recvmsg", "sendto", "recvfrom"] and syscall.result > 0:
@@ -172,29 +171,20 @@ class SyscallTracer(Application):
                 "recvfrom": "read"
             }[syscall.name]
 
-            data = self.pids[syscall.process.pid][syscall.arguments[0].value]
+            descriptor = self.get_descriptor(syscall.process.pid, syscall.arguments[0].value)
 
-            if '/usr/lib' in data.getLabel():
+            if '/usr/lib' in descriptor.getLabel():
                 return
-
-            name = data.getId()
-            content = family + '_' + data.getLabel()
-
-            #if name not in self.data[syscall.process.pid][type]:
-             #   self.data[syscall.process.pid][type][name] = data
-                # self.options.output + "/" + type + "__" + str(syscall.process.pid) + "_" + str(name)
-            file = "/tmp/" + content.replace('/', '_')
-
 
             content = b""
 
             if syscall.name in ['sendmsg', 'recvmsg']:
-                data = syscall.process.readBytes(syscall.arguments[1].value, 32)
-                items = unpack("PIPL", data)
+                bytes = syscall.process.readBytes(syscall.arguments[1].value, 32)
+                items = unpack("PIPL", bytes)
 
                 for i in range(0, items[3]):
-                    data = syscall.process.readBytes(items[2] + 16*i, 16)
-                    i = unpack("PL", data)
+                    bytes = syscall.process.readBytes(items[2] + 16*i, 16)
+                    i = unpack("PL", bytes)
                     content += syscall.process.readBytes(i[0], i[1])
             else:
                 wrote = 0
@@ -204,7 +194,10 @@ class SyscallTracer(Application):
                     wrote = syscall.arguments[2].value
                 content = syscall.process.readBytes(syscall.arguments[1].value, wrote)
 
-            self.data.append_file(file, content)
+            if family == 'read':
+                descriptor.read(content)
+            else:
+                descriptor.write(content)
 
     def addProcess(self, pid, parent, is_thread):
         self.data[pid] = {
@@ -215,8 +208,7 @@ class SyscallTracer(Application):
             "arguments": self.data[parent]['arguments'] if parent else None,
             "thread": is_thread,
             "env": self.data[parent]['env'] if parent else None,
-            "read": {},
-            "write": {}
+            "descriptors": []
         }
 
     def add_descriptor(self, pid, descriptor):
@@ -226,10 +218,9 @@ class SyscallTracer(Application):
         return self.pids[pid][descriptor]
 
     def close_descriptor(self, pid, descriptor):
-        import random
-        self.data[pid]['read'][descriptor + random.randint(0, 100000)] = {
-            'label': self.pids[pid][descriptor].getLabel()
-        }
+
+        if self.get_descriptor(pid, descriptor).used:
+            self.data[pid]['descriptors'].append(self.get_descriptor(pid, descriptor))
 
         def removekey(d, key):
             r = dict(d)
@@ -363,7 +354,7 @@ class SyscallTracer(Application):
         except err:
             raise err
         self.debugger.quit()
-        print(json.dumps(self.data.data, sort_keys=True, indent=4))
+        print(json.dumps(self.data.data, sort_keys=True, indent=4, cls=AppJSONEncoder))
 
         self.data.save()
 
@@ -376,9 +367,9 @@ class SyscallTracer(Application):
         self.data[pid]['env'] = dict(os.environ)
 
         self.pids[pid] = {
-            0: fd.FileDescriptor(0, "stdin"),
-            1: fd.FileDescriptor(0, "stdout"),
-            2: fd.FileDescriptor(0, "stderr")
+            0: fd.File(self.data, 0, "stdin"),
+            1: fd.File(self.data, 1, "stdout"),
+            2: fd.File(self.data, 2, "stderr")
         }
         return pid
 
