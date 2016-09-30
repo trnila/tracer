@@ -121,6 +121,10 @@ class SyscallTracer(Application):
                 self.pids[syscall.process.pid][str(syscall.result)] = syscall.arguments[0].text
                 print("%d: %s" % (syscall.process.pid, self.pids[syscall.process.pid]))
                 os.system("ls /proc/%d/fd -l" % syscall.process.pid)
+            if syscall.name == 'socket':
+                self.pids[syscall.process.pid][str(syscall.result)] = "some socket"
+                print("%d: %s" % (syscall.process.pid, self.pids[syscall.process.pid]))
+                os.system("ls /proc/%d/fd -l" % syscall.process.pid)
             if syscall.name == 'pipe':
                 pipe = syscall.process.readBytes(syscall.arguments[0].value, 8)
                 fd1, fd2 = unpack("ii", pipe)
