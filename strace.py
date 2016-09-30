@@ -133,11 +133,21 @@ class SyscallTracer(Application):
                 fd1, fd2 = unpack("ii", pipe)
                 self.add_descriptor(syscall.process.pid, fd.Pipe(self.data, fd1))
                 self.add_descriptor(syscall.process.pid, fd.Pipe(self.data, fd2))
-            elif syscall.name == 'connect':
+            elif syscall.name in ['connect', 'accept']:
                 # struct sockaddr { unsigned short family; }
-                bytes = syscall.process.readBytes(syscall.arguments[1].value, syscall.arguments[2].value)
+                if syscall.name == 'connect':
+                    bytes = syscall.process.readBytes(syscall.arguments[1].value, syscall.arguments[2].value)
+                    fdnum = syscall.arguments[0].value
+                elif syscall.name == 'accept':
+                    bytes = syscall.process.readBytes(syscall.arguments[2].value, 4)
+                    socket_size = unpack("I", bytes)[0]
+                    bytes = syscall.process.readBytes(syscall.arguments[1].value, socket_size)
+                    fdnum = syscall.result
+
+                    self.add_descriptor(syscall.process.pid, fd.Socket(self.data, fdnum))
+
                 family = unpack("H", bytes[0:2])[0]
-                descriptor = self.get_descriptor(syscall.process.pid, syscall.arguments[0].value)
+                descriptor = self.get_descriptor(syscall.process.pid, fdnum)
                 descriptor.family = family
 
                 if family == socket.AF_UNIX:
