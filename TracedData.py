@@ -1,6 +1,8 @@
 import json
 import os
 
+from json_encode import AppJSONEncoder
+
 
 class TracedData:
     def __init__(self, path):
@@ -31,4 +33,4 @@ class TracedData:
 
     def save(self):
         with open(os.path.join(self.path, 'data.json'), 'w') as out:
-            json.dump(self.data, out, sort_keys=True, indent=4)
+            json.dump(self.data, out, sort_keys=True, indent=4, cls=AppJSONEncoder)
