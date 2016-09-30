@@ -124,7 +124,7 @@ class SyscallTracer(Application):
             if syscall.name == 'open':
                 self.add_descriptor(syscall.process.pid, fd.FileDescriptor(syscall.result, syscall.arguments[0].text))
             if syscall.name == 'socket':
-                self.add_descriptor(syscall.process.pid, fd.NetworkSocket(syscall.result))
+                self.add_descriptor(syscall.process.pid, fd.Socket(syscall.result))
             if syscall.name == 'pipe':
                 pipe = syscall.process.readBytes(syscall.arguments[0].value, 8)
                 fd1, fd2 = unpack("ii", pipe)
@@ -137,15 +137,19 @@ class SyscallTracer(Application):
                 family = unpack("H", bytes[0:2])[0]
 
                 if family == socket.AF_UNIX:
-                    self.get_descriptor(syscall.process.pid, syscall.arguments[0].value).label = bytes[2:].decode('utf-8')
-                elif family == socket.AF_INET6:
+                    self.get_descriptor(syscall.process.pid, syscall.arguments[0].value).addr = bytes[2:].decode('utf-8')
+                elif family in [socket.AF_INET6, socket.AF_INET]:
                     port = unpack(">H", bytes[2:4])[0]
-                    addr = ipaddress.ip_address(bytes[8:24])
-                    self.get_descriptor(syscall.process.pid, syscall.arguments[0].value).label = "%s:%s" % (addr, port)
-                elif family == socket.AF_INET:
-                    port = unpack(">H", bytes[2:4])[0]
-                    addr = ipaddress.ip_address(bytes[4:8])
-                    self.get_descriptor(syscall.process.pid, syscall.arguments[0].value).label = "%s:%s" % (addr, port)
+
+                    if family == socket.AF_INET6:
+                        addr = ipaddress.ip_address(bytes[8:24])
+                    else:
+                        addr = ipaddress.ip_address(bytes[4:8])
+
+                    descriptor = self.get_descriptor(syscall.process.pid, syscall.arguments[0].value)
+                    descriptor.addr = addr
+                    descriptor.port = port
+                    descriptor.family = family
                 else:
                     raise NotImplemented("family not implemented")
 
