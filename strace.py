@@ -16,6 +16,8 @@ from ptrace.syscall import (SYSCALL_NAMES, SYSCALL_PROTOTYPES,
                             FILENAME_ARGUMENTS)
 import utils
 from TracedData import TracedData
+import fd
+
 
 class SyscallTracer(Application):
     def __init__(self):
@@ -118,38 +120,22 @@ class SyscallTracer(Application):
 
         if syscall.result >= 0:
             if syscall.name == 'open':
-                self.pids[syscall.process.pid][str(syscall.result)] = syscall.arguments[0].text
-                print("%d: %s" % (syscall.process.pid, self.pids[syscall.process.pid]))
-                os.system("ls /proc/%d/fd -l" % syscall.process.pid)
+                self.add_descriptor(syscall.process.pid, fd.FileDescriptor(syscall.result, syscall.arguments[0].text))
             if syscall.name == 'socket':
-                self.pids[syscall.process.pid][str(syscall.result)] = "some socket"
-                print("%d: %s" % (syscall.process.pid, self.pids[syscall.process.pid]))
-                os.system("ls /proc/%d/fd -l" % syscall.process.pid)
+                self.add_descriptor(syscall.process.pid, fd.NetworkSocket(syscall.result))
             if syscall.name == 'pipe':
                 pipe = syscall.process.readBytes(syscall.arguments[0].value, 8)
                 fd1, fd2 = unpack("ii", pipe)
-                self.pids[syscall.process.pid][str(fd1)] = fd1
-                self.pids[syscall.process.pid][str(fd2)] = fd2
-                print("PIPE: %d %d" % (fd1, fd2))
-                print("%d: %s" % (syscall.process.pid, self.pids[syscall.process.pid]))
-                os.system("ls /proc/%d/fd -l" % syscall.process.pid)
+                self.add_descriptor(syscall.process.pid, fd.Pipe(fd1))
+                self.add_descriptor(syscall.process.pid, fd.Pipe(fd2))
 
             if syscall.name == 'dup2':
-                a = str(syscall.arguments[0].value)
-                b = str(syscall.arguments[1].value)
+                a = syscall.arguments[0].value
+                b = syscall.arguments[1].value
                 self.pids[syscall.process.pid][b] = self.pids[syscall.process.pid][a]
-                print("%d: %s" % (syscall.process.pid, self.pids[syscall.process.pid]))
-                os.system("ls /proc/%d/fd -l" % syscall.process.pid)
 
             if syscall.name == 'close':
-                def removekey(d, key):
-                    r = dict(d)
-                    del r[key]
-                    return r
-
-                self.pids[syscall.process.pid] = removekey(self.pids[syscall.process.pid], str(syscall.arguments[0].value))
-                print("%d: %s" % (syscall.process.pid, self.pids[syscall.process.pid]))
-                os.system("ls /proc/%d/fd -l" % syscall.process.pid)
+                self.close_descriptor(syscall.process.pid, syscall.arguments[0].value)
 
         if syscall.name in ["read", "write", "sendmsg", "recvmsg", "sendto", "recvfrom"] and syscall.result > 0:
             type = {
@@ -161,21 +147,18 @@ class SyscallTracer(Application):
                 "recvfrom": "read"
             }[syscall.name]
 
-            import fd_resolve
-            data = fd_resolve.resolve(syscall.process.pid, syscall.arguments[0].value, type == 'read')
-            print(self.pids[syscall.process.pid][str(syscall.arguments[0].value)])
-            data['label'] = self.pids[syscall.process.pid][str(syscall.arguments[0].value)]
+            data = self.pids[syscall.process.pid][syscall.arguments[0].value]
 
-            if 'file' in data and '/usr/lib' in data['file']:
+            if '/usr/lib' in data.getLabel():
                 return
 
-            name = data['id']
-            data['content'] = type + '_' + str(name)
+            name = data.getId()
+            content = type + '_' + data.getLabel()
 
-            if name not in self.data[syscall.process.pid][type]:
-                self.data[syscall.process.pid][type][name] = data
+            #if name not in self.data[syscall.process.pid][type]:
+             #   self.data[syscall.process.pid][type][name] = data
                 # self.options.output + "/" + type + "__" + str(syscall.process.pid) + "_" + str(name)
-            file = self.data[syscall.process.pid][type][name]['content']
+            file = "/tmp/" + content.replace('/', '_')
 
 
             content = b""
@@ -210,6 +193,22 @@ class SyscallTracer(Application):
             "read": {},
             "write": {}
         }
+
+    def add_descriptor(self, pid, descriptor):
+        self.pids[pid][descriptor.fd] = descriptor
+
+    def close_descriptor(self, pid, descriptor):
+        import random
+        self.data[pid]['read'][descriptor + random.randint(0, 100000)] = {
+            'label': self.pids[pid][descriptor].getLabel()
+        }
+
+        def removekey(d, key):
+            r = dict(d)
+            del r[key]
+            return r
+
+        self.pids[pid] = removekey(self.pids[pid], descriptor)
 
     def syscallTrace(self, process):
         # First query to break at next syscall
@@ -284,6 +283,10 @@ class SyscallTracer(Application):
         error("*** %s ***" % event)
         self.data[event.process.pid]['exitCode'] = event.exitcode
 
+        for fd, descriptor in self.pids[event.process.pid].items():
+            self.close_descriptor(event.process.pid, fd)
+
+
     def prepareProcess(self, process):
         process.syscall()
         process.syscall_state.ignore_callback = self.ignoreSyscall
@@ -332,7 +335,7 @@ class SyscallTracer(Application):
         except err:
             raise err
         self.debugger.quit()
-        #print(json.dumps(self.data.data, sort_keys=True, indent=4))
+        print(json.dumps(self.data.data, sort_keys=True, indent=4))
 
         self.data.save()
 
@@ -344,7 +347,11 @@ class SyscallTracer(Application):
         self.data[pid]['arguments'] = program
         self.data[pid]['env'] = dict(os.environ)
 
-        self.pids[pid] = {'0': 'stdin', '1': 'stdout', '2': 'stdout'}
+        self.pids[pid] = {
+            0: fd.FileDescriptor(0, "stdin"),
+            1: fd.FileDescriptor(0, "stdout"),
+            2: fd.FileDescriptor(0, "stderr")
+        }
         return pid
 
 if __name__ == "__main__":
