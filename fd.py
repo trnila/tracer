@@ -69,6 +69,7 @@ class Socket(Descriptor):
         self.addr = None
         self.port = None
         self.family = None
+        self.server = False
 
     def getLabel(self):
         if self.family in [socket.AF_INET, socket.AF_INET6]:
@@ -79,6 +80,7 @@ class Socket(Descriptor):
         json = super().to_json()
         json['address'] = self.addr
         json['family'] = self.family
+        json['server'] = self.server
 
         if self.family in [socket.AF_INET, socket.AF_INET6]:
             json['port'] = self.port
