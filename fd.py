@@ -39,6 +39,7 @@ class UnixSocket(Descriptor):
 class NetworkSocket(Descriptor):
     def __init__(self, fd):
         super().__init__(fd)
+        self.label = "socket"
 
     def getLabel(self):
-        return "tcp socket"
+        return self.label
