@@ -325,7 +325,13 @@ class SyscallTracer(Application):
     def newProcess(self, event):
         process = event.process
         error("*** New process %s ***" % process.pid)
-        self.pids[process.pid] = self.pids[process.parent.pid]
+
+        import copy
+        self.pids[process.pid] = copy.deepcopy(self.pids[process.parent.pid])
+
+        for id, descriptor in self.pids[process.pid].items():
+            descriptor.change_id()
+
         self.prepareProcess(process)
         process.parent.syscall()
 

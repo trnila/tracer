@@ -9,8 +9,13 @@ class Descriptor:
     def __init__(self, location, fd):
         self.location = location
         self.fd = fd
-        self.id = str(id(self))
         self.used = 0
+        self.id = None
+        self.change_id()
+
+    def change_id(self):
+        import uuid
+        self.id = str(uuid.uuid4())
 
     def getLabel(self):
         return ""
