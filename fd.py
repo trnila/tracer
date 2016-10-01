@@ -41,11 +41,17 @@ class Descriptor:
 
 
 class Pipe(Descriptor):
-    def __init__(self, location, fd):
+    def __init__(self, location, fd, pipe_id):
         super().__init__(location, fd)
+        self.pipe_id = pipe_id
 
     def getLabel(self):
-        return "pipe"
+        return "pipe: %d" % self.pipe_id
+
+    def to_json(self):
+        json = super().to_json()
+        json['pipe_id'] = self.pipe_id
+        return json
 
 
 class File(Descriptor):
