@@ -32,6 +32,7 @@ class SyscallTracer(Application):
         # Parse self.options
         self.parseOptions()
         self.data = TracedData(self.options.output)
+        self.pipes = 0
 
     def parseOptions(self):
         parser = OptionParser(usage="%prog [options] -- program [arg1 arg2 ...]")
@@ -134,8 +135,9 @@ class SyscallTracer(Application):
             elif syscall.name == 'pipe':
                 pipe = syscall.process.readBytes(syscall.arguments[0].value, 8)
                 fd1, fd2 = unpack("ii", pipe)
-                self.add_descriptor(syscall.process.pid, fd.Pipe(self.data, fd1))
-                self.add_descriptor(syscall.process.pid, fd.Pipe(self.data, fd2))
+                self.add_descriptor(syscall.process.pid, fd.Pipe(self.data, fd1, self.pipes))
+                self.add_descriptor(syscall.process.pid, fd.Pipe(self.data, fd2, self.pipes))
+                self.pipes += 1
             elif syscall.name == 'bind':
                 descriptor = self.get_descriptor(syscall.process.pid, syscall.arguments[0].value)
                 bytes = syscall.process.readBytes(syscall.arguments[1].value, syscall.arguments[2].value)
