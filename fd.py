@@ -1,3 +1,4 @@
+import ipaddress
 import socket
 
 
@@ -66,9 +67,9 @@ class Socket(Descriptor):
     def __init__(self, location, fd):
         super().__init__(location, fd)
         self.label = "socket"
-        self.addr = None
-        self.port = None
         self.family = None
+        self.local = None
+        self.remote = None
         self.server = False
 
     def getLabel(self):
@@ -78,11 +79,45 @@ class Socket(Descriptor):
 
     def to_json(self):
         json = super().to_json()
-        json['address'] = self.addr
         json['family'] = self.family
+        json['local'] = self.local
+        json['remote'] = self.remote
         json['server'] = self.server
-
-        if self.family in [socket.AF_INET, socket.AF_INET6]:
-            json['port'] = self.port
-
         return json
+
+
+class Address:
+    def __init__(self, family):
+        self.family = family
+
+    def get_family(self):
+        return self.family
+
+    def to_json(self):
+        return self.family
+
+
+class NetworkAddress:
+    def __init__(self, address, port):
+        self.address = address
+        self.port = port
+
+    def get_family(self):
+        return socket.AF_INET6 if isinstance(self.address, ipaddress.IPv6Address) else socket.AF_INET
+
+    def to_json(self):
+        return {
+            'address': self.address,
+            'port': self.port
+        }
+
+
+class UnixAddress:
+    def __init__(self, path):
+        self.path = path
+
+    def get_family(self):
+        return socket.AF_UNIX
+
+    def to_json(self):
+        return self.path
