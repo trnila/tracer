@@ -75,13 +75,14 @@ class File(Descriptor):
 
 
 class Socket(Descriptor):
-    def __init__(self, location, fd):
+    def __init__(self, location, fd, socket_id):
         super().__init__(location, fd)
         self.label = "socket"
         self.family = None
         self.local = None
         self.remote = None
         self.server = False
+        self.socket_id = socket_id
 
     def getLabel(self):
         if self.family in [socket.AF_INET, socket.AF_INET6]:
@@ -94,6 +95,7 @@ class Socket(Descriptor):
         json['local'] = self.local
         json['remote'] = self.remote
         json['server'] = self.server
+        json['socket_id'] = self.socket_id
         return json
 
 
