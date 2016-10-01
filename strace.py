@@ -21,6 +21,7 @@ from ptrace.syscall import (SYSCALL_NAMES, SYSCALL_PROTOTYPES,
 import fd
 import utils
 from TracedData import TracedData
+from fd_resolve import resolve
 from json_encode import AppJSONEncoder
 
 
@@ -136,38 +137,34 @@ class SyscallTracer(Application):
                 self.add_descriptor(syscall.process.pid, fd.Pipe(self.data, fd1))
                 self.add_descriptor(syscall.process.pid, fd.Pipe(self.data, fd2))
             elif syscall.name == 'bind':
-                self.get_descriptor(syscall.process.pid, syscall.arguments[0].value).server = True
+                descriptor = self.get_descriptor(syscall.process.pid, syscall.arguments[0].value)
+                bytes = syscall.process.readBytes(syscall.arguments[1].value, syscall.arguments[2].value)
+                descriptor.local = utils.parse_addr(bytes)
             elif syscall.name in ['connect', 'accept']:
                 # struct sockaddr { unsigned short family; }
                 if syscall.name == 'connect':
                     bytes = syscall.process.readBytes(syscall.arguments[1].value, syscall.arguments[2].value)
                     fdnum = syscall.arguments[0].value
+
+                    resolved = resolve(syscall.process.pid, fdnum, 1)
+                    if 'dst' in resolved:
+                        self.get_descriptor(syscall.process.pid, fdnum).local = resolved['dst'] # TODO: rewrite
                 elif syscall.name == 'accept':
                     bytes = syscall.process.readBytes(syscall.arguments[2].value, 4)
                     socket_size = unpack("I", bytes)[0]
                     bytes = syscall.process.readBytes(syscall.arguments[1].value, socket_size)
                     fdnum = syscall.result
 
+                    self.get_descriptor(syscall.process.pid, syscall.arguments[0].value).server = True
+                    self.get_descriptor(syscall.process.pid, syscall.arguments[0].value).used = 8
+
                     self.add_descriptor(syscall.process.pid, fd.Socket(self.data, fdnum))
+                    self.get_descriptor(syscall.process.pid, fdnum).local = self.get_descriptor(syscall.process.pid, syscall.arguments[0].value).local
 
-                family = unpack("H", bytes[0:2])[0]
                 descriptor = self.get_descriptor(syscall.process.pid, fdnum)
-                descriptor.family = family # TODO: redundant
-
-                if family == socket.AF_UNIX:
-                    descriptor.addr = bytes[2:].decode('utf-8')
-                elif family in [socket.AF_INET6, socket.AF_INET]:
-                    port = unpack(">H", bytes[2:4])[0]
-
-                    if family == socket.AF_INET6:
-                        addr = ipaddress.ip_address(bytes[8:24])
-                    else:
-                        addr = ipaddress.ip_address(bytes[4:8])
-
-                    descriptor.addr = addr
-                    descriptor.port = port
-                else:
-                    raise NotImplemented("family not implemented")
+                parsed = utils.parse_addr(bytes)
+                descriptor.family = parsed.get_family()
+                descriptor.remote = parsed
             elif syscall.name == 'dup2':
                 a = syscall.arguments[0].value
                 b = syscall.arguments[1].value
@@ -186,8 +183,7 @@ class SyscallTracer(Application):
             }[syscall.name]
 
             descriptor = self.get_descriptor(syscall.process.pid, syscall.arguments[0].value)
-
-            if descriptor.getLabel() and '/usr/lib' in descriptor.getLabel():
+            if isinstance(descriptor, fd.File) and '/usr/lib' in descriptor.path:
                 return
 
             content = b""

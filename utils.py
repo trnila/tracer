@@ -1,3 +1,10 @@
+import ipaddress
+import socket
+from struct import unpack
+
+import fd
+
+
 def parseArgs(str):
     args = []
     capturing = 0
@@ -39,3 +46,21 @@ def parse_ipv6(s):
                 result += ':'
 
     return result.strip(':')
+
+
+def parse_addr(bytes):
+    family = unpack("H", bytes[0:2])[0]
+
+    if family == socket.AF_UNIX:
+        return fd.UnixAddress(bytes[2:].decode('utf-8'))
+    elif family in [socket.AF_INET6, socket.AF_INET]:
+        port = unpack(">H", bytes[2:4])[0]
+
+        if family == socket.AF_INET6:
+            addr = ipaddress.ip_address(bytes[8:24])
+        else:
+            addr = ipaddress.ip_address(bytes[4:8])
+
+        return fd.NetworkAddress(addr, port)
+    else:
+        return fd.Address(family)
