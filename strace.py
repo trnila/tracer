@@ -33,6 +33,7 @@ class SyscallTracer(Application):
         self.parseOptions()
         self.data = TracedData(self.options.output)
         self.pipes = 0
+        self.sockets = 0
 
     def parseOptions(self):
         parser = OptionParser(usage="%prog [options] -- program [arg1 arg2 ...]")
@@ -129,9 +130,10 @@ class SyscallTracer(Application):
             if syscall.name == 'open':
                 self.add_descriptor(syscall.process.pid, fd.File(self.data, syscall.result, syscall.arguments[0].text))
             elif syscall.name == 'socket':
-                descriptor = fd.Socket(self.data, syscall.result)
+                descriptor = fd.Socket(self.data, syscall.result, self.sockets)
                 descriptor.family = syscall.arguments[0].value
                 self.add_descriptor(syscall.process.pid, descriptor)
+                self.sockets += 1
             elif syscall.name == 'pipe':
                 pipe = syscall.process.readBytes(syscall.arguments[0].value, 8)
                 fd1, fd2 = unpack("ii", pipe)
@@ -160,8 +162,9 @@ class SyscallTracer(Application):
                     self.get_descriptor(syscall.process.pid, syscall.arguments[0].value).server = True
                     self.get_descriptor(syscall.process.pid, syscall.arguments[0].value).used = 8
 
-                    self.add_descriptor(syscall.process.pid, fd.Socket(self.data, fdnum))
+                    self.add_descriptor(syscall.process.pid, fd.Socket(self.data, fdnum, self.sockets))
                     self.get_descriptor(syscall.process.pid, fdnum).local = self.get_descriptor(syscall.process.pid, syscall.arguments[0].value).local
+                    self.sockets += 1
 
                 descriptor = self.get_descriptor(syscall.process.pid, fdnum)
                 parsed = utils.parse_addr(bytes)
