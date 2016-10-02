@@ -2,31 +2,71 @@ import subprocess
 from subprocess import Popen, PIPE
 import json
 import unittest
-
 import sys
-
 import os
-
 import shutil
 import utils
-from pathlib import Path
 from time import sleep
+
+from TracedData import System
 
 
 def read(fileName):
     with open(fileName) as f:
         return f.read()
 
-def findByExecutable(data, exe):
-    for pid, process in data.items():
-        if exe in process['executable']:
-            return process
 
-def getKey(data, startsWith):
-    return [i for i in data.keys() if i.startswith(startsWith)][0]
+class TestQuery(unittest.TestCase):
+    def test_simple_key(self):
+        system = System("/tmp/", {
+            12345: {
+                "executable": "/bin/bash",
+            },
+            1111: {
+                "executable": "/bin/cat"
+            }
+        })
+
+        self.assertEqual(
+            "/bin/cat",
+            system.get_process_by(executable="/bin/cat")['executable']
+        )
+
+    def test_descriptor(self):
+        system = System("/tmp/", {
+            12345: {
+                "executable": "/bin/bash",
+                "descriptors": [
+                    {
+                        "type": "file",
+                        "path": "/etc/passwd"
+                    },
+                    {
+                        "type": "unix"
+                    }
+                ]
+            },
+            1111: {
+                "executable": "/bin/cat",
+                "descriptors": [
+                    {
+                        "type": "socket"
+                    },
+                    {
+                        "type": "file",
+                        "path": "/tmp/passwd"
+                    }
+                ]
+            }
+        })
+
+        self.assertEqual(
+            "/bin/cat",
+            system.get_process_by(descriptors={"type": "file", "path": "/tmp/passwd"})['executable']
+        )
 
 
-class TestStringMethods(unittest.TestCase):
+class TestTracer(unittest.TestCase):
     def assertFileEqual(self, file1, file2):
         with open(file1) as f1, open(file2) as f2:
             self.assertEqual(f1.read(), f2.read())
@@ -44,15 +84,12 @@ class TestStringMethods(unittest.TestCase):
         self.assertEqual(0, process.returncode)
 
         with open("/tmp/data.json") as file:
-            return json.load(file)
-
+            return System("/tmp/", json.load(file))
 
     def test_simple(self):
         path = shutil.which("uname")
         data = self.execute(path)
-        root = list(data.keys())[0]
-
-        p = data[root]
+        p = data.get_process_by(executable=shutil.which("uname"))
 
         self.assertEqual(path, p['executable'])
         self.assertEqual([path], p['arguments'])
@@ -60,16 +97,16 @@ class TestStringMethods(unittest.TestCase):
         self.assertFalse(p['thread'])
 
         output = subprocess.Popen([path], stdout=subprocess.PIPE).communicate()[0]
-        self.assertEqual(output.decode('utf-8'), read('/tmp/' + p['write'][list(p['write'].keys())[0]]['content']))
+        stdout = p.get_resource_by(type='file')
+        self.assertEqual(output.decode('utf-8'), read('/tmp/' + stdout['write_content']))
 
     def test_pipes(self):
         data = self.execute("sh", ['-c', "cat /etc/passwd | tr a-z A-Z | tac"])
-        #print(json.dumps(data, sort_keys=True, indent=4))
 
-        sh = findByExecutable(data, 'sh')
-        cat = findByExecutable(data, 'cat')
-        tr = findByExecutable(data, 'tr')
-        tac = findByExecutable(data, 'tac')
+        sh = data.get_process_by(executable=shutil.which('sh'))
+        cat = data.get_process_by(executable=shutil.which('cat'))
+        tr = data.get_process_by(executable=shutil.which('tr'))
+        tac = data.get_process_by(executable=shutil.which('tac'))
 
         # check arguments
         self.assertEqual([shutil.which("sh"), '-c', 'cat /etc/passwd | tr a-z A-Z | tac'], sh['arguments'])
@@ -84,52 +121,45 @@ class TestStringMethods(unittest.TestCase):
         self.assertEqual(sh['pid'], tac['parent'])
 
         # check pipe
-        pipe = [i for i, c in cat['write'].items() if c['type'] == 'pipe'][0]
-        self.assertFileEqual('/tmp/' + cat['write'][pipe]['content'], '/tmp/' + tr['read'][pipe]['content'])
+        pipe_src = cat.get_resource_by(type='pipe')
+        pipe_dst = tr.get_resource_by(type='pipe', pipe_id=pipe_src['pipe_id'])
+        self.assertFileEqual('/tmp/' + pipe_src['write_content'], '/tmp/' + pipe_dst['read_content'])
 
-        pipe = [i for i, c in tr['write'].items() if c['type'] == 'pipe'][0]
-        self.assertFileEqual('/tmp/' + tr['write'][pipe]['content'], '/tmp/' + tac['read'][pipe]['content'])
+        pipe_src = tr.get_resource_by(type='pipe', pipe_id=1)
+        pipe_dst = tac.get_resource_by(type='pipe', pipe_id=pipe_src['pipe_id'])
+        self.assertFileEqual('/tmp/' + pipe_src['write_content'], '/tmp/' + pipe_dst['read_content'])
 
     def test_env_propagation(self):
         data = self.execute("sh", ['-c', 'export _MYENV=ok; sh -c "uname; ls"'])
-        uname = findByExecutable(data, 'uname')
+        uname = data.get_process_by(executable=shutil.which('uname'))
         self.assertEqual('ok', uname['env']['_MYENV'])
 
     def test_exit_code(self):
         data = self.execute("cat", ['/nonexistent/file.txt'])
-        uname = findByExecutable(data, 'cat')
+        uname = data.get_process_by(executable=shutil.which('cat'))
         self.assertEqual(1, uname['exitCode'])
 
     def test_ipv4_resolve(self):
         data = self.execute('curl', ['http://93.184.216.34/'])
-        root = data[list(data.keys())[0]]
-        write = [p for i, p in root['write'].items() if p['type'] == 'socket'][0]
-        read = [p for i, p in root['read'].items() if p['type'] == 'socket'][0]
+        curl = data.get_process_by(executable=shutil.which('curl'))
+        socket = curl.get_resource_by(type='socket')
 
-        self.assertEqual('93.184.216.34', write['dst']['address'])
-        self.assertEqual(80, write['dst']['port'])
+        self.assertEqual('93.184.216.34', socket['remote']['address'])
+        self.assertEqual(80, socket['remote']['port'])
 
-        self.assertEqual('93.184.216.34', read['src']['address'])
-        self.assertEqual(80, read['src']['port'])
-
-        self.assertEqual(write['src']['port'], read['dst']['port'])
-        self.assertEqual(write['src']['address'], read['dst']['address'])
+        self.assertIsNotNone(socket['local']['address'])
+        self.assertIsNotNone(socket['local']['port'])
 
     @unittest.skipIf("TRAVIS" in os.environ and os.environ["TRAVIS"] == "true", "ipv6 not supported on travis")
     def test_ipv6_resolve(self):
         data = self.execute('curl', ['http://[2606:2800:220:1:248:1893:25c8:1946]/'])
-        root = data[list(data.keys())[0]]
-        write = [p for i, p in root['write'].items() if p['type'] == 'socket'][0]
-        read = [p for i, p in root['read'].items() if p['type'] == 'socket'][0]
+        curl = data.get_process_by(executable=shutil.which('curl'))
+        socket = curl.get_resource_by(type='socket')
 
-        self.assertEqual('2606:2800:0220:0001:0248:1893:25c8:1946', write['dst']['address'])
-        self.assertEqual(80, write['dst']['port'])
-
-        self.assertEqual('2606:2800:0220:0001:0248:1893:25c8:1946', read['src']['address'])
-        self.assertEqual(80, read['src']['port'])
-
-        self.assertEqual(write['src']['port'], read['dst']['port'])
-        self.assertEqual(write['src']['address'], read['dst']['address'])
+        self.assertEqual('2606:2800:220:1:248:1893:25c8:1946', socket['remote']['address'])
+        self.assertEqual(80, socket['remote']['port'])
+        self.assertIsNotNone(socket['local']['address'])
+        self.assertIsNotNone(socket['local']['port'])
 
     def test_unix(self):
         self.skipTest('not yet implemented')
@@ -145,15 +175,14 @@ class TestStringMethods(unittest.TestCase):
     def test_thread(self):
         data = self.execute('python', ['examples/threads.py'])
 
-        process = data[list(data.keys())[0]]
-        thread = data[list(data.keys())[1]]
+        process = data.get_process_by(thread=False)
+        thread = data.get_process_by(thread=True)
 
         self.assertTrue(thread['thread'])
         self.assertFalse(process['thread'])
         self.assertEqual(process['executable'], thread['executable'])
         self.assertEqual(process['arguments'], thread['arguments'])
         self.assertEqual(process['env'], thread['env'])
-
 
 
 class TestUtils(unittest.TestCase):
