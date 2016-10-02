@@ -6,7 +6,14 @@ import utils
 
 
 def resolve_socket(inode, read):
-    for file_location, addr_resolver in [('/proc/net/tcp', utils.parse_ipv4), ('/proc/net/tcp6', utils.parse_ipv6)]:
+    files = [
+        ('/proc/net/tcp', utils.parse_ipv4),
+        ('/proc/net/udp', utils.parse_ipv4),
+        ('/proc/net/tcp6', utils.parse_ipv6),
+        ('/proc/net/udp6', utils.parse_ipv6)
+    ]
+
+    for file_location, addr_resolver in files:
         with open(file_location) as file:
             content = file.read().splitlines()[1:]
             for i in content:
