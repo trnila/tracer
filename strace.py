@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import ipaddress
 import json
 import os
@@ -144,7 +145,7 @@ class SyscallTracer(Application):
                 descriptor = self.get_descriptor(syscall.process.pid, syscall.arguments[0].value)
                 bytes = syscall.process.readBytes(syscall.arguments[1].value, syscall.arguments[2].value)
                 descriptor.local = utils.parse_addr(bytes)
-            elif syscall.name in ['connect', 'accept']:
+            elif syscall.name in ['connect', 'accept', 'syscall<288>']:
                 # struct sockaddr { unsigned short family; }
                 if syscall.name == 'connect':
                     bytes = syscall.process.readBytes(syscall.arguments[1].value, syscall.arguments[2].value)
@@ -153,7 +154,7 @@ class SyscallTracer(Application):
                     resolved = resolve(syscall.process.pid, fdnum, 1)
                     if 'dst' in resolved:
                         self.get_descriptor(syscall.process.pid, fdnum).local = resolved['dst'] # TODO: rewrite
-                elif syscall.name == 'accept':
+                elif syscall.name in ['accept', 'syscall<288>']:
                     bytes = syscall.process.readBytes(syscall.arguments[2].value, 4)
                     socket_size = unpack("I", bytes)[0]
                     bytes = syscall.process.readBytes(syscall.arguments[1].value, socket_size)
@@ -241,6 +242,9 @@ class SyscallTracer(Application):
         return self.pids[pid][descriptor]
 
     def close_descriptor(self, pid, descriptor):
+        if descriptor not in self.pids[pid]:
+            error("closing unknown socket")
+            return
 
         if self.get_descriptor(pid, descriptor).used:
             self.data[pid]['descriptors'].append(self.get_descriptor(pid, descriptor))
