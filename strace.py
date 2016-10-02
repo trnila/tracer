@@ -173,9 +173,17 @@ class SyscallTracer(Application):
             elif syscall.name == 'dup2':
                 a = syscall.arguments[0].value
                 b = syscall.arguments[1].value
+
+                if b in self.pids[syscall.process.pid]:
+                    self.close_descriptor(syscall.process.pid, b)
+
                 self.pids[syscall.process.pid][b] = self.pids[syscall.process.pid][a]
             elif syscall.name == 'close':
                 self.close_descriptor(syscall.process.pid, syscall.arguments[0].value)
+            elif syscall.name == 'dup' or (syscall.name == 'fcntl' and syscall.arguments[1].value == 0): # F_DUPFD = 0
+                new = syscall.result
+                old = syscall.arguments[0].value
+                self.pids[syscall.process.pid][new] = self.pids[syscall.process.pid][old]
 
         if syscall.name in ["read", "write", "sendmsg", "recvmsg", "sendto", "recvfrom"] and syscall.result > 0:
             family = {
