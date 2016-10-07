@@ -41,6 +41,10 @@ class Descriptors:
         self.descriptors[descriptor.fd] = descriptor
 
     def close(self, descriptor):
+        if descriptor not in self.descriptors:
+            print("no descriptor")
+            return
+
         def removekey(d, key):
             r = dict(d)
             del r[key]
@@ -97,10 +101,21 @@ class Report:
     def __init__(self, path):
         self.data = {}
         self.path = path
+        self.descriptor_groups = {}
 
         os.makedirs(path, exist_ok=True)
 
     def new_process(self, pid, parent, is_thread):
+        if not is_thread:
+            if parent:
+                self.descriptor_groups[pid] = copy.deepcopy(self.descriptor_groups[parent])
+            else:
+                self.descriptor_groups[pid] = Descriptors()
+
+            group = pid
+        else:
+            group = self._get_group(pid)
+
         self.data[pid] = Process(self, {
             "pid": pid,
             "parent": parent,
@@ -110,10 +125,7 @@ class Report:
             "thread": is_thread,
             "env": self.data[parent]['env'] if parent else None,
             "descriptors": []
-        }, Descriptors())
-
-        if parent:
-            self.data[pid].descriptors = copy.deepcopy(self.data[parent].descriptors)
+        }, self.descriptor_groups[group])
 
         return self.data[pid]
 
@@ -127,3 +139,7 @@ class Report:
     def save(self):
         with open(os.path.join(self.path, 'data.json'), 'w') as out:
             json.dump(self.data, out, sort_keys=True, indent=4, cls=AppJSONEncoder)
+
+    def _get_group(self, pid):
+        with open('/proc/%d/status' % pid) as f:
+            return int(dict([(i, j.strip()) for i, j in [i.split(':', 1) for i in f.read().splitlines()]])['Tgid'])

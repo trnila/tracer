@@ -78,8 +78,8 @@ class TestTracer(unittest.TestCase):
     def execute(self, program, args = []):
         process = Popen(['python3', 'strace.py', '-o', '/tmp', '-f', '--',  program] + args, stdout=PIPE, stderr=PIPE)
         stdout, stderr = process.communicate()
-        #print(stdout.decode('utf-8'))
-        #print(stderr.decode('utf-8'), file=sys.stderr)
+        print(stdout.decode('utf-8'))
+        print(stderr.decode('utf-8'), file=sys.stderr)
 
         self.assertEqual(0, process.returncode)
 
@@ -195,6 +195,18 @@ class TestTracer(unittest.TestCase):
 
         file = thread.get_resource_by(type="file", path="'/tmp/file'")
         self.assertEqual("thread", read('/tmp/' + file['write_content']))
+
+    def test_process_change_fd_in_thread(self):
+        data = self.execute('python', ['examples/thread_fail.py'])
+
+        process = data.get_process_by(thread=False)
+        thread = data.get_process_by(thread=True)
+
+        file = process.get_resource_by(type="file", path="'/tmp/file'")
+        self.assertEqual("test", read('/tmp/' + file['write_content']))
+
+        file = thread.get_resource_by(type="file", path="'/tmp/file'")
+        self.assertEqual("another", read('/tmp/' + file['write_content']))
 
 
 class TestUtils(unittest.TestCase):
