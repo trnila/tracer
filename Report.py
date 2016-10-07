@@ -115,9 +115,6 @@ class Report:
         if parent:
             self.data[pid].descriptors = copy.deepcopy(self.data[parent].descriptors)
 
-        #for id, descriptor in self.pids[process.pid].items():
-        #    descriptor.change_id()
-
         return self.data[pid]
 
     def get_process(self, pid):

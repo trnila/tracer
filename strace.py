@@ -4,14 +4,12 @@ import json
 import os
 import random
 import re
-import socket
 import string
 from logging import getLogger, error
 from optparse import OptionParser
 from struct import unpack
 from sys import stderr, exit
 
-from ptrace.cpu_info import CPU_WORD_SIZE
 from ptrace.debugger import (PtraceDebugger, Application,
     ProcessExit, ProcessSignal, NewProcessEvent, ProcessExecution)
 from ptrace.error import PTRACE_ERRORS, writeError
@@ -22,7 +20,6 @@ from ptrace.syscall import (SYSCALL_NAMES, SYSCALL_PROTOTYPES,
 import fd
 import utils
 from Report import Report
-from TracedData import TracedData
 from fd_resolve import resolve
 from json_encode import AppJSONEncoder
 
@@ -30,8 +27,6 @@ from json_encode import AppJSONEncoder
 class SyscallTracer(Application):
     def __init__(self):
         Application.__init__(self)
-
-        # Parse self.options
         self.parseOptions()
         self.data = Report(self.options.output)
         self.pipes = 0
@@ -99,8 +94,6 @@ class SyscallTracer(Application):
             self.ignore_regex = None
 
         self.processOptions()
-
-        os.makedirs(self.options.output, exist_ok=True)
 
     def ignoreSyscall(self, syscall):
         name = syscall.name
@@ -264,19 +257,12 @@ class SyscallTracer(Application):
     def processExited(self, event):
         # Display syscall which has not exited
         state = event.process.syscall_state
-        if (state.next_event == "exit") \
-        and (not self.options.enter) \
-        and state.syscall:
+        if (state.next_event == "exit") and (not self.options.enter) and state.syscall:
             self.displaySyscall(state.syscall)
 
         # Display exit message
         error("*** %s ***" % event)
         self.data.get_process(event.process.pid)['exitCode'] = event.exitcode
-
-        # TODO: close all
-        #for fd, descriptor in self.pids[event.process.pid].items():
-        #    self.close_descriptor(event.process.pid, fd)
-
 
     def prepareProcess(self, process):
         process.syscall()
