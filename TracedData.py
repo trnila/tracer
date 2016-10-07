@@ -79,9 +79,6 @@ class TracedData:
     def __contains__(self, item):
         return item in self.data
 
-    def read_file(self, file_id):
-        return open(os.path.join(self.path, file_id), 'rb').read()
-
     def append_file(self, file_id, content):
         with open(os.path.join(self.path, file_id), 'ab') as file:
             file.write(content)

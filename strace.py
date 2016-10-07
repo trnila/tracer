@@ -21,6 +21,7 @@ from ptrace.syscall import (SYSCALL_NAMES, SYSCALL_PROTOTYPES,
 
 import fd
 import utils
+from Report import Report
 from TracedData import TracedData
 from fd_resolve import resolve
 from json_encode import AppJSONEncoder
@@ -32,7 +33,7 @@ class SyscallTracer(Application):
 
         # Parse self.options
         self.parseOptions()
-        self.data = TracedData(self.options.output)
+        self.data = Report(self.options.output)
         self.pipes = 0
         self.sockets = 0
 
@@ -216,18 +217,6 @@ class SyscallTracer(Application):
             else:
                 descriptor.write(content)
 
-    def addProcess(self, pid, parent, is_thread):
-        self.data[pid] = {
-            "pid": pid,
-            "parent": parent,
-            "exitCode": None,
-            "executable": self.data[parent]['executable'] if parent else None,
-            "arguments": self.data[parent]['arguments'] if parent else None,
-            "thread": is_thread,
-            "env": self.data[parent]['env'] if parent else None,
-            "descriptors": []
-        }
-
     def add_descriptor(self, pid, descriptor):
         self.pids[pid][descriptor.fd] = descriptor
 
@@ -240,7 +229,7 @@ class SyscallTracer(Application):
             return
 
         if self.get_descriptor(pid, descriptor).used:
-            self.data[pid]['descriptors'].append(self.get_descriptor(pid, descriptor))
+            self.data.get_process(pid)['descriptors'].append(self.get_descriptor(pid, descriptor))
 
         def removekey(d, key):
             r = dict(d)
@@ -283,15 +272,13 @@ class SyscallTracer(Application):
         state = process.syscall_state
         syscall = state.event(self.syscall_options)
 
-        if syscall.process.pid not in self.data:
-            self.addProcess(syscall.process.pid, syscall.process.parent.pid, syscall.process.is_thread)
-
         if syscall.name == "execve" and syscall.result is not None:
-            self.data[syscall.process.pid]['executable'] = syscall.arguments[0].text.strip("'")
-            self.data[syscall.process.pid]['arguments'] = utils.parseArgs(syscall.arguments[1].text)
+            proc = self.data.get_process(syscall.process.pid)
+            proc['executable'] = syscall.arguments[0].text.strip("'")
+            proc['arguments'] = utils.parseArgs(syscall.arguments[1].text)
 
             env = dict([i.split("=", 1) for i in utils.parseArgs(syscall.arguments[2].text)])
-            self.data[syscall.process.pid]['env'] = env
+            proc['env'] = env
 
         if syscall and (syscall.result is not None):
             self.displaySyscall(syscall)
@@ -309,7 +296,7 @@ class SyscallTracer(Application):
 
         # Display exit message
         error("*** %s ***" % event)
-        self.data[event.process.pid]['exitCode'] = event.exitcode
+        self.data.get_process(event.process.pid)['exitCode'] = event.exitcode
 
         for fd, descriptor in self.pids[event.process.pid].items():
             self.close_descriptor(event.process.pid, fd)
@@ -322,6 +309,8 @@ class SyscallTracer(Application):
     def newProcess(self, event):
         process = event.process
         error("*** New process %s ***" % process.pid)
+
+        self.data.new_process(process.pid, process.parent.pid, process.is_thread)
 
         import copy
         self.pids[process.pid] = copy.deepcopy(self.pids[process.parent.pid])
@@ -376,10 +365,11 @@ class SyscallTracer(Application):
     def createChild(self, program):
         pid = Application.createChild(self, program)
         error("execve(%s, %s, [/* 40 vars */]) = %s" % (program[0], program, pid))
-        self.addProcess(pid, 0, False)
-        self.data[pid]['executable'] = program[0]
-        self.data[pid]['arguments'] = program
-        self.data[pid]['env'] = dict(os.environ)
+
+        proc = self.data.new_process(pid, 0, False)
+        proc['executable'] = program[0]
+        proc['arguments'] = program
+        proc['env'] = dict(os.environ)
 
         self.pids[pid] = {
             0: fd.File(self.data, 0, "stdin"),
