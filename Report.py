@@ -84,6 +84,11 @@ class Process:
         self.__prepare_capture(fd)
         self.captures[fd].write(content)
 
+    def mmap(self, fd, params):
+        self.__prepare_capture(fd)
+        self.captures[fd].descriptor.mmaps.append(params)
+
+
     def on_close(self, fd):
         self.captures[fd] = None
 

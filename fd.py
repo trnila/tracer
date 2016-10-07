@@ -41,6 +41,7 @@ class File(Descriptor):
         super().__init__(location, fd)
         self.path = path
         self.seeks = []
+        self.mmaps = []
 
     def getLabel(self):
         return self.path.replace('/', '_')
@@ -48,6 +49,7 @@ class File(Descriptor):
     def to_json(self):
         json = super().to_json()
         json["path"] = self.path
+        json['mmap'] = self.mmaps
         return json
 
 

@@ -172,6 +172,13 @@ class SyscallTracer(Application):
                 new = syscall.result
                 old = syscall.arguments[0].value
                 proc.descriptors.clone(new, old)
+            elif syscall.name == 'mmap':
+                if syscall.arguments[4].value != 18446744073709551615:
+                    proc.mmap(syscall.arguments[4].value, {
+                        'address': syscall.result,
+                        'prot': syscall.arguments[2].value,
+                        'flags': syscall.arguments[3].value
+                    })
 
         if syscall.name in ["read", "write", "sendmsg", "recvmsg", "sendto", "recvfrom"] and syscall.result > 0:
             family = {
