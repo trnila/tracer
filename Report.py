@@ -8,7 +8,17 @@ class Descriptors:
     pass
 
 class Process:
-    pass
+    def __init__(self, data):
+        self.data = data
+
+    def __getitem__(self, item):
+        return self.data[item]
+
+    def __setitem__(self, key, value):
+        self.data[key] = value
+
+    def to_json(self):
+        return self.data
 
 class Report:
     def __init__(self, path):
@@ -18,7 +28,7 @@ class Report:
         os.makedirs(path, exist_ok=True)
 
     def new_process(self, pid, parent, is_thread):
-        self.data[pid] = {
+        self.data[pid] = Process({
             "pid": pid,
             "parent": parent,
             "exitCode": None,
@@ -27,7 +37,7 @@ class Report:
             "thread": is_thread,
             "env": self.data[parent]['env'] if parent else None,
             "descriptors": []
-        }
+        })
 
         return self.data[pid]
 
