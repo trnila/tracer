@@ -120,13 +120,6 @@ class SyscallTracer(Application):
             text = ''.join(prefix) + ' ' + text
         error(text)
 
-        if syscall.process.pid not in self.data:
-            self.addProcess(
-                syscall.process.pid,
-                syscall.process.parent.pid if syscall.process.parent else 0,
-                syscall.process.is_thread
-            )
-
         if syscall.result >= 0 or syscall.result == -115: # EINPROGRESS
             if syscall.name == 'open':
                 self.add_descriptor(syscall.process.pid, fd.File(self.data, syscall.result, syscall.arguments[0].text))
@@ -305,17 +298,6 @@ class SyscallTracer(Application):
 
         # Break at next syscall
         process.syscall()
-
-    def parseCStringArray(self, address, syscall):
-        text = []
-        while True:
-            str_addr = syscall.process.readWord(address)
-            if not str_addr:
-                break
-
-            address += CPU_WORD_SIZE
-            text.append(syscall.process.readCString(str_addr, 1000)[0].decode('utf-8'))
-        return text
 
     def processExited(self, event):
         # Display syscall which has not exited
