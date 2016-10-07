@@ -10,37 +10,14 @@ class Descriptor:
         self.location = location
         self.fd = fd
         self.used = 0
-        self.id = None
-        self.change_id()
-
-    def change_id(self):
-        import uuid
-        self.id = str(uuid.uuid4())
 
     def getLabel(self):
         return ""
-
-    def getId(self):
-        return None
-
-    def read(self, data):
-        self.used |= Descriptor.READ
-        self.location.append_file(self.id + "_read", data)
-
-    def write(self, data):
-        self.used |= Descriptor.WRITE
-        self.location.append_file(self.id + "_write", data)
 
     def to_json(self):
         json = {
             "type": type(self).__name__.lower(),
         }
-
-        if self.used & Descriptor.READ:
-            json['read_content'] = self.id + "_read"
-
-        if self.used & Descriptor.WRITE:
-            json['write_content'] = self.id + "_write"
 
         return json
 
@@ -66,7 +43,7 @@ class File(Descriptor):
         self.seeks = []
 
     def getLabel(self):
-        return self.path
+        return self.path.replace('/', '_')
 
     def to_json(self):
         json = super().to_json()
@@ -85,9 +62,7 @@ class Socket(Descriptor):
         self.socket_id = socket_id
 
     def getLabel(self):
-        if self.family in [socket.AF_INET, socket.AF_INET6]:
-            return "%s:%s" % (self.addr, self.port)
-        return self.addr
+        return 'socket_%d' % self.socket_id
 
     def to_json(self):
         json = super().to_json()

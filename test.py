@@ -97,7 +97,7 @@ class TestTracer(unittest.TestCase):
         self.assertFalse(p['thread'])
 
         output = subprocess.Popen([path], stdout=subprocess.PIPE).communicate()[0]
-        stdout = p.get_resource_by(type='file')
+        stdout = p.get_resource_by(type='file', path='stdout')
         self.assertEqual(output.decode('utf-8'), read('/tmp/' + stdout['write_content']))
 
     def test_pipes(self):

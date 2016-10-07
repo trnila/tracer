@@ -4,18 +4,33 @@ import copy
 
 from json_encode import AppJSONEncoder
 
+
 class Capture:
-    def __init__(self, descriptor):
+    def __init__(self, report, process, descriptor, n):
+        self.report = report
+        self.process = process
         self.descriptor = descriptor
+        self.n = n
+        self.files = {}
 
     def write(self, content):
-        self.descriptor.write(content)
+        self.__write('write', content)
 
     def read(self, content):
-        self.descriptor.read(content)
+        self.__write('read', content)
 
     def to_json(self):
-        return self.descriptor.to_json()
+        return {**self.descriptor.to_json(), **self.files}
+
+    def __get_id(self):
+        return "%s_%s_%s" % (self.process['pid'], self.descriptor.getLabel(), self.n)
+
+    def __write(self, type, content):
+        filename = self.__get_id() + "." + type
+
+        self.files[type + '_content'] = filename
+        self.report.append_file(filename, content)
+
 
 class Descriptors:
     def __init__(self):
@@ -44,11 +59,11 @@ class Descriptors:
 
 
 class Process:
-    def __init__(self, data, descriptors):
+    def __init__(self, report, data, descriptors):
+        self.report = report
         self.data = data
         self.descriptors = descriptors
         self.captures = {}
-
         self.descriptors.processes.append(self)
 
     def __getitem__(self, item):
@@ -58,17 +73,11 @@ class Process:
         self.data[key] = value
 
     def read(self, fd, content):
-        if fd not in self.captures or self.captures[fd] is None:
-            self.captures[fd] = Capture(self.descriptors.get(fd))
-            self.data['descriptors'].append(self.captures[fd])
-
+        self.__prepare_capture(fd)
         self.captures[fd].read(content)
 
     def write(self, fd, content):
-        if fd not in self.captures or self.captures[fd] is None:
-            self.captures[fd] = Capture(self.descriptors.get(fd))
-            self.data['descriptors'].append(self.captures[fd])
-
+        self.__prepare_capture(fd)
         self.captures[fd].write(content)
 
     def on_close(self, fd):
@@ -76,6 +85,12 @@ class Process:
 
     def to_json(self):
         return self.data
+
+    def __prepare_capture(self, fd):
+        if fd not in self.captures or self.captures[fd] is None:
+            self.captures[fd] = Capture(self.report, self, self.descriptors.get(fd), len(self.captures))
+            self.data['descriptors'].append(self.captures[fd])
+
 
 
 class Report:
@@ -86,7 +101,7 @@ class Report:
         os.makedirs(path, exist_ok=True)
 
     def new_process(self, pid, parent, is_thread):
-        self.data[pid] = Process({
+        self.data[pid] = Process(self, {
             "pid": pid,
             "parent": parent,
             "exitCode": None,
