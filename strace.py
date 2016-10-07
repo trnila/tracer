@@ -213,27 +213,6 @@ class SyscallTracer(Application):
             else:
                 proc.write(syscall.arguments[0].value, content)
 
-    def add_descriptor(self, pid, descriptor):
-        self.pids[pid][descriptor.fd] = descriptor
-
-    def get_descriptor(self, pid, descriptor):
-        return self.pids[pid][descriptor]
-
-    def close_descriptor(self, pid, descriptor):
-        if descriptor not in self.pids[pid]:
-            error("closing unknown socket")
-            return
-
-        if self.get_descriptor(pid, descriptor).used:
-            self.data.get_process(pid)['descriptors'].append(self.get_descriptor(pid, descriptor))
-
-        def removekey(d, key):
-            r = dict(d)
-            del r[key]
-            return r
-
-        self.pids[pid] = removekey(self.pids[pid], descriptor)
-
     def syscallTrace(self, process):
         # First query to break at next syscall
         self.prepareProcess(process)
