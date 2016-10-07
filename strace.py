@@ -121,22 +121,24 @@ class SyscallTracer(Application):
             text = ''.join(prefix) + ' ' + text
         error(text)
 
+        proc = self.data.get_process(syscall.process.pid)
+
         if syscall.result >= 0 or syscall.result == -115: # EINPROGRESS
             if syscall.name == 'open':
-                self.add_descriptor(syscall.process.pid, fd.File(self.data, syscall.result, syscall.arguments[0].text))
+                proc.descriptors.open(fd.File(self.data, syscall.result, syscall.arguments[0].text))
             elif syscall.name == 'socket':
                 descriptor = fd.Socket(self.data, syscall.result, self.sockets)
                 descriptor.family = syscall.arguments[0].value
-                self.add_descriptor(syscall.process.pid, descriptor)
+                proc.descriptors.open(descriptor)
                 self.sockets += 1
             elif syscall.name == 'pipe':
                 pipe = syscall.process.readBytes(syscall.arguments[0].value, 8)
                 fd1, fd2 = unpack("ii", pipe)
-                self.add_descriptor(syscall.process.pid, fd.Pipe(self.data, fd1, self.pipes))
-                self.add_descriptor(syscall.process.pid, fd.Pipe(self.data, fd2, self.pipes))
+                proc.descriptors.open(fd.Pipe(self.data, fd1, self.pipes))
+                proc.descriptors.open(fd.Pipe(self.data, fd2, self.pipes))
                 self.pipes += 1
             elif syscall.name == 'bind':
-                descriptor = self.get_descriptor(syscall.process.pid, syscall.arguments[0].value)
+                descriptor = proc.descriptors.get(syscall.arguments[0].value)
                 bytes = syscall.process.readBytes(syscall.arguments[1].value, syscall.arguments[2].value)
                 descriptor.local = utils.parse_addr(bytes)
             elif syscall.name in ['connect', 'accept', 'syscall<288>']:
@@ -147,7 +149,7 @@ class SyscallTracer(Application):
 
                     resolved = resolve(syscall.process.pid, fdnum, 1)
                     if 'dst' in resolved:
-                        self.get_descriptor(syscall.process.pid, fdnum).local = resolved['dst'] # TODO: rewrite
+                        proc.descriptors.get(fdnum).local = resolved['dst'] # TODO: rewrite
                 elif syscall.name in ['accept', 'syscall<288>']:
                     bytes = syscall.process.readBytes(syscall.arguments[2].value, 4)
                     socket_size = unpack("I", bytes)[0]
@@ -161,7 +163,7 @@ class SyscallTracer(Application):
                     self.get_descriptor(syscall.process.pid, fdnum).local = self.get_descriptor(syscall.process.pid, syscall.arguments[0].value).local
                     self.sockets += 1
 
-                descriptor = self.get_descriptor(syscall.process.pid, fdnum)
+                descriptor = proc.descriptors.get(fdnum)
                 parsed = utils.parse_addr(bytes)
                 descriptor.family = parsed.get_family()
                 descriptor.remote = parsed
@@ -169,16 +171,14 @@ class SyscallTracer(Application):
                 a = syscall.arguments[0].value
                 b = syscall.arguments[1].value
 
-                if b in self.pids[syscall.process.pid]:
-                    self.close_descriptor(syscall.process.pid, b)
-
-                self.pids[syscall.process.pid][b] = self.pids[syscall.process.pid][a]
+                proc.descriptors.close(b)
+                proc.descriptors.clone(b, a)
             elif syscall.name == 'close':
-                self.close_descriptor(syscall.process.pid, syscall.arguments[0].value)
+                proc.descriptors.close(syscall.arguments[0].value)
             elif syscall.name == 'dup' or (syscall.name == 'fcntl' and syscall.arguments[1].value == 0): # F_DUPFD = 0
                 new = syscall.result
                 old = syscall.arguments[0].value
-                self.pids[syscall.process.pid][new] = self.pids[syscall.process.pid][old]
+                proc.descriptors.clone(new, old)
 
         if syscall.name in ["read", "write", "sendmsg", "recvmsg", "sendto", "recvfrom"] and syscall.result > 0:
             family = {
@@ -189,10 +189,6 @@ class SyscallTracer(Application):
                 "sendto": "write",
                 "recvfrom": "read"
             }[syscall.name]
-
-            descriptor = self.get_descriptor(syscall.process.pid, syscall.arguments[0].value)
-            if isinstance(descriptor, fd.File) and '/usr/lib' in descriptor.path:
-                return
 
             content = b""
 
@@ -213,9 +209,9 @@ class SyscallTracer(Application):
                 content = syscall.process.readBytes(syscall.arguments[1].value, wrote)
 
             if family == 'read':
-                descriptor.read(content)
+                proc.read(syscall.arguments[0].value, content)
             else:
-                descriptor.write(content)
+                proc.write(syscall.arguments[0].value, content)
 
     def add_descriptor(self, pid, descriptor):
         self.pids[pid][descriptor.fd] = descriptor
@@ -298,8 +294,9 @@ class SyscallTracer(Application):
         error("*** %s ***" % event)
         self.data.get_process(event.process.pid)['exitCode'] = event.exitcode
 
-        for fd, descriptor in self.pids[event.process.pid].items():
-            self.close_descriptor(event.process.pid, fd)
+        # TODO: close all
+        #for fd, descriptor in self.pids[event.process.pid].items():
+        #    self.close_descriptor(event.process.pid, fd)
 
 
     def prepareProcess(self, process):
@@ -311,12 +308,6 @@ class SyscallTracer(Application):
         error("*** New process %s ***" % process.pid)
 
         self.data.new_process(process.pid, process.parent.pid, process.is_thread)
-
-        import copy
-        self.pids[process.pid] = copy.deepcopy(self.pids[process.parent.pid])
-
-        for id, descriptor in self.pids[process.pid].items():
-            descriptor.change_id()
 
         self.prepareProcess(process)
         process.parent.syscall()
@@ -371,11 +362,9 @@ class SyscallTracer(Application):
         proc['arguments'] = program
         proc['env'] = dict(os.environ)
 
-        self.pids[pid] = {
-            0: fd.File(self.data, 0, "stdin"),
-            1: fd.File(self.data, 1, "stdout"),
-            2: fd.File(self.data, 2, "stderr")
-        }
+        proc.descriptors.open(fd.File(self.data, 0, "stdin"))
+        proc.descriptors.open(fd.File(self.data, 1, "stdout"))
+        proc.descriptors.open(fd.File(self.data, 2, "stderr"))
         return pid
 
 if __name__ == "__main__":

@@ -1,15 +1,55 @@
 import json
 import os
+import copy
 
 from json_encode import AppJSONEncoder
 
+class Capture:
+    def __init__(self, descriptor):
+        self.descriptor = descriptor
+
+    def write(self, content):
+        self.descriptor.write(content)
+
+    def read(self, content):
+        self.descriptor.read(content)
+
+    def to_json(self):
+        return self.descriptor.to_json()
 
 class Descriptors:
-    pass
+    def __init__(self):
+        self.descriptors = {}
+        self.processes = []
+
+    def open(self, descriptor):
+        self.descriptors[descriptor.fd] = descriptor
+
+    def close(self, descriptor):
+        def removekey(d, key):
+            r = dict(d)
+            del r[key]
+            return r
+
+        self.descriptors = removekey(self.descriptors, descriptor)
+
+        for process in self.processes:
+            process.on_close(descriptor)
+
+    def clone(self, a, b):
+        self.descriptors[a] = self.descriptors[b]
+
+    def get(self, fd):
+        return self.descriptors[fd]
+
 
 class Process:
-    def __init__(self, data):
+    def __init__(self, data, descriptors):
         self.data = data
+        self.descriptors = descriptors
+        self.captures = {}
+
+        self.descriptors.processes.append(self)
 
     def __getitem__(self, item):
         return self.data[item]
@@ -17,8 +57,26 @@ class Process:
     def __setitem__(self, key, value):
         self.data[key] = value
 
+    def read(self, fd, content):
+        if fd not in self.captures or self.captures[fd] is None:
+            self.captures[fd] = Capture(self.descriptors.get(fd))
+            self.data['descriptors'].append(self.captures[fd])
+
+        self.captures[fd].read(content)
+
+    def write(self, fd, content):
+        if fd not in self.captures or self.captures[fd] is None:
+            self.captures[fd] = Capture(self.descriptors.get(fd))
+            self.data['descriptors'].append(self.captures[fd])
+
+        self.captures[fd].write(content)
+
+    def on_close(self, fd):
+        self.captures[fd] = None
+
     def to_json(self):
         return self.data
+
 
 class Report:
     def __init__(self, path):
@@ -37,7 +95,13 @@ class Report:
             "thread": is_thread,
             "env": self.data[parent]['env'] if parent else None,
             "descriptors": []
-        })
+        }, Descriptors())
+
+        if parent:
+            self.data[pid].descriptors = copy.deepcopy(self.data[parent].descriptors)
+
+        #for id, descriptor in self.pids[process.pid].items():
+        #    descriptor.change_id()
 
         return self.data[pid]
 
