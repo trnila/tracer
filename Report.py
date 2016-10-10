@@ -5,6 +5,10 @@ import copy
 from json_encode import AppJSONEncoder
 
 
+class UnknownFd(BaseException):
+    pass
+
+
 class Capture:
     def __init__(self, report, process, descriptor, n):
         self.report = report
@@ -59,6 +63,8 @@ class Descriptors:
         self.descriptors[a] = self.descriptors[b]
 
     def get(self, fd):
+        if fd not in self.descriptors:
+            raise UnknownFd
         return self.descriptors[fd]
 
 

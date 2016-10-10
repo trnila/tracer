@@ -19,7 +19,7 @@ from ptrace.syscall import (SYSCALL_NAMES, SYSCALL_PROTOTYPES,
 
 import fd
 import utils
-from Report import Report
+from Report import Report, UnknownFd
 from fd_resolve import resolve
 from json_encode import AppJSONEncoder
 
@@ -256,7 +256,10 @@ class SyscallTracer(Application):
             proc['env'] = env
 
         if syscall and (syscall.result is not None):
-            self.displaySyscall(syscall)
+            try:
+                self.displaySyscall(syscall)
+            except UnknownFd as e:
+                error("Unknown FD!")
 
         # Break at next syscall
         process.syscall()
