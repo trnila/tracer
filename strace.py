@@ -1,11 +1,10 @@
 #!/usr/bin/env python
-import ipaddress
 import json
 import os
 import random
 import re
 import string
-from logging import getLogger, error
+import logging
 from optparse import OptionParser
 from struct import unpack
 from sys import stderr, exit
@@ -22,6 +21,17 @@ import utils
 from Report import Report, UnknownFd
 from fd_resolve import resolve
 from json_encode import AppJSONEncoder
+
+
+logging.getLogger().setLevel(logging.DEBUG)
+try:
+    import colorlog
+    handler = colorlog.StreamHandler()
+    handler.setFormatter(colorlog.ColoredFormatter('%(log_color)s%(levelname)s:%(name)s:%(message)s'))
+    colorlog.getLogger().addHandler(handler)
+except:
+    # color log is just optional feature
+    pass
 
 
 class SyscallTracer(Application):
@@ -112,7 +122,7 @@ class SyscallTracer(Application):
         prefix.append("[%s]" % syscall.process.pid)
         if prefix:
             text = ''.join(prefix) + ' ' + text
-        error(text)
+        logging.debug(text)
 
         proc = self.data.get_process(syscall.process.pid)
 
@@ -259,7 +269,7 @@ class SyscallTracer(Application):
             try:
                 self.displaySyscall(syscall)
             except UnknownFd as e:
-                error("Unknown FD!")
+                logging.fatal("Unknown FD!")
 
         # Break at next syscall
         process.syscall()
@@ -271,7 +281,7 @@ class SyscallTracer(Application):
             self.displaySyscall(state.syscall)
 
         # Display exit message
-        error("*** %s ***" % event)
+        logging.info("*** %s ***" % event)
         self.data.get_process(event.process.pid)['exitCode'] = event.exitcode
 
     def prepareProcess(self, process):
@@ -280,7 +290,7 @@ class SyscallTracer(Application):
 
     def newProcess(self, event):
         process = event.process
-        error("*** New process %s ***" % process.pid)
+        logging.info("*** New process %s ***" % process.pid)
 
         self.data.new_process(process.pid, process.parent.pid, process.is_thread)
 
@@ -289,7 +299,7 @@ class SyscallTracer(Application):
 
     def processExecution(self, event):
         process = event.process
-        error("*** Process %s execution ***" % process.pid)
+        logging.info("*** Process %s execution ***" % process.pid)
         process.syscall()
 
     def runDebugger(self):
@@ -317,20 +327,20 @@ class SyscallTracer(Application):
         except ProcessExit as event:
             self.processExited(event)
         except KeyboardInterrupt:
-            error("Interrupted.")
+            logging.error("Interrupted.")
             self.debugger.quit()
         except PTRACE_ERRORS as err:
-            writeError(getLogger(), err, "Debugger error")
+            writeError(logging.getLogger(), err, "Debugger error")
         except err:
             raise err
         self.debugger.quit()
-        print(json.dumps(self.data.data, sort_keys=True, indent=4, cls=AppJSONEncoder))
+        #print(json.dumps(self.data.data, sort_keys=True, indent=4, cls=AppJSONEncoder))
 
         self.data.save()
 
     def createChild(self, program):
         pid = Application.createChild(self, program)
-        error("execve(%s, %s, [/* 40 vars */]) = %s" % (program[0], program, pid))
+        logging.debug("execve(%s, %s, [/* 40 vars */]) = %s" % (program[0], program, pid))
 
         proc = self.data.new_process(pid, 0, False)
         proc['executable'] = program[0]
