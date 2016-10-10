@@ -103,7 +103,7 @@ class Process:
 
     def __prepare_capture(self, fd):
         if fd not in self.captures or self.captures[fd] is None:
-            self.captures[fd] = Capture(self.report, self, self.descriptors.get(fd), len(self.captures))
+            self.captures[fd] = Capture(self.report, self, self.descriptors.get(fd), len(self.data['descriptors']))
             self.data['descriptors'].append(self.captures[fd])
 
 

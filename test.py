@@ -208,6 +208,27 @@ class TestTracer(unittest.TestCase):
         file = thread.get_resource_by(type="file", path="'/tmp/file'")
         self.assertEqual("another", read('/tmp/' + file['write_content']))
 
+    def test_multiple_reopen(self):
+        data = self.execute('python', ['examples/multiple_read_write.py'])
+
+        process = data.get_process_by(executable=shutil.which("python"))
+
+        reads = ['first', 'firstsecond']
+        writes = ['first', 'second']
+        for capture in process['descriptors']:
+            if capture['type'] == 'file' and capture['path'] == "'/tmp/file'":
+                if 'read_content' in capture:
+                    self.assertEqual(reads[0], read('/tmp/' + capture['read_content']))
+                    reads.pop(0)
+                else:
+                    self.assertEqual(writes[0], read('/tmp/' + capture['write_content']))
+                    writes.pop(0)
+
+        self.assertEqual([], reads)
+        self.assertEqual([], writes)
+
+
+
 
 class TestUtils(unittest.TestCase):
     def test_empty(self):
