@@ -45,7 +45,7 @@ def parse_ipv6(s):
             if j == 1 or j == 3:
                 result += ':'
 
-    return result.strip(':')
+    return ipaddress.ip_address(result.strip(':'))
 
 
 def parse_addr(bytes):

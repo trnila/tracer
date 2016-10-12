@@ -246,7 +246,7 @@ class TestTracer(unittest.TestCase):
         process = data.get_process_by(executable=shutil.which("sh"))
         sock = process.get_resource_by(type="socket")
 
-        self.assertEqual("0000:0000:0000:0000:0000:0000:0000:0001", sock['local']['address'])
+        self.assertEqual("::1", sock['local']['address'])
         self.assertEqual("::1", sock['remote']['address'])
         self.assertEqual(1234, sock['remote']['port'])
         self.assertEqual(socket.AF_INET6, sock['domain'])
@@ -273,7 +273,7 @@ class TestUtils(unittest.TestCase):
             utils.parse_ipv4('inva')
 
     def test_ipv6(self):
-        self.assertEqual('2606:2800:0220:0001:0248:1893:25c8:1946', utils.parse_ipv6('0028062601002002931848024619C825'))
+        self.assertEqual('2606:2800:220:1:248:1893:25c8:1946', str(utils.parse_ipv6('0028062601002002931848024619C825')))
 
 if __name__ == '__main__':
     sys.argv.append('-b')
