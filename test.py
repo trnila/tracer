@@ -190,10 +190,10 @@ class TestTracer(unittest.TestCase):
         process = data.get_process_by(thread=False)
         thread = data.get_process_by(thread=True)
 
-        file = process.get_resource_by(type="file", path="'/tmp/file'")
+        file = process.get_resource_by(type="file", path="/tmp/file")
         self.assertEqual("process", read('/tmp/' + file['write_content']))
 
-        file = thread.get_resource_by(type="file", path="'/tmp/file'")
+        file = thread.get_resource_by(type="file", path="/tmp/file")
         self.assertEqual("thread", read('/tmp/' + file['write_content']))
 
     def test_process_change_fd_in_thread(self):
@@ -202,10 +202,10 @@ class TestTracer(unittest.TestCase):
         process = data.get_process_by(thread=False)
         thread = data.get_process_by(thread=True)
 
-        file = process.get_resource_by(type="file", path="'/tmp/file'")
+        file = process.get_resource_by(type="file", path="/tmp/file")
         self.assertEqual("test", read('/tmp/' + file['write_content']))
 
-        file = thread.get_resource_by(type="file", path="'/tmp/file'")
+        file = thread.get_resource_by(type="file", path="/tmp/file")
         self.assertEqual("another", read('/tmp/' + file['write_content']))
 
     def test_multiple_reopen(self):
@@ -216,7 +216,7 @@ class TestTracer(unittest.TestCase):
         reads = ['first', 'firstsecond']
         writes = ['first', 'second']
         for capture in process['descriptors']:
-            if capture['type'] == 'file' and capture['path'] == "'/tmp/file'":
+            if capture['type'] == 'file' and capture['path'] == "/tmp/file":
                 if 'read_content' in capture:
                     self.assertEqual(reads[0], read('/tmp/' + capture['read_content']))
                     reads.pop(0)

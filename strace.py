@@ -128,7 +128,7 @@ class SyscallTracer(Application):
 
         if syscall.result >= 0 or syscall.result == -115: # EINPROGRESS
             if syscall.name == 'open':
-                proc.descriptors.open(fd.File(self.data, syscall.result, syscall.arguments[0].text))
+                proc.descriptors.open(fd.File(self.data, syscall.result, syscall.arguments[0].text.strip('\'')))
             elif syscall.name == 'socket':
                 descriptor = fd.Socket(self.data, syscall.result, self.sockets)
                 descriptor.family = syscall.arguments[0].value
