@@ -187,6 +187,7 @@ class SyscallTracer(Application):
                 if syscall.arguments[4].value != 18446744073709551615:
                     proc.mmap(syscall.arguments[4].value, {
                         'address': syscall.result,
+                        'length': syscall.arguments[1].value,
                         'prot': syscall.arguments[2].value,
                         'flags': syscall.arguments[3].value
                     })

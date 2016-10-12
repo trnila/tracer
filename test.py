@@ -252,6 +252,26 @@ class TestTracer(unittest.TestCase):
         self.assertEqual(socket.AF_INET6, sock['domain'])
         self.assertEqual(socket.SOCK_DGRAM, sock['socket_type'])
 
+    def test_mmap(self):
+        data = self.execute('./examples/mmap')
+
+        process = data.get_first_process()
+        maps = process.get_resource_by(type="file", path="/tmp/file")['mmap']
+
+        self.assertEqual(12, maps[0]['length'])
+        self.assertEqual(12, maps[1]['length'])
+        self.assertEqual(12, maps[2]['length'])
+
+        import mmap
+        self.assertEqual(mmap.PROT_READ, maps[0]['prot'])
+        self.assertEqual(mmap.MAP_PRIVATE, maps[0]['flags'])
+
+        self.assertEqual(mmap.PROT_READ, maps[1]['prot'])
+        self.assertEqual(mmap.MAP_SHARED, maps[1]['flags'])
+
+        self.assertEqual(mmap.PROT_WRITE, maps[2]['prot'])
+        self.assertEqual(mmap.MAP_SHARED, maps[2]['flags'])
+
 
 class TestUtils(unittest.TestCase):
     def test_empty(self):

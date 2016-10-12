@@ -34,6 +34,9 @@ class System:
     def all_resources(self):
         return list(itertools.chain(*[j['descriptors'] for i, j in self.processes.items()]))
 
+    def get_first_process(self):
+        return next(iter(self.processes.values()))
+
     def get_process_by(self, descriptors={}, **kwargs):
         for pid, process in self.processes.items():
             if descriptors:
