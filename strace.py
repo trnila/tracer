@@ -131,7 +131,8 @@ class SyscallTracer(Application):
                 proc.descriptors.open(fd.File(self.data, syscall.result, syscall.arguments[0].text.strip('\'')))
             elif syscall.name == 'socket':
                 descriptor = fd.Socket(self.data, syscall.result, self.sockets)
-                descriptor.family = syscall.arguments[0].value
+                descriptor.domain = syscall.arguments[0].value
+                descriptor.type = syscall.arguments[1].value
                 proc.descriptors.open(descriptor)
                 self.sockets += 1
             elif syscall.name == 'pipe':
@@ -334,7 +335,7 @@ class SyscallTracer(Application):
         except err:
             raise err
         self.debugger.quit()
-        #print(json.dumps(self.data.data, sort_keys=True, indent=4, cls=AppJSONEncoder))
+        print(json.dumps(self.data.data, sort_keys=True, indent=4, cls=AppJSONEncoder))
 
         self.data.save()
 

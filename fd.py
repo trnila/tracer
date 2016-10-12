@@ -57,7 +57,8 @@ class Socket(Descriptor):
     def __init__(self, location, fd, socket_id):
         super().__init__(location, fd)
         self.label = "socket"
-        self.family = None
+        self.domain = None
+        self.type = None
         self.local = None
         self.remote = None
         self.server = False
@@ -68,7 +69,8 @@ class Socket(Descriptor):
 
     def to_json(self):
         json = super().to_json()
-        json['family'] = self.family
+        json['domain'] = self.domain
+        json['socket_type'] = self.type
         json['local'] = self.local
         json['remote'] = self.remote
         json['server'] = self.server

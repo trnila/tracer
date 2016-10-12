@@ -1,3 +1,4 @@
+import socket
 import subprocess
 from subprocess import Popen, PIPE
 import json
@@ -227,7 +228,29 @@ class TestTracer(unittest.TestCase):
         self.assertEqual([], reads)
         self.assertEqual([], writes)
 
+    def test_udp4_send(self):
+        data = self.execute('sh', ['-c', 'echo hello > /dev/udp/127.0.0.1/1234'])
 
+        process = data.get_process_by(executable=shutil.which("sh"))
+        sock = process.get_resource_by(type="socket")
+
+        self.assertEqual("127.0.0.1", sock['local']['address'])
+        self.assertEqual("127.0.0.1", sock['remote']['address'])
+        self.assertEqual(1234, sock['remote']['port'])
+        self.assertEqual(socket.AF_INET, sock['domain'])
+        self.assertEqual(socket.SOCK_DGRAM, sock['socket_type'])
+
+    def test_udp6_send(self):
+        data = self.execute('sh', ['-c', 'echo hello > /dev/udp/::1/1234'])
+
+        process = data.get_process_by(executable=shutil.which("sh"))
+        sock = process.get_resource_by(type="socket")
+
+        self.assertEqual("0000:0000:0000:0000:0000:0000:0000:0001", sock['local']['address'])
+        self.assertEqual("::1", sock['remote']['address'])
+        self.assertEqual(1234, sock['remote']['port'])
+        self.assertEqual(socket.AF_INET6, sock['domain'])
+        self.assertEqual(socket.SOCK_DGRAM, sock['socket_type'])
 
 
 class TestUtils(unittest.TestCase):
