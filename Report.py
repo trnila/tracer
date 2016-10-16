@@ -135,7 +135,8 @@ class Report:
             "arguments": self.data[parent]['arguments'] if parent else None,
             "thread": is_thread,
             "env": self.data[parent]['env'] if parent else None,
-            "descriptors": []
+            "descriptors": [],
+            "kills": []
         }, self.descriptor_groups[group])
 
         return self.data[pid]

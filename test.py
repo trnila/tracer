@@ -272,6 +272,15 @@ class TestTracer(unittest.TestCase):
         self.assertEqual(mmap.PROT_WRITE, maps[2]['prot'])
         self.assertEqual(mmap.MAP_SHARED, maps[2]['flags'])
 
+    def test_signals(self):
+        self.skipTest("not working yet")
+        data = self.execute('./examples/signals')
+
+        parent = data.processes.items()[0]
+        child = data.processes.items()[1]
+
+        self.assertEqual(parent['pid'], child['kills'][0]['pid'])
+        self.assertEqual(parent['pid'], child['kills'][0]['pid'])
 
 class TestUtils(unittest.TestCase):
     def test_empty(self):

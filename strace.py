@@ -192,6 +192,12 @@ class SyscallTracer(Application):
                         'flags': syscall.arguments[3].value
                     })
 
+        if syscall.name == 'kill':
+            proc['kills'].append({
+                'pid': syscall.arguments[0].value,
+                'signal': syscall.arguments[1].value
+            })
+
         if syscall.name in ["read", "write", "sendmsg", "recvmsg", "sendto", "recvfrom"] and syscall.result > 0:
             family = {
                 "read": "read",
