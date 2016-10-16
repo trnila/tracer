@@ -45,13 +45,6 @@ class SyscallTracer(Application):
     def parseOptions(self):
         parser = OptionParser(usage="%prog [options] -- program [arg1 arg2 ...]")
         self.createCommonOptions(parser)
-        parser.add_option("--ignore-regex", help="Regex used to filter syscall names (eg. --ignore='^(gettimeofday|futex|f?stat)')",
-            type="str")
-        parser.add_option("--syscalls", '-e', help="Comma separated list of shown system calls (other will be skipped)",
-            type="str", default=None)
-        parser.add_option("--filename", help="Show only syscall using filename",
-            action="store_true", default=False)
-
         parser.add_option('--output', '-o')
 
         self.createLogOptions(parser)
@@ -67,51 +60,7 @@ class SyscallTracer(Application):
             parser.print_help()
             exit(1)
 
-        # Create "only" filter
-        only = set()
-        if self.options.syscalls:
-            # split by "," and remove spaces
-            for item in self.options.syscalls.split(","):
-                item = item.strip()
-                if not item or item in only:
-                    continue
-                ok = True
-                valid_names = list(SYSCALL_NAMES.values())
-                for name in only:
-                    if name not in valid_names:
-                        print("ERROR: unknow syscall %r" % name, file=stderr)
-                        ok = False
-                if not ok:
-                    print(file=stderr)
-                    print("Use --list-syscalls options to get system calls list", file=stderr)
-                    exit(1)
-                # remove duplicates
-                only.add(item)
-        if self.options.filename:
-            for syscall, format in SYSCALL_PROTOTYPES.items():
-                restype, arguments = format
-                if any(argname in FILENAME_ARGUMENTS for argtype, argname in arguments):
-                    only.add(syscall)
-        self.only = only
-        if self.options.ignore_regex:
-            try:
-                self.ignore_regex = re.compile(self.options.ignore_regex)
-            except Exception as err:
-                print("Invalid regular expression! %s" % err)
-                print("(regex: %r)" % self.options.ignore_regex)
-                exit(1)
-        else:
-            self.ignore_regex = None
-
         self.processOptions()
-
-    def ignoreSyscall(self, syscall):
-        name = syscall.name
-        if self.only and (name not in self.only):
-            return True
-        if self.ignore_regex and self.ignore_regex.match(name):
-            return True
-        return False
 
     def displaySyscall(self, syscall):
         name = syscall.name
@@ -294,7 +243,6 @@ class SyscallTracer(Application):
 
     def prepareProcess(self, process):
         process.syscall()
-        process.syscall_state.ignore_callback = self.ignoreSyscall
 
     def newProcess(self, event):
         process = event.process
