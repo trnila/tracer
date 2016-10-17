@@ -21,18 +21,16 @@ int main() {
 	parent = getpid();
 	pid_t child = fork();
 	if(child == 0) {
-		signal(SIGUSR1, childHandler);
-		sleep(1);
+		signal(SIGUSR2, childHandler);
 		kill(parent, SIGUSR1);
-		sleep(2);
-
 		exit(0);
 	}
 	signal(SIGUSR1, parentHandler);
 
+	// hope that child have installed signal after 1sec
 	sleep(1);
 
-	kill(child, SIGUSR1);
+	kill(child, SIGUSR2);
 
 	while(wait(NULL) > 0);
 }

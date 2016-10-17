@@ -39,7 +39,7 @@ int main() {
 	}
 
 	printf("[parent] Child is ready...\n");
-	kill(child, SIGUSR1)
+	kill(child, SIGUSR1);
 	printf("[parent] Sent signal to child...\n");
 
 	while(wait(NULL) > 0);

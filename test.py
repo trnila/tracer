@@ -273,14 +273,20 @@ class TestTracer(unittest.TestCase):
         self.assertEqual(mmap.MAP_SHARED, maps[2]['flags'])
 
     def test_signals(self):
-        self.skipTest("not working yet")
         data = self.execute('./examples/signals')
 
-        parent = data.processes.items()[0]
-        child = data.processes.items()[1]
+        parent = list(data.processes.values())[0]
+        child = list(data.processes.values())[1]
 
+        import signal
+        self.assertGreaterEqual(1, len(child['kills']))
         self.assertEqual(parent['pid'], child['kills'][0]['pid'])
-        self.assertEqual(parent['pid'], child['kills'][0]['pid'])
+        self.assertEqual(signal.SIGUSR1, child['kills'][0]['signal'])
+
+        self.assertGreaterEqual(1, len(parent['kills']))
+        self.assertEqual(child['pid'], parent['kills'][0]['pid'])
+        self.assertEqual(signal.SIGUSR2, parent['kills'][0]['signal'])
+
 
 class TestUtils(unittest.TestCase):
     def test_empty(self):
