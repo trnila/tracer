@@ -287,6 +287,18 @@ class TestTracer(unittest.TestCase):
         self.assertEqual(child['pid'], parent['kills'][0]['pid'])
         self.assertEqual(signal.SIGUSR2, parent['kills'][0]['signal'])
 
+    def test_signal_kill_child(self):
+        data = self.execute('./examples/signals_kill_child')
+
+        parent = list(data.processes.values())[0]
+        child = list(data.processes.values())[1]
+
+        import signal
+        self.assertGreaterEqual(1, len(parent['kills']))
+        self.assertEqual(child['pid'], parent['kills'][0]['pid'])
+        self.assertEqual(signal.SIGKILL, parent['kills'][0]['signal'])
+        # TODO: add that this process has been killed?
+
 
 class TestUtils(unittest.TestCase):
     def test_empty(self):
