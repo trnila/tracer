@@ -94,6 +94,8 @@ class SyscallTracer(Application):
                 descriptor = proc.descriptors.get(syscall.arguments[0].value)
                 bytes = syscall.process.readBytes(syscall.arguments[1].value, syscall.arguments[2].value)
                 descriptor.local = utils.parse_addr(bytes)
+                descriptor.server = True
+                descriptor.used = 8
             elif syscall.name in ['connect', 'accept', 'syscall<288>']:
                 # struct sockaddr { unsigned short family; }
                 if syscall.name == 'connect':
@@ -109,11 +111,13 @@ class SyscallTracer(Application):
                     bytes = syscall.process.readBytes(syscall.arguments[1].value, socket_size)
                     fdnum = syscall.result
 
-                    self.get_descriptor(syscall.process.pid, syscall.arguments[0].value).server = True
-                    self.get_descriptor(syscall.process.pid, syscall.arguments[0].value).used = 8
+                    # mark accepting socket as server
+                    descriptor = proc.descriptors.get(syscall.arguments[0].value)
+                    descriptor.server = True
+                    descriptor.used = 8
 
-                    self.add_descriptor(syscall.process.pid, fd.Socket(self.data, fdnum, self.sockets))
-                    self.get_descriptor(syscall.process.pid, fdnum).local = self.get_descriptor(syscall.process.pid, syscall.arguments[0].value).local
+                    remote_desc = proc.descriptors.open(fd.Socket(self.data, fdnum, self.sockets))
+                    remote_desc.local = proc.descriptors.get(syscall.arguments[0].value).local
                     self.sockets += 1
 
                 descriptor = proc.descriptors.get(fdnum)

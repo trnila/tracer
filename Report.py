@@ -43,6 +43,7 @@ class Descriptors:
 
     def open(self, descriptor):
         self.descriptors[descriptor.fd] = descriptor
+        return descriptor
 
     def close(self, descriptor):
         if descriptor not in self.descriptors:

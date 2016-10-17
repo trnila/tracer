@@ -79,8 +79,8 @@ class TestTracer(unittest.TestCase):
     def execute(self, program, args = []):
         process = Popen(['python3', 'strace.py', '-o', '/tmp', '-f', '--',  program] + args, stdout=PIPE, stderr=PIPE)
         stdout, stderr = process.communicate()
-        print(stdout.decode('utf-8'))
-        print(stderr.decode('utf-8'), file=sys.stderr)
+        #print(stdout.decode('utf-8'))
+        #print(stderr.decode('utf-8'), file=sys.stderr)
 
         self.assertEqual(0, process.returncode)
 
@@ -163,15 +163,26 @@ class TestTracer(unittest.TestCase):
         self.assertIsNotNone(socket['local']['port'])
 
     def test_unix(self):
-        self.skipTest('not yet implemented')
         with open('/dev/null', 'w') as null:
             srv = Popen(['python3', 'strace.py', '-o', '/tmp/server', '--', 'python', 'examples/unix_socket_server.py'], stdout=null, stderr=null)
             sleep(2) # TODO: check when ready
             data = self.execute('sh', ['-c', 'echo hello world | nc -U /tmp/reverse.sock'])
-            #print(json.dumps(data, sort_keys=True, indent=4))
+            print(data)
             stdout, stderr = srv.communicate()
             with open("/tmp/data.json") as file:
-                srv_data = json.load(file)
+                srv_data = System("/tmp/", json.load(file))
+                proc = srv_data.get_process_by(executable=shutil.which('nc'))
+
+                sock = proc.get_resource_by(type='socket', domain=1)
+                self.assertEqual("/tmp/reverse.sock", sock['remote'])
+                self.assertEqual(False, sock['server'])
+
+            proc = srv_data.get_process_by(executable=shutil.which('nc'))
+            sock = proc.get_resource_by(type='socket', domain=1)
+            self.assertEqual("/tmp/reverse.sock", sock['remote'])
+            self.assertEqual(True, sock['server'])
+
+
 
     def test_thread(self):
         data = self.execute('python', ['examples/threads.py'])

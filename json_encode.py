@@ -10,8 +10,6 @@ class AppJSONEncoder(json.JSONEncoder):
             return str(obj)
 
         if getattr(obj, "to_json", None):
-            out = obj.to_json()
-            if out:
-                return out
+            return obj.to_json()
 
         return json.JSONEncoder.default(self, obj)
