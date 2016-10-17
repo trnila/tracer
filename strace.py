@@ -192,23 +192,17 @@ class SyscallTracer(Application):
             # Wait until next syscall enter
             try:
                 event = self.debugger.waitSyscall()
-                process = event.process
+                self.syscall(event.process)
             except ProcessExit as event:
                 self.processExited(event)
-                continue
             except ProcessSignal as event:
                 event.display()
-                process.syscall(event.signum)
-                continue
+                event.process.syscall(event.signum)
             except NewProcessEvent as event:
                 self.newProcess(event)
-                continue
             except ProcessExecution as event:
                 self.processExecution(event)
-                continue
 
-            # Process syscall enter or exit
-            self.syscall(process)
 
     def syscall(self, process):
         state = process.syscall_state
