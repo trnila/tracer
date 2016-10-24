@@ -3,6 +3,7 @@ import json
 import os
 import random
 import re
+import socket
 import string
 import logging
 from optparse import OptionParser
@@ -122,7 +123,7 @@ class SyscallTracer(Application):
 
                 descriptor = proc.descriptors.get(fdnum)
                 parsed = utils.parse_addr(bytes)
-                descriptor.family = parsed.get_family()
+                descriptor.domain = parsed.get_domain()
                 descriptor.remote = parsed
             elif syscall.name == 'dup2':
                 a = syscall.arguments[0].value
@@ -152,6 +153,16 @@ class SyscallTracer(Application):
             })
 
         if syscall.name in ["read", "write", "sendmsg", "recvmsg", "sendto", "recvfrom"] and syscall.result > 0:
+            descriptor = proc.descriptors.get(syscall.arguments[0].value)
+            if isinstance(descriptor, fd.Socket) and descriptor.domain in [socket.AF_INET, socket.AF_INET6]:
+                try:
+                    if descriptor.local.address.__str__() == '0.0.0.0':
+                        resolved = resolve(syscall.process.pid, syscall.arguments[0].value, 1)
+                        descriptor.local = resolved['dst']
+                except:
+                    pass
+
+
             family = {
                 "read": "read",
                 "write": "write",
