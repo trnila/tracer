@@ -16,6 +16,7 @@ class Capture:
         self.descriptor = descriptor
         self.n = n
         self.files = {}
+        self.operations = []
 
     def write(self, content):
         self.__write('write', content)
@@ -24,7 +25,7 @@ class Capture:
         self.__write('read', content)
 
     def to_json(self):
-        return {**self.descriptor.to_json(), **self.files}
+        return {**self.descriptor.to_json(), **self.files, **{'operations': self.operations}}
 
     def __get_id(self):
         return "%s_%s_%s" % (self.process['pid'], self.descriptor.getLabel(), self.n)
@@ -34,6 +35,7 @@ class Capture:
 
         self.files[type + '_content'] = filename
         self.report.append_file(filename, content)
+        self.operations.append({'type': type, 'size': len(content)})
 
 
 class Descriptors:
