@@ -49,6 +49,7 @@ class SyscallTracer(Application):
         parser = OptionParser(usage="%prog [options] -- program [arg1 arg2 ...]")
         self.createCommonOptions(parser)
         parser.add_option('--output', '-o')
+        parser.add_option('--trace-mmap', action="store_true", default=False)
 
         self.createLogOptions(parser)
 
@@ -203,13 +204,11 @@ class SyscallTracer(Application):
             try:
                 event = self.debugger.waitSyscall()
 
-                proc = self.data.get_process(event.process.pid)
-                for descriptor in proc['descriptors']:
-                    if isinstance(descriptor.descriptor, fd.File):
+                if self.options.trace_mmap:
+                    proc = self.data.get_process(event.process.pid)
+                    for descriptor in proc['descriptors']:
                         for mmap in descriptor.descriptor.mmaps:
                             mmap.check()
-                            pass
-                            # TODO: fix
 
                 self.syscall(event.process)
             except ProcessExit as event:

@@ -27,15 +27,19 @@ class TracingTest(unittest.TestCase):
         for pid, proc in data.items():
             self.assertEqual(0, proc['exitCode'])
 
-    def execute(self, program, args=None):
+    def execute(self, program, args=None, options=None):
         if args is None:
             args = []
 
-        process = Popen(['python3', 'tracer.py', '-o', '/tmp', '-f', '--', program] + args, stdout=PIPE, stderr=PIPE,
-                        cwd=project_dir)
+        if options is None:
+            options = []
+
+        options = ['-o', '/tmp/'] + options
+
+        process = Popen(['python3', 'tracer.py'] + options + ['--',  program] + args, stdout=PIPE, stderr=PIPE, cwd=project_dir)
         stdout, stderr = process.communicate()
-        # print(stdout.decode('utf-8'))
-        # print(stderr.decode('utf-8'), file=sys.stderr)
+        #print(stdout.decode('utf-8'))
+        #print(stderr.decode('utf-8'), file=sys.stderr)
 
         self.assertEqual(0, process.returncode)
 
@@ -266,7 +270,7 @@ class TracingTest(unittest.TestCase):
         # TODO: add that this process has been killed?
 
     def test_mmap_track(self):
-        data = self.execute('./examples/mmap_track2')
+        data = self.execute('./examples/mmap_track2', options=['--trace-mmap'])
 
         process = data.get_first_process()
         mmap = process.get_resource_by(type="file", path="%s/examples/100mb" % (os.getcwd()))['mmap'][0]
