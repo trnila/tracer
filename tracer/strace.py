@@ -18,6 +18,7 @@ from ptrace.error import PTRACE_ERRORS
 from ptrace.error import writeError
 from ptrace.func_call import FunctionCallOptions
 
+from mmap_tracer import MmapTracer
 from tracer import fd, utils
 from tracer.Report import Report
 from tracer.Report import UnknownFd
@@ -143,12 +144,7 @@ class SyscallTracer(Application):
                 proc.descriptors.clone(new, old)
             elif syscall.name == 'mmap':
                 if syscall.arguments[4].value != 18446744073709551615:
-                    proc.mmap(syscall.arguments[4].value, {
-                        'address': syscall.result,
-                        'length': syscall.arguments[1].value,
-                        'prot': syscall.arguments[2].value,
-                        'flags': syscall.arguments[3].value
-                    })
+                    proc.mmap(syscall.arguments[4].value, MmapTracer(proc['pid'], syscall.result, syscall.arguments[1].value, syscall.arguments[2].value, syscall.arguments[3].value))
 
         if syscall.name == 'kill':
             proc['kills'].append({
@@ -206,6 +202,12 @@ class SyscallTracer(Application):
             # Wait until next syscall enter
             try:
                 event = self.debugger.waitSyscall()
+
+                proc = self.data.get_process(event.process.pid)
+                for descriptor in proc['descriptors']:
+                    for mmap in descriptor.descriptor.mmaps:
+                        mmap.check()
+
                 self.syscall(event.process)
             except ProcessExit as event:
                 self.processExited(event)

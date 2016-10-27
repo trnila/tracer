@@ -228,15 +228,15 @@ class TracingTest(unittest.TestCase):
         self.assertEqual(12, maps[1]['length'])
         self.assertEqual(12, maps[2]['length'])
 
-        import mmap
-        self.assertEqual(mmap.PROT_READ, maps[0]['prot'])
-        self.assertEqual(mmap.MAP_PRIVATE, maps[0]['flags'])
+        import mmap_tracer
+        self.assertEqual(mmap_tracer.PROT_READ, maps[0]['prot'])
+        self.assertEqual(mmap_tracer.MAP_PRIVATE, maps[0]['flags'])
 
-        self.assertEqual(mmap.PROT_READ, maps[1]['prot'])
-        self.assertEqual(mmap.MAP_SHARED, maps[1]['flags'])
+        self.assertEqual(mmap_tracer.PROT_READ, maps[1]['prot'])
+        self.assertEqual(mmap_tracer.MAP_SHARED, maps[1]['flags'])
 
-        self.assertEqual(mmap.PROT_WRITE, maps[2]['prot'])
-        self.assertEqual(mmap.MAP_SHARED, maps[2]['flags'])
+        self.assertEqual(mmap_tracer.PROT_WRITE, maps[2]['prot'])
+        self.assertEqual(mmap_tracer.MAP_SHARED, maps[2]['flags'])
 
     def test_signals(self):
         data = self.execute('./examples/signals')
