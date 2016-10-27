@@ -1,8 +1,6 @@
 import ipaddress
 import socket
 
-from mmap_tracer import MmapTracer
-
 
 class Descriptor:
     READ = 1

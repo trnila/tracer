@@ -18,12 +18,12 @@ from ptrace.error import PTRACE_ERRORS
 from ptrace.error import writeError
 from ptrace.func_call import FunctionCallOptions
 
-from mmap_tracer import MmapTracer
 from tracer import fd, utils
 from tracer.Report import Report
 from tracer.Report import UnknownFd
 from tracer.fd_resolve import resolve
 from tracer.json_encode import AppJSONEncoder
+from tracer.mmap_tracer import MmapTracer
 
 logging.getLogger().setLevel(logging.DEBUG)
 try:
@@ -205,8 +205,11 @@ class SyscallTracer(Application):
 
                 proc = self.data.get_process(event.process.pid)
                 for descriptor in proc['descriptors']:
-                    for mmap in descriptor.descriptor.mmaps:
-                        mmap.check()
+                    if isinstance(descriptor.descriptor, fd.File):
+                        for mmap in descriptor.descriptor.mmaps:
+                            mmap.check()
+                            pass
+                            # TODO: fix
 
                 self.syscall(event.process)
             except ProcessExit as event:

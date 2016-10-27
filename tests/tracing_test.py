@@ -228,15 +228,15 @@ class TracingTest(unittest.TestCase):
         self.assertEqual(12, maps[1]['length'])
         self.assertEqual(12, maps[2]['length'])
 
-        import mmap_tracer
-        self.assertEqual(mmap_tracer.PROT_READ, maps[0]['prot'])
-        self.assertEqual(mmap_tracer.MAP_PRIVATE, maps[0]['flags'])
+        import mmap
+        self.assertEqual(mmap.PROT_READ, maps[0]['prot'])
+        self.assertEqual(mmap.MAP_PRIVATE, maps[0]['flags'])
 
-        self.assertEqual(mmap_tracer.PROT_READ, maps[1]['prot'])
-        self.assertEqual(mmap_tracer.MAP_SHARED, maps[1]['flags'])
+        self.assertEqual(mmap.PROT_READ, maps[1]['prot'])
+        self.assertEqual(mmap.MAP_SHARED, maps[1]['flags'])
 
-        self.assertEqual(mmap_tracer.PROT_WRITE, maps[2]['prot'])
-        self.assertEqual(mmap_tracer.MAP_SHARED, maps[2]['flags'])
+        self.assertEqual(mmap.PROT_WRITE, maps[2]['prot'])
+        self.assertEqual(mmap.MAP_SHARED, maps[2]['flags'])
 
     def test_signals(self):
         data = self.execute('./examples/signals')
@@ -265,6 +265,16 @@ class TracingTest(unittest.TestCase):
         self.assertEqual(signal.SIGKILL, parent['kills'][0]['signal'])
         # TODO: add that this process has been killed?
 
+    def test_mmap_track(self):
+        data = self.execute('./examples/mmap_track2')
+
+        process = data.get_first_process()
+        mmap = process.get_resource_by(type="file", path="%s/examples/100mb" % (os.getcwd()))['mmap'][0]
+        regions = mmap['regions']
+
+        self.assertEqual(2, len(regions))
+        self.assertEqual(mmap['address'], int(regions[0].split("-")[0], 16))
+        #self.assertLessEqual(mmap['address'] + mmap['length'], int(regions[1].split("-")[1], 16))
 
 if __name__ == '__main__':
     sys.argv.append('-b')

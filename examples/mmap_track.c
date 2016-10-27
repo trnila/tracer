@@ -7,6 +7,7 @@
 #include <sys/wait.h>
 
 int with_thread = 1;
+int delay = 0;
 
 int main() {
 	int fd;
@@ -40,8 +41,10 @@ int main() {
 		int bulk = 10240;
 		for(int i = 0; i < len / bulk; i++) {
 			printf("%d", addr[i*bulk]);
-			fflush(stdout);
-			usleep(100000);
+
+			if(delay) {
+				usleep(100000);
+			}
 		}
 	}
 
