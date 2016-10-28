@@ -1,7 +1,7 @@
 import sys
 import unittest
 
-from tracer.TracedData import System
+from tests.utils.TracedData import System
 
 
 class QueriesTest(unittest.TestCase):

@@ -4,7 +4,7 @@ import unittest
 from subprocess import PIPE
 from subprocess import Popen
 
-from tracer.TracedData import System
+from tests.utils.TracedData import System
 
 
 class TracerTestCase(unittest.TestCase):
