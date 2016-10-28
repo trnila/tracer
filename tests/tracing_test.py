@@ -273,7 +273,7 @@ class TracingTest(unittest.TestCase):
         data = self.execute('./examples/mmap_track2', options=['--trace-mmap'])
 
         process = data.get_first_process()
-        mmap = process.get_resource_by(type="file", path="%s/examples/100mb" % (os.getcwd()))['mmap'][0]
+        mmap = process.get_resource_by(type="file", path=os.path.realpath("%s/../examples/100mb" % (os.getcwd())))['mmap'][0]
         regions = mmap['regions']
 
         self.assertEqual(2, len(regions))
