@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import datetime
 import json
 import logging
 import os
@@ -48,7 +49,7 @@ class SyscallTracer(Application):
         self.options, self.program = parser.parse_args()
 
         if not self.options.output:
-            self.options.output = ''.join(random.choice(string.ascii_uppercase + string.digits) for _ in range(10))
+            self.options.output = '/tmp/tracer_%s_%s' % (self.program[0], datetime.datetime.now().strftime("%d-%m-%Y_%H:%M:%S.%f"))
 
         self.options.enter = True
 
@@ -297,6 +298,7 @@ class SyscallTracer(Application):
         print(json.dumps(self.data.data, sort_keys=True, indent=4, cls=AppJSONEncoder))
 
         self.data.save()
+        print("Report saved in %s" % self.options.output)
 
     def createChild(self, program):
         pid = Application.createChild(self, program)
