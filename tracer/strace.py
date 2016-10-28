@@ -3,26 +3,31 @@ import datetime
 import json
 import logging
 import os
-import random
 import socket
-import string
 from optparse import OptionParser
 from struct import unpack
 from sys import exit
 
-from ptrace.debugger import (PtraceDebugger, Application,
-    ProcessExit, ProcessSignal, NewProcessEvent, ProcessExecution)
-from ptrace.error import PTRACE_ERRORS, writeError
+from ptrace.debugger import PtraceDebugger
+from ptrace.debugger import Application
+from ptrace.debugger import ProcessExit
+from ptrace.debugger import ProcessSignal
+from ptrace.debugger import NewProcessEvent
+from ptrace.debugger import ProcessExecution
+from ptrace.error import PTRACE_ERRORS
+from ptrace.error import writeError
 from ptrace.func_call import FunctionCallOptions
 
 from tracer import fd, utils
 from tracer.Report import Report
+from tracer.Report import UnknownFd
 from tracer.fd_resolve import resolve
 from tracer.json_encode import AppJSONEncoder
 
 logging.getLogger().setLevel(logging.DEBUG)
 try:
     import colorlog
+
     handler = colorlog.StreamHandler()
     handler.setFormatter(colorlog.ColoredFormatter('%(log_color)s%(levelname)s:%(name)s:%(message)s'))
     colorlog.getLogger().addHandler(handler)
@@ -49,7 +54,10 @@ class SyscallTracer(Application):
         self.options, self.program = parser.parse_args()
 
         if not self.options.output:
-            self.options.output = '/tmp/tracer_%s_%s' % (self.program[0], datetime.datetime.now().strftime("%d-%m-%Y_%H:%M:%S.%f"))
+            self.options.output = '/tmp/tracer_%s_%s' % (
+                self.program[0],
+                datetime.datetime.now().strftime("%d-%m-%Y_%H:%M:%S.%f")
+            )
 
         self.options.enter = True
 
@@ -60,19 +68,17 @@ class SyscallTracer(Application):
         self.processOptions()
 
     def displaySyscall(self, syscall):
-        name = syscall.name
         text = syscall.format()
         if syscall.result is not None:
             text = "%-40s = %s" % (text, syscall.result_text)
-        prefix = []
-        prefix.append("[%s]" % syscall.process.pid)
+        prefix = ["[%s]" % syscall.process.pid]
         if prefix:
             text = ''.join(prefix) + ' ' + text
         logging.debug(text)
 
         proc = self.data.get_process(syscall.process.pid)
 
-        if syscall.result >= 0 or syscall.result == -115: # EINPROGRESS
+        if syscall.result >= 0 or syscall.result == -115:  # EINPROGRESS
             if syscall.name == 'open':
                 proc.descriptors.open(fd.File(self.data, syscall.result, syscall.arguments[0].text.strip('\'')))
             elif syscall.name == 'socket':
@@ -89,23 +95,23 @@ class SyscallTracer(Application):
                 self.pipes += 1
             elif syscall.name == 'bind':
                 descriptor = proc.descriptors.get(syscall.arguments[0].value)
-                bytes = syscall.process.readBytes(syscall.arguments[1].value, syscall.arguments[2].value)
-                descriptor.local = utils.parse_addr(bytes)
+                bytes_content = syscall.process.readBytes(syscall.arguments[1].value, syscall.arguments[2].value)
+                descriptor.local = utils.parse_addr(bytes_content)
                 descriptor.server = True
                 descriptor.used = 8
             elif syscall.name in ['connect', 'accept', 'syscall<288>']:
                 # struct sockaddr { unsigned short family; }
                 if syscall.name == 'connect':
-                    bytes = syscall.process.readBytes(syscall.arguments[1].value, syscall.arguments[2].value)
+                    bytes_content = syscall.process.readBytes(syscall.arguments[1].value, syscall.arguments[2].value)
                     fdnum = syscall.arguments[0].value
 
                     resolved = resolve(syscall.process.pid, fdnum, 1)
                     if 'dst' in resolved:
-                        proc.descriptors.get(fdnum).local = resolved['dst'] # TODO: rewrite
+                        proc.descriptors.get(fdnum).local = resolved['dst']  # TODO: rewrite
                 elif syscall.name in ['accept', 'syscall<288>']:
-                    bytes = syscall.process.readBytes(syscall.arguments[2].value, 4)
-                    socket_size = unpack("I", bytes)[0]
-                    bytes = syscall.process.readBytes(syscall.arguments[1].value, socket_size)
+                    bytes_content = syscall.process.readBytes(syscall.arguments[2].value, 4)
+                    socket_size = unpack("I", bytes_content)[0]
+                    bytes_content = syscall.process.readBytes(syscall.arguments[1].value, socket_size)
                     fdnum = syscall.result
 
                     # mark accepting socket as server
@@ -116,9 +122,11 @@ class SyscallTracer(Application):
                     remote_desc = proc.descriptors.open(fd.Socket(self.data, fdnum, self.sockets))
                     remote_desc.local = proc.descriptors.get(syscall.arguments[0].value).local
                     self.sockets += 1
+                else:
+                    raise Exception("Unexpected syscall")
 
                 descriptor = proc.descriptors.get(fdnum)
-                parsed = utils.parse_addr(bytes)
+                parsed = utils.parse_addr(bytes_content)
                 descriptor.domain = parsed.get_domain()
                 descriptor.remote = parsed
             elif syscall.name == 'dup2':
@@ -129,7 +137,7 @@ class SyscallTracer(Application):
                 proc.descriptors.clone(b, a)
             elif syscall.name == 'close':
                 proc.descriptors.close(syscall.arguments[0].value)
-            elif syscall.name == 'dup' or (syscall.name == 'fcntl' and syscall.arguments[1].value == 0): # F_DUPFD = 0
+            elif syscall.name == 'dup' or (syscall.name == 'fcntl' and syscall.arguments[1].value == 0):  # F_DUPFD = 0
                 new = syscall.result
                 old = syscall.arguments[0].value
                 proc.descriptors.clone(new, old)
@@ -158,7 +166,6 @@ class SyscallTracer(Application):
                 except:
                     pass
 
-
             family = {
                 "read": "read",
                 "write": "write",
@@ -171,19 +178,15 @@ class SyscallTracer(Application):
             content = b""
 
             if syscall.name in ['sendmsg', 'recvmsg']:
-                bytes = syscall.process.readBytes(syscall.arguments[1].value, 32)
-                items = unpack("PIPL", bytes)
+                bytes_content = syscall.process.readBytes(syscall.arguments[1].value, 32)
+                items = unpack("PIPL", bytes_content)
 
                 for i in range(0, items[3]):
-                    bytes = syscall.process.readBytes(items[2] + 16*i, 16)
-                    i = unpack("PL", bytes)
+                    bytes_content = syscall.process.readBytes(items[2] + 16 * i, 16)
+                    i = unpack("PL", bytes_content)
                     content += syscall.process.readBytes(i[0], i[1])
             else:
-                wrote = 0
-                if family == 'read':
-                    wrote = syscall.result
-                else:
-                    wrote = syscall.arguments[2].value
+                wrote = syscall.result if family == 'read' else syscall.arguments[2].value
                 content = syscall.process.readBytes(syscall.arguments[1].value, wrote)
 
             if family == 'read':
@@ -214,7 +217,6 @@ class SyscallTracer(Application):
             except ProcessExecution as event:
                 self.processExecution(event)
 
-
     def syscall(self, process):
         state = process.syscall_state
         syscall = state.event(self.syscall_options)
@@ -222,15 +224,15 @@ class SyscallTracer(Application):
         if syscall.name == "execve" and syscall.result is not None:
             proc = self.data.get_process(syscall.process.pid)
             proc['executable'] = syscall.arguments[0].text.strip("'")
-            proc['arguments'] = utils.parseArgs(syscall.arguments[1].text)
+            proc['arguments'] = utils.parse_args(syscall.arguments[1].text)
 
-            env = dict([i.split("=", 1) for i in utils.parseArgs(syscall.arguments[2].text)])
+            env = dict([i.split("=", 1) for i in utils.parse_args(syscall.arguments[2].text)])
             proc['env'] = env
 
         if syscall and (syscall.result is not None):
             try:
                 self.displaySyscall(syscall)
-            except UnknownFd as e:
+            except UnknownFd:
                 logging.fatal("Unknown FD!")
 
         # Break at next syscall
@@ -284,7 +286,7 @@ class SyscallTracer(Application):
 
         try:
             pass
-            #self.runDebugger()
+            # self.runDebugger()
         except ProcessExit as event:
             self.processExited(event)
         except KeyboardInterrupt:
@@ -292,15 +294,13 @@ class SyscallTracer(Application):
             self.debugger.quit()
         except PTRACE_ERRORS as err:
             writeError(logging.getLogger(), err, "Debugger error")
-        except err:
-            raise err
         self.debugger.quit()
         print(json.dumps(self.data.data, sort_keys=True, indent=4, cls=AppJSONEncoder))
 
         self.data.save()
         print("Report saved in %s" % self.options.output)
 
-    def createChild(self, program):
+    def createChild(self, program, **kwargs):
         pid = Application.createChild(self, program)
         logging.debug("execve(%s, %s, [/* 40 vars */]) = %s" % (program[0], program, pid))
 

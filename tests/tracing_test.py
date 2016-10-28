@@ -12,8 +12,9 @@ from tracer.TracedData import System
 
 project_dir = os.path.dirname(os.path.realpath(__file__)) + "/../"
 
-def read(fileName):
-    with open(fileName) as f:
+
+def read(file_name):
+    with open(file_name) as f:
         return f.read()
 
 
@@ -26,11 +27,15 @@ class TracingTest(unittest.TestCase):
         for pid, proc in data.items():
             self.assertEqual(0, proc['exitCode'])
 
-    def execute(self, program, args = []):
-        process = Popen(['python3', 'tracer.py', '-o', '/tmp', '-f', '--',  program] + args, stdout=PIPE, stderr=PIPE, cwd=project_dir)
+    def execute(self, program, args=None):
+        if args is None:
+            args = []
+
+        process = Popen(['python3', 'tracer.py', '-o', '/tmp', '-f', '--', program] + args, stdout=PIPE, stderr=PIPE,
+                        cwd=project_dir)
         stdout, stderr = process.communicate()
-        #print(stdout.decode('utf-8'))
-        #print(stderr.decode('utf-8'), file=sys.stderr)
+        # print(stdout.decode('utf-8'))
+        # print(stderr.decode('utf-8'), file=sys.stderr)
 
         self.assertEqual(0, process.returncode)
 
@@ -93,29 +98,30 @@ class TracingTest(unittest.TestCase):
     def test_ipv4_resolve(self):
         data = self.execute('curl', ['http://93.184.216.34/'])
         curl = data.get_process_by(executable=shutil.which('curl'))
-        socket = curl.get_resource_by(type='socket')
+        sock = curl.get_resource_by(type='socket')
 
-        self.assertEqual('93.184.216.34', socket['remote']['address'])
-        self.assertEqual(80, socket['remote']['port'])
+        self.assertEqual('93.184.216.34', sock['remote']['address'])
+        self.assertEqual(80, sock['remote']['port'])
 
-        self.assertIsNotNone(socket['local']['address'])
-        self.assertIsNotNone(socket['local']['port'])
+        self.assertIsNotNone(sock['local']['address'])
+        self.assertIsNotNone(sock['local']['port'])
 
     @unittest.skipIf("TRAVIS" in os.environ and os.environ["TRAVIS"] == "true", "ipv6 not supported on travis")
     def test_ipv6_resolve(self):
         data = self.execute('curl', ['http://[2606:2800:220:1:248:1893:25c8:1946]/'])
         curl = data.get_process_by(executable=shutil.which('curl'))
-        socket = curl.get_resource_by(type='socket')
+        sock = curl.get_resource_by(type='socket')
 
-        self.assertEqual('2606:2800:220:1:248:1893:25c8:1946', socket['remote']['address'])
-        self.assertEqual(80, socket['remote']['port'])
-        self.assertIsNotNone(socket['local']['address'])
-        self.assertIsNotNone(socket['local']['port'])
+        self.assertEqual('2606:2800:220:1:248:1893:25c8:1946', sock['remote']['address'])
+        self.assertEqual(80, sock['remote']['port'])
+        self.assertIsNotNone(sock['local']['address'])
+        self.assertIsNotNone(sock['local']['port'])
 
     def test_unix(self):
         with open('/dev/null', 'w') as null:
-            srv = Popen(['python3', 'tracer.py', '-o', '/tmp/server', '--', 'python', 'examples/unix_socket_server.py'], stdout=null, stderr=null, cwd=project_dir)
-            sleep(4) # TODO: check when ready
+            srv = Popen(['python3', 'tracer.py', '-o', '/tmp/server', '--', 'python', 'examples/unix_socket_server.py'],
+                        stdout=null, stderr=null, cwd=project_dir)
+            sleep(4)  # TODO: check when ready
             data = self.execute('sh', ['-c', 'echo hello world | nc -U /tmp/reverse.sock'])
             stdout, stderr = srv.communicate()
             with open("/tmp/data.json") as file:
@@ -258,6 +264,7 @@ class TracingTest(unittest.TestCase):
         self.assertEqual(child['pid'], parent['kills'][0]['pid'])
         self.assertEqual(signal.SIGKILL, parent['kills'][0]['signal'])
         # TODO: add that this process has been killed?
+
 
 if __name__ == '__main__':
     sys.argv.append('-b')

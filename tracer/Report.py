@@ -28,14 +28,14 @@ class Capture:
         return {**self.descriptor.to_json(), **self.files, **{'operations': self.operations}}
 
     def __get_id(self):
-        return "%s_%s_%s" % (self.process['pid'], self.descriptor.getLabel(), self.n)
+        return "%s_%s_%s" % (self.process['pid'], self.descriptor.get_label(), self.n)
 
-    def __write(self, type, content):
-        filename = self.__get_id() + "." + type
+    def __write(self, action, content):
+        filename = self.__get_id() + "." + action
 
-        self.files[type + '_content'] = filename
+        self.files[action + '_content'] = filename
         self.report.append_file(filename, content)
-        self.operations.append({'type': type, 'size': len(content)})
+        self.operations.append({'type': action, 'size': len(content)})
 
 
 class Descriptors:
@@ -97,7 +97,6 @@ class Process:
         self.__prepare_capture(fd)
         self.captures[fd].descriptor.mmaps.append(params)
 
-
     def on_close(self, fd):
         self.captures[fd] = None
 
@@ -108,7 +107,6 @@ class Process:
         if fd not in self.captures or self.captures[fd] is None:
             self.captures[fd] = Capture(self.report, self, self.descriptors.get(fd), len(self.data['descriptors']))
             self.data['descriptors'].append(self.captures[fd])
-
 
 
 class Report:

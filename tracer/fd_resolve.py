@@ -58,15 +58,15 @@ def resolve(pid, fd, read):
             'file': dst
         }
 
-    type = match.group('type')
+    fd_type = match.group('type')
     inode = match.group('inode')
-    if type == 'pipe':
+    if fd_type == 'pipe':
         return {
             'type': 'pipe',
             'id': inode,
             'inode': inode
         }
-    elif type == 'socket':
+    elif fd_type == 'socket':
         a = resolve_socket(inode, read)
         if a:
             return a

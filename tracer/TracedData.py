@@ -27,8 +27,8 @@ class System:
         self.processes = {}
         self.resource_path = resource_path
 
-        for id, process in data.items():
-            self.processes[int(id)] = Process(process)
+        for pid, process in data.items():
+            self.processes[int(pid)] = Process(process)
 
     def all_resources(self):
         return list(itertools.chain(*[j['descriptors'] for i, j in self.processes.items()]))
@@ -36,7 +36,10 @@ class System:
     def get_first_process(self):
         return next(iter(self.processes.values()))
 
-    def get_process_by(self, descriptors={}, **kwargs):
+    def get_process_by(self, descriptors=None, **kwargs):
+        if descriptors is None:
+            descriptors = {}
+
         for pid, process in self.processes.items():
             if descriptors:
                 for descriptor in process['descriptors']:
@@ -47,19 +50,20 @@ class System:
                 return process
         return None
 
-    def get_resource(self, id):
+    def get_resource(self, pid):
         for i, proc in self.processes.items():
-            for type in ['read', 'write']:
-                for j, k in proc[type].items():
-                    if id == j:
+            for action in ['read', 'write']:
+                for j, k in proc[action].items():
+                    if pid == j:
                         return k
         return None
 
     def get_process_by_pid(self, pid):
         return self.processes[pid]
 
-    def read_file(self, id):
-        return open(self.resource_path + "/" + id, 'rb').read()
+    def read_file(self, pid):
+        return open(self.resource_path + "/" + pid, 'rb').read()
+
 
 class TracedData:
     def __init__(self, path):

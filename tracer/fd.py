@@ -11,7 +11,7 @@ class Descriptor:
         self.fd = fd
         self.used = 0
 
-    def getLabel(self):
+    def get_label(self):
         return ""
 
     def to_json(self):
@@ -27,7 +27,7 @@ class Pipe(Descriptor):
         super().__init__(location, fd)
         self.pipe_id = pipe_id
 
-    def getLabel(self):
+    def get_label(self):
         return "pipe: %d" % self.pipe_id
 
     def to_json(self):
@@ -43,7 +43,7 @@ class File(Descriptor):
         self.seeks = []
         self.mmaps = []
 
-    def getLabel(self):
+    def get_label(self):
         return self.path.replace('/', '_')
 
     def to_json(self):
@@ -64,7 +64,7 @@ class Socket(Descriptor):
         self.server = False
         self.socket_id = socket_id
 
-    def getLabel(self):
+    def get_label(self):
         return 'socket_%d' % self.socket_id
 
     def to_json(self):

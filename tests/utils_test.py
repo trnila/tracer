@@ -6,13 +6,13 @@ from tracer import utils
 
 class UtilsTest(unittest.TestCase):
     def test_empty(self):
-        self.assertEqual([], utils.parseArgs("<>"))
+        self.assertEqual([], utils.parse_args("<>"))
 
     def test_simple(self):
-        self.assertEqual(['ls'], utils.parseArgs("<'ls', NULL>"))
+        self.assertEqual(['ls'], utils.parse_args("<'ls', NULL>"))
 
     def test_multiple(self):
-        self.assertEqual(['ls', '-l', '/tmp'], utils.parseArgs("<'ls', '-l', '/tmp', NULL>"))
+        self.assertEqual(['ls', '-l', '/tmp'], utils.parse_args("<'ls', '-l', '/tmp', NULL>"))
 
     def test_ipv4(self):
         self.assertEqual('93.184.216.34', utils.parse_ipv4('22D8B85D'))
