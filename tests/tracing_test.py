@@ -5,12 +5,11 @@ import socket
 import subprocess
 import sys
 import unittest
-from subprocess import Popen, PIPE
+from subprocess import Popen
 from time import sleep
 
+from tests.utils.tracer_test_case import TracerTestCase
 from tracer.TracedData import System
-
-project_dir = os.path.dirname(os.path.realpath(__file__)) + "/../"
 
 
 def read(file_name):
@@ -18,34 +17,7 @@ def read(file_name):
         return f.read()
 
 
-class TracingTest(unittest.TestCase):
-    def assertFileEqual(self, file1, file2):
-        with open(file1) as f1, open(file2) as f2:
-            self.assertEqual(f1.read(), f2.read())
-
-    def assertAllProcessExitedOk(self, data):
-        for pid, proc in data.items():
-            self.assertEqual(0, proc['exitCode'])
-
-    def execute(self, program, args=None, options=None):
-        if args is None:
-            args = []
-
-        if options is None:
-            options = []
-
-        options = ['-o', '/tmp/'] + options
-
-        process = Popen(['python3', 'tracer.py'] + options + ['--',  program] + args, stdout=PIPE, stderr=PIPE, cwd=project_dir)
-        stdout, stderr = process.communicate()
-        #print(stdout.decode('utf-8'))
-        #print(stderr.decode('utf-8'), file=sys.stderr)
-
-        self.assertEqual(0, process.returncode)
-
-        with open("/tmp/data.json") as file:
-            return System("/tmp/", json.load(file))
-
+class TracingTest(TracerTestCase):
     def test_simple(self):
         path = shutil.which("uname")
         data = self.execute(path)
@@ -124,7 +96,7 @@ class TracingTest(unittest.TestCase):
     def test_unix(self):
         with open('/dev/null', 'w') as null:
             srv = Popen(['python3', 'tracer.py', '-o', '/tmp/server', '--', 'python', 'examples/unix_socket_server.py'],
-                        stdout=null, stderr=null, cwd=project_dir)
+                        stdout=null, stderr=null, cwd=self.project_dir)
             sleep(4)  # TODO: check when ready
             data = self.execute('sh', ['-c', 'echo hello world | nc -U /tmp/reverse.sock'])
             stdout, stderr = srv.communicate()
@@ -222,26 +194,6 @@ class TracingTest(unittest.TestCase):
         self.assertEqual(socket.AF_INET6, sock['domain'])
         self.assertEqual(socket.SOCK_DGRAM, sock['socket_type'])
 
-    def test_mmap(self):
-        data = self.execute('./examples/mmap')
-
-        process = data.get_first_process()
-        maps = process.get_resource_by(type="file", path="/tmp/file")['mmap']
-
-        self.assertEqual(12, maps[0]['length'])
-        self.assertEqual(12, maps[1]['length'])
-        self.assertEqual(12, maps[2]['length'])
-
-        import mmap
-        self.assertEqual(mmap.PROT_READ, maps[0]['prot'])
-        self.assertEqual(mmap.MAP_PRIVATE, maps[0]['flags'])
-
-        self.assertEqual(mmap.PROT_READ, maps[1]['prot'])
-        self.assertEqual(mmap.MAP_SHARED, maps[1]['flags'])
-
-        self.assertEqual(mmap.PROT_WRITE, maps[2]['prot'])
-        self.assertEqual(mmap.MAP_SHARED, maps[2]['flags'])
-
     def test_signals(self):
         data = self.execute('./examples/signals')
 
@@ -268,17 +220,6 @@ class TracingTest(unittest.TestCase):
         self.assertEqual(child['pid'], parent['kills'][0]['pid'])
         self.assertEqual(signal.SIGKILL, parent['kills'][0]['signal'])
         # TODO: add that this process has been killed?
-
-    def test_mmap_track(self):
-        data = self.execute('./examples/mmap_track2', options=['--trace-mmap'])
-
-        process = data.get_first_process()
-        mmap = process.get_resource_by(type="file", path=os.path.realpath("%s/../examples/100mb" % (os.getcwd())))['mmap'][0]
-        regions = mmap['regions']
-
-        self.assertEqual(2, len(regions))
-        self.assertEqual(mmap['address'], int(regions[0].split("-")[0], 16))
-        #self.assertLessEqual(mmap['address'] + mmap['length'], int(regions[1].split("-")[1], 16))
 
 if __name__ == '__main__':
     sys.argv.append('-b')
