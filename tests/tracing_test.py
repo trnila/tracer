@@ -1,14 +1,14 @@
-import socket
-import subprocess
-from subprocess import Popen, PIPE
 import json
-import unittest
-import sys
 import os
 import shutil
+import socket
+import subprocess
+import sys
+import unittest
+from subprocess import Popen, PIPE
 from time import sleep
 
-from TracedData import System
+from tracer.TracedData import System
 
 
 def read(fileName):
@@ -26,7 +26,7 @@ class TracingTest(unittest.TestCase):
             self.assertEqual(0, proc['exitCode'])
 
     def execute(self, program, args = []):
-        process = Popen(['python3', 'strace.py', '-o', '/tmp', '-f', '--',  program] + args, stdout=PIPE, stderr=PIPE)
+        process = Popen(['python3', 'tracer.py', '-o', '/tmp', '-f', '--',  program] + args, stdout=PIPE, stderr=PIPE, cwd=os.path.dirname(os.path.realpath(__file__)) + "/../")
         stdout, stderr = process.communicate()
         #print(stdout.decode('utf-8'))
         #print(stderr.decode('utf-8'), file=sys.stderr)
@@ -113,7 +113,7 @@ class TracingTest(unittest.TestCase):
 
     def test_unix(self):
         with open('/dev/null', 'w') as null:
-            srv = Popen(['python3', 'strace.py', '-o', '/tmp/server', '--', 'python', 'examples/unix_socket_server.py'], stdout=null, stderr=null)
+            srv = Popen(['python3', 'tracer.py', '-o', '/tmp/server', '--', 'python', 'examples/unix_socket_server.py'], stdout=null, stderr=null)
             sleep(2) # TODO: check when ready
             data = self.execute('sh', ['-c', 'echo hello world | nc -U /tmp/reverse.sock'])
             print(data)

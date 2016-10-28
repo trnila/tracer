@@ -1,8 +1,7 @@
 import os
-import platform
 import re
 
-import utils
+from tracer import utils
 
 
 def resolve_socket(inode, read):

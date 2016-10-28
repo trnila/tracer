@@ -1,28 +1,23 @@
 #!/usr/bin/env python
 import json
+import logging
 import os
 import random
-import re
 import socket
 import string
-import logging
 from optparse import OptionParser
 from struct import unpack
-from sys import stderr, exit
+from sys import exit
 
 from ptrace.debugger import (PtraceDebugger, Application,
     ProcessExit, ProcessSignal, NewProcessEvent, ProcessExecution)
 from ptrace.error import PTRACE_ERRORS, writeError
 from ptrace.func_call import FunctionCallOptions
-from ptrace.syscall import (SYSCALL_NAMES, SYSCALL_PROTOTYPES,
-                            FILENAME_ARGUMENTS)
 
-import fd
-import utils
-from Report import Report, UnknownFd
-from fd_resolve import resolve
-from json_encode import AppJSONEncoder
-
+from tracer import fd, utils
+from tracer.Report import Report
+from tracer.fd_resolve import resolve
+from tracer.json_encode import AppJSONEncoder
 
 logging.getLogger().setLevel(logging.DEBUG)
 try:
@@ -316,6 +311,3 @@ class SyscallTracer(Application):
         proc.descriptors.open(fd.File(self.data, 1, "stdout"))
         proc.descriptors.open(fd.File(self.data, 2, "stderr"))
         return pid
-
-if __name__ == "__main__":
-    SyscallTracer().main()

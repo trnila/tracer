@@ -1,9 +1,8 @@
+import itertools
 import json
 import os
 
-from json_encode import AppJSONEncoder
-
-import itertools
+from tracer.json_encode import AppJSONEncoder
 
 
 class Process:

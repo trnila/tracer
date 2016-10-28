@@ -1,8 +1,7 @@
+import sys
 import unittest
 
-import sys
-
-import utils
+from tracer import utils
 
 
 class UtilsTest(unittest.TestCase):
@@ -25,7 +24,8 @@ class UtilsTest(unittest.TestCase):
             utils.parse_ipv4('inva')
 
     def test_ipv6(self):
-        self.assertEqual('2606:2800:220:1:248:1893:25c8:1946', str(utils.parse_ipv6('0028062601002002931848024619C825')))
+        self.assertEqual('2606:2800:220:1:248:1893:25c8:1946', str(
+            utils.parse_ipv6('0028062601002002931848024619C825')))
 
 if __name__ == '__main__':
     sys.argv.append('-b')

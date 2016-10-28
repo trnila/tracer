@@ -2,7 +2,7 @@ import ipaddress
 import socket
 from struct import unpack
 
-import fd
+from tracer import fd
 
 
 def parseArgs(str):
