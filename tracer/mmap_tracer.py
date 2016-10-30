@@ -52,7 +52,6 @@ class MmapTracer:
         if not (self.flags & mmap.MAP_PRIVATE):
             return
 
-        print(len(list(self.accessed.not_used(self.start, self.start + self.size))))
         with open("/proc/%d/pagemap" % self.pid, 'rb') as file:
             for page in self.accessed.not_used(self.start, self.start + self.size):
                 file.seek(int(page / PAGE_SIZE) * pagemap_entry, 0)
