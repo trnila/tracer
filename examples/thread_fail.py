@@ -2,22 +2,22 @@ import threading
 import time
 
 f = None
+lock = threading.Lock()
 
 def fn():
-    while f is None:
-        pass
+    lock.acquire()
     f.write("another")
     f.flush()
+    lock.release()
+
+lock.acquire()
 
 t = threading.Thread(target=fn)
 t.start()
-
-
-time.sleep(0.5)
-
 f = open("/tmp/file", "w")
 f.write("test")
 f.flush()
+lock.release()
 
 
 t.join()
