@@ -8,8 +8,8 @@ import unittest
 from subprocess import Popen
 from time import sleep
 
-from tests.utils.TracedData import System
-from tests.utils.tracer_test_case import TracerTestCase
+from .utils.TracedData import System
+from .utils.tracer_test_case import TracerTestCase
 
 
 def read(file_name):

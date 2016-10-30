@@ -1,4 +1,5 @@
 import ipaddress
+import os
 import socket
 
 
@@ -39,7 +40,7 @@ class Pipe(Descriptor):
 class File(Descriptor):
     def __init__(self, location, fd, path):
         super().__init__(location, fd)
-        self.path = path
+        self.path = os.path.realpath(path) if path not in ['stdout', 'stdin', 'stderr'] else path # TODO: fix
         self.seeks = []
         self.mmaps = []
 
