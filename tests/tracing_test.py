@@ -241,8 +241,8 @@ class TracingTest(unittest.TestCase):
     def test_signals(self):
         data = self.execute('./examples/signals')
 
-        parent = list(data.processes.values())[0]
-        child = list(data.processes.values())[1]
+        parent = data.get_process_by(parent=0)
+        child = data.get_process_by(parent=parent['pid'])
 
         import signal
         self.assertGreaterEqual(1, len(child['kills']))
