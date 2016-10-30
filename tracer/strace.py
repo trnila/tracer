@@ -8,12 +8,12 @@ from optparse import OptionParser
 from struct import unpack
 from sys import exit
 
-from ptrace.debugger import PtraceDebugger
 from ptrace.debugger import Application
-from ptrace.debugger import ProcessExit
-from ptrace.debugger import ProcessSignal
 from ptrace.debugger import NewProcessEvent
 from ptrace.debugger import ProcessExecution
+from ptrace.debugger import ProcessExit
+from ptrace.debugger import ProcessSignal
+from ptrace.debugger import PtraceDebugger
 from ptrace.error import PTRACE_ERRORS
 from ptrace.error import writeError
 from ptrace.func_call import FunctionCallOptions
@@ -206,9 +206,10 @@ class SyscallTracer(Application):
 
                 if self.options.trace_mmap:
                     proc = self.data.get_process(event.process.pid)
-                    for descriptor in proc['descriptors']:
-                        for mmap in descriptor.descriptor.mmaps:
-                            mmap.check()
+                    for capture in proc['descriptors']:
+                        if isinstance(capture.descriptor, fd.File):
+                            for mmap in capture.descriptor.mmaps:
+                                mmap.check()
 
                 self.syscall(event.process)
             except ProcessExit as event:
