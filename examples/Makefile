@@ -1,5 +1,5 @@
 SOURCES=$(wildcard *.c)
-LDFLAGS=-lrt
+LDFLAGS=-lrt -pthread
 CFLAGS=-g
 
 all: $(SOURCES:.c=)

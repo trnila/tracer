@@ -152,7 +152,7 @@ class TracingTest(unittest.TestCase):
         self.assertEqual(process['env'], thread['env'])
 
     def test_thread_shared_fd(self):
-        data = self.execute('python', ['examples/thread_fd_share.py'])
+        data = self.execute('examples/thread_fd_share')
 
         process = data.get_process_by(thread=False)
         thread = data.get_process_by(thread=True)
