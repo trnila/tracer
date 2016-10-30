@@ -3,7 +3,7 @@ from .utils.tracer_test_case import TracerTestCase
 
 class MmapTest(TracerTestCase):
     def test_mmap(self):
-        data = self.execute('./examples/mmap')
+        data = self.execute('./examples/mmap/mmap')
 
         process = data.get_first_process()
         maps = process.get_resource_by(type="file", path="/tmp/file")['mmap']
@@ -23,7 +23,7 @@ class MmapTest(TracerTestCase):
         self.assertEqual(mmap.MAP_SHARED, maps[2]['flags'])
 
     def test_mmap_track(self):
-        data = self.execute('./examples/mmap_track2', options=['--trace-mmap'])
+        data = self.execute('./examples/mmap/mmap_track2', options=['--trace-mmap'])
 
         process = data.get_first_process()
         mmap = process.get_resource_by(type="file", path="%s/examples/100mb" % self.project_dir)['mmap'][0]

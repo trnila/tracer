@@ -1,4 +1,4 @@
-SOURCES=$(wildcard *.c)
+SOURCES=$(shell find -name "*.c")
 LDFLAGS=-lrt -pthread
 CFLAGS=-g
 
@@ -11,3 +11,6 @@ bins: $(SOURCES:.c=)
 
 10mb: 
 	dd if=/dev/urandom of=$@ bs=1024 count=10240
+
+clean:
+	rm -f $(SOURCES:.c=)
