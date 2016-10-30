@@ -51,7 +51,7 @@ class MmapTracer:
 
             end = self.start + self.size
             start = self.start
-            while start < end:
+            while start <= end:
                 num = struct.unpack('Q', file.read(8))[0]
                 occupied = (num & (1 << 63)) > 0
                 if occupied:

@@ -1,4 +1,4 @@
-from tests.utils.tracer_test_case import TracerTestCase
+from .utils.tracer_test_case import TracerTestCase
 
 
 class MmapTest(TracerTestCase):
@@ -31,4 +31,4 @@ class MmapTest(TracerTestCase):
 
         self.assertEqual(2, len(regions))
         self.assertEqual(mmap['address'], int(regions[0].split("-")[0], 16))
-        #self.assertLessEqual(mmap['address'] + mmap['length'], int(regions[1].split("-")[1], 16))
+        self.assertEqual(mmap['address'] + mmap['length'], int(regions[1].split("-")[1], 16))
