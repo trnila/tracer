@@ -19,6 +19,7 @@ from ptrace.error import PTRACE_ERRORS
 from ptrace.error import writeError
 from ptrace.func_call import FunctionCallOptions
 
+from tracer import backtrace
 from tracer import fd, utils
 from tracer.Report import Report
 from tracer.Report import UnknownFd
@@ -196,9 +197,9 @@ class SyscallTracer(Application):
                 content = syscall.process.readBytes(syscall.arguments[1].value, wrote)
 
             if family == 'read':
-                proc.read(syscall.arguments[0].value, content)
+                proc.read(syscall.arguments[0].value, content, self.create_backtrace(syscall.process))
             else:
-                proc.write(syscall.arguments[0].value, content)
+                proc.write(syscall.arguments[0].value, content, self.create_backtrace(syscall.process))
 
     def syscallTrace(self, process):
         # First query to break at next syscall
@@ -211,26 +212,7 @@ class SyscallTracer(Application):
 
             # Wait until next syscall enter
             try:
-                print("=" * 20)
-                import sys
-                sys.stderr.flush()
                 event = self.debugger.waitSyscall()
-
-                self.lib.init.restype = ctypes.POINTER(ctypes.c_long)
-                data = self.lib.init(event.process.pid)
-                casted = ctypes.cast(data, ctypes.POINTER(ctypes.c_long))
-                print(hex(casted[0]))
-
-                if not self.query:
-                    self.query = Addr2line(self.data.get_process(event.process.pid)['executable'])
-
-                i = 0
-                while True:
-                    print(hex(casted[i]), self.query.resolve(casted[i]))
-                    if casted[i] == 0:
-                        break
-                    i += 1
-                print("done")
 
                 if self.options.trace_mmap:
                     proc = self.data.get_process(event.process.pid)
@@ -254,16 +236,6 @@ class SyscallTracer(Application):
         state = process.syscall_state
         syscall = state.event(self.syscall_options)
 
-
-#        if syscall.name == 'write':
-#            import code
-#            p = syscall.process
-#            f=p.getBacktrace().frames
-#            code.interact(local=locals())
-
-
-    
-#        process = 
         proc = self.data.get_process(process.pid)
 
         if syscall.name == "execve" and syscall.result is not None:
@@ -358,3 +330,24 @@ class SyscallTracer(Application):
         proc.descriptors.open(fd.File(self.data, 1, "stdout"))
         proc.descriptors.open(fd.File(self.data, 2, "stderr"))
         return pid
+
+    def create_backtrace(self, process):
+        self.lib.init.restype = ctypes.POINTER(ctypes.c_long)
+        data = self.lib.init(process.pid)
+        casted = ctypes.cast(data, ctypes.POINTER(ctypes.c_long))
+        print(hex(casted[0]))
+
+        if not self.query:
+            self.query = Addr2line(self.data.get_process(process.pid)['executable'])
+
+        list = []
+        i = 0
+        while True:
+            resolved = self.query.resolve(casted[i])
+            list.append(backtrace.Frame(casted[i], resolved if resolved else ""))
+            if casted[i] == 0:
+                break
+            i += 1
+
+        return list
+

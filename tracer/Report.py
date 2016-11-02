@@ -18,11 +18,11 @@ class Capture:
         self.files = {}
         self.operations = []
 
-    def write(self, content):
-        self.__write('write', content)
+    def write(self, content, backtrace):
+        self.__write('write', content, backtrace)
 
-    def read(self, content):
-        self.__write('read', content)
+    def read(self, content, backtrace):
+        self.__write('read', content, backtrace)
 
     def to_json(self):
         return {**self.descriptor.to_json(), **self.files, **{'operations': self.operations}}
@@ -30,12 +30,12 @@ class Capture:
     def __get_id(self):
         return "%s_%s_%s" % (self.process['pid'], self.descriptor.get_label(), self.n)
 
-    def __write(self, action, content):
+    def __write(self, action, content, backtrace):
         filename = self.__get_id() + "." + action
 
         self.files[action + '_content'] = filename
         self.report.append_file(filename, content)
-        self.operations.append({'type': action, 'size': len(content)})
+        self.operations.append({'type': action, 'size': len(content), 'backtrace': backtrace})
 
 
 class Descriptors:
@@ -85,13 +85,13 @@ class Process:
     def __setitem__(self, key, value):
         self.data[key] = value
 
-    def read(self, fd, content):
+    def read(self, fd, content, backtrace):
         self.__prepare_capture(fd)
-        self.captures[fd].read(content)
+        self.captures[fd].read(content, backtrace)
 
-    def write(self, fd, content):
+    def write(self, fd, content, backtrace):
         self.__prepare_capture(fd)
-        self.captures[fd].write(content)
+        self.captures[fd].write(content, backtrace)
 
     def mmap(self, fd, params):
         self.__prepare_capture(fd)
