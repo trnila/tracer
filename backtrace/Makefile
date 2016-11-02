@@ -1,4 +1,4 @@
-CFLAGS=-fPIC
+CFLAGS=-fPIC -g
 LDFLAGS=-lunwind -lunwind-x86_64 -lunwind-ptrace
 
 all: backtrace.so a

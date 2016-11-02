@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import ctypes
 import datetime
 import json
 import logging
@@ -45,6 +46,7 @@ class SyscallTracer(Application):
         self.data = Report(self.options.output)
         self.pipes = 0
         self.sockets = 0
+        self.lib = ctypes.CDLL("./backtrace/backtrace.so")
 
     def parseOptions(self):
         parser = OptionParser(usage="%prog [options] -- program [arg1 arg2 ...]")
@@ -208,14 +210,23 @@ class SyscallTracer(Application):
 
             # Wait until next syscall enter
             try:
+                print("=" * 20)
                 event = self.debugger.waitSyscall()
 
-                from ctypes import CDLL
-                lib = CDLL("./backtrace/backtrace.so")
-                #lib.do_backtrace()
-                lib.init(event.process.pid)
+                self.lib.init.restype = ctypes.POINTER(ctypes.c_long)
+                data = self.lib.init(event.process.pid)
+                casted = ctypes.cast(data, ctypes.POINTER(ctypes.c_long))
+                print(hex(casted[0]))
+
+
+                query = Addr2line(self.data.get_process(event.process.pid)['executable'])
+                i = 0
+                while True:
+                    print(hex(casted[i]), query.resolve(casted[i]))
+                    if casted[i] == 0:
+                        break
+                    i += 1
                 print("done")
-                #input();
 
                 if self.options.trace_mmap:
                     proc = self.data.get_process(event.process.pid)
@@ -251,8 +262,8 @@ class SyscallTracer(Application):
 #        process = 
         proc = self.data.get_process(process.pid)
         d = Addr2line(proc['executable'])
-        #for frame in process.getBacktrace().frames:
-        #    print(frame.ip, d.resolve(frame.ip))
+        for frame in process.getBacktrace().frames:
+            print("xxx", frame.ip, d.resolve(frame.ip))
         #input()
 
 

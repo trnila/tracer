@@ -21,6 +21,10 @@ int nerrors;
 int verbose;
 int print_names = 1;
 
+int backtrace[10];
+
+//#define printf(...)
+
 enum
 {
 	INSTRUCTION,
@@ -38,7 +42,7 @@ static struct UPT_info *ui;
 static int killed;
 
 	void
-do_backtrace (void)
+do_backtrace (long *x)
 {
 	unw_word_t ip, sp, start_ip = 0, off;
 	int n = 0, ret;
@@ -51,6 +55,7 @@ do_backtrace (void)
 	if (ret < 0)
 		panic ("unw_init_remote() failed: ret=%d\n", ret);
 
+	int i = 0;
 	do
 	{
 		if ((ret = unw_get_reg (&c, UNW_REG_IP, &ip)) < 0
@@ -73,7 +78,13 @@ do_backtrace (void)
 					len = sizeof (buf) - 32;
 				sprintf (buf + len, "+0x%lx", (unsigned long) off);
 			}
+			printf(">>>%d\n", i);
 			printf ("%016lx %-32s (sp=%016lx)\n", (long) ip, buf, (long) sp);
+			//backtrace[i] = (long) ip;
+			//backtrace[0] = 5;
+			x[i] = (long) ip;
+			i++;
+
 		}
 
 		if ((ret = unw_get_proc_info (&c, &pi)) < 0)
@@ -118,6 +129,7 @@ do_backtrace (void)
 		}
 	}
 	while (ret > 0);
+	x[i] = 0;
 
 	if (ret < 0)
 		panic ("unwind failed with ret=%d\n", ret);
@@ -132,7 +144,9 @@ static void target_pid_kill (void)
 	kill (target_pid, SIGKILL);
 }
 
-int init(int p) {
+
+long data[100];
+long* init(int p) {
 	target_pid = p;
 	int status, pid, pending_sig, optind = 1, state = 1;
 	verbose = 1;
@@ -147,9 +161,12 @@ int init(int p) {
 
 	ui = _UPT_create (target_pid);
 	printf("before backtrace\n");
-	do_backtrace();
-	return 1;
+	do_backtrace(data);
 
+	fflush(stdout);
+	return data;
+	return backtrace;
+/*
 	while (nerrors <= nerrors_max)
 	{
 		pid = wait4 (-1, &status, 0, NULL);
@@ -179,7 +196,7 @@ int init(int p) {
 			else
 			{
 				pending_sig = WSTOPSIG (status);
-				/* Avoid deadlock:  */
+				//* Avoid deadlock:  *
 				if (WSTOPSIG (status) == SIGKILL)
 					break;
 				if (trace_mode == TRIGGER)
@@ -245,7 +262,7 @@ int init(int p) {
 	}
 	if (verbose)
 		printf ("SUCCESS\n");
-
+*/
 	return 0;
 }
 
