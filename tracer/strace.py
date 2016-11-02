@@ -21,6 +21,7 @@ from ptrace.func_call import FunctionCallOptions
 from tracer import fd, utils
 from tracer.Report import Report
 from tracer.Report import UnknownFd
+from tracer.addr2line import Addr2line
 from tracer.fd_resolve import resolve
 from tracer.json_encode import AppJSONEncoder
 from tracer.mmap_tracer import MmapTracer
@@ -79,6 +80,7 @@ class SyscallTracer(Application):
         logging.debug(text)
 
         proc = self.data.get_process(syscall.process.pid)
+
 
         if syscall.result >= 0 or syscall.result == -115:  # EINPROGRESS
             if syscall.name == 'open':
@@ -154,6 +156,10 @@ class SyscallTracer(Application):
             })
 
         if syscall.name in ["read", "write", "sendmsg", "recvmsg", "sendto", "recvfrom"] and syscall.result > 0:
+            process = syscall.process
+         
+
+
             descriptor = proc.descriptors.get(syscall.arguments[0].value)
             if isinstance(descriptor, fd.Socket) and descriptor.domain in [socket.AF_INET, socket.AF_INET6]:
                 try:
@@ -204,6 +210,13 @@ class SyscallTracer(Application):
             try:
                 event = self.debugger.waitSyscall()
 
+                from ctypes import CDLL
+                lib = CDLL("./backtrace/backtrace.so")
+                #lib.do_backtrace()
+                lib.init(event.process.pid)
+                print("done")
+                #input();
+
                 if self.options.trace_mmap:
                     proc = self.data.get_process(event.process.pid)
                     for capture in proc['descriptors']:
@@ -225,6 +238,23 @@ class SyscallTracer(Application):
     def syscall(self, process):
         state = process.syscall_state
         syscall = state.event(self.syscall_options)
+
+
+#        if syscall.name == 'write':
+#            import code
+#            p = syscall.process
+#            f=p.getBacktrace().frames
+#            code.interact(local=locals())
+
+
+    
+#        process = 
+        proc = self.data.get_process(process.pid)
+        d = Addr2line(proc['executable'])
+        #for frame in process.getBacktrace().frames:
+        #    print(frame.ip, d.resolve(frame.ip))
+        #input()
+
 
         if syscall.name == "execve" and syscall.result is not None:
             proc = self.data.get_process(syscall.process.pid)
