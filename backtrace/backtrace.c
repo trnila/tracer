@@ -23,7 +23,7 @@ int print_names = 1;
 
 int backtrace[10];
 
-//#define printf(...)
+#define printf(...)
 
 enum
 {
@@ -139,10 +139,6 @@ do_backtrace (long *x)
 }
 
 static pid_t target_pid;
-static void target_pid_kill (void)
-{
-	kill (target_pid, SIGKILL);
-}
 
 
 long data[100];
@@ -164,106 +160,11 @@ long* init(int p) {
 	do_backtrace(data);
 
 	fflush(stdout);
-	return data;
-	return backtrace;
-/*
-	while (nerrors <= nerrors_max)
-	{
-		pid = wait4 (-1, &status, 0, NULL);
-		if (pid == -1)
-		{
-			if (errno == EINTR)
-				continue;
-
-			panic ("wait4() failed (errno=%d)\n", errno);
-		}
-		pending_sig = 0;
-		if (WIFSIGNALED (status) || WIFEXITED (status)
-				|| (WIFSTOPPED (status) && WSTOPSIG (status) != SIGTRAP))
-		{
-			if (WIFEXITED (status))
-			{
-				if (WEXITSTATUS (status) != 0)
-					panic ("child's exit status %d\n", WEXITSTATUS (status));
-				break;
-			}
-			else if (WIFSIGNALED (status))
-			{
-				if (!killed)
-					panic ("child terminated by signal %d\n", WTERMSIG (status));
-				break;
-			}
-			else
-			{
-				pending_sig = WSTOPSIG (status);
-				//* Avoid deadlock:  *
-				if (WSTOPSIG (status) == SIGKILL)
-					break;
-				if (trace_mode == TRIGGER)
-				{
-					if (WSTOPSIG (status) == SIGUSR1)
-						state = 0;
-					else if  (WSTOPSIG (status) == SIGUSR2)
-						state = 1;
-				}
-				if (WSTOPSIG (status) != SIGUSR1 && WSTOPSIG (status) != SIGUSR2)
-				{
-					static int count = 0;
-
-					if (count++ > 100)
-					{
-						panic ("Too many child unexpected signals (now %d)\n",
-								WSTOPSIG (status));
-						killed = 1;
-					}
-				}
-			}
-		}
-
-		switch (trace_mode)
-		{
-			case TRIGGER:
-				if (state)
-					ptrace (PTRACE_CONT, target_pid, 0, 0);
-				else
-				{
-					do_backtrace ();
-					if (ptrace (PTRACE_SINGLESTEP, target_pid, 0, pending_sig) < 0)
-					{
-						panic ("ptrace(PTRACE_SINGLESTEP) failed (errno=%d)\n", errno);
-						killed = 1;
-					}
-				}
-				break;
-
-			case SYSCALL:
-				if (!state)
-					do_backtrace ();
-				state ^= 1;
-				ptrace (PTRACE_SYSCALL, target_pid, 0, pending_sig);
-				break;
-
-			case INSTRUCTION:
-				do_backtrace ();
-				ptrace (PTRACE_SINGLESTEP, target_pid, 0, pending_sig);
-				break;
-		}
-		if (killed)
-			kill (target_pid, SIGKILL);
-	}
 
 	_UPT_destroy (ui);
-	unw_destroy_addr_space (as);
+	unw_destroy_addr_space(as);
 
-	if (nerrors)
-	{
-		printf ("FAILURE: detected %d errors\n", nerrors);
-		exit (-1);
-	}
-	if (verbose)
-		printf ("SUCCESS\n");
-*/
-	return 0;
+	return data;
 }
 
 

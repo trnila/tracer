@@ -47,6 +47,7 @@ class SyscallTracer(Application):
         self.pipes = 0
         self.sockets = 0
         self.lib = ctypes.CDLL("./backtrace/backtrace.so")
+        self.query = None
 
     def parseOptions(self):
         parser = OptionParser(usage="%prog [options] -- program [arg1 arg2 ...]")
@@ -211,6 +212,8 @@ class SyscallTracer(Application):
             # Wait until next syscall enter
             try:
                 print("=" * 20)
+                import sys
+                sys.stderr.flush()
                 event = self.debugger.waitSyscall()
 
                 self.lib.init.restype = ctypes.POINTER(ctypes.c_long)
@@ -218,11 +221,12 @@ class SyscallTracer(Application):
                 casted = ctypes.cast(data, ctypes.POINTER(ctypes.c_long))
                 print(hex(casted[0]))
 
+                if not self.query:
+                    self.query = Addr2line(self.data.get_process(event.process.pid)['executable'])
 
-                query = Addr2line(self.data.get_process(event.process.pid)['executable'])
                 i = 0
                 while True:
-                    print(hex(casted[i]), query.resolve(casted[i]))
+                    print(hex(casted[i]), self.query.resolve(casted[i]))
                     if casted[i] == 0:
                         break
                     i += 1
@@ -261,11 +265,6 @@ class SyscallTracer(Application):
     
 #        process = 
         proc = self.data.get_process(process.pid)
-        d = Addr2line(proc['executable'])
-        for frame in process.getBacktrace().frames:
-            print("xxx", frame.ip, d.resolve(frame.ip))
-        #input()
-
 
         if syscall.name == "execve" and syscall.result is not None:
             proc = self.data.get_process(syscall.process.pid)
