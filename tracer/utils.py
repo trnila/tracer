@@ -1,4 +1,5 @@
 import ipaddress
+import os
 import socket
 from struct import unpack
 
@@ -65,3 +66,7 @@ def parse_addr(address_bytes):
         return fd.NetworkAddress(addr, port)
     else:
         return fd.Address(family)
+
+
+def get_root():
+    return os.path.dirname(os.path.realpath(__file__)) + "/../"

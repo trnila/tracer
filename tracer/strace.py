@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-import ctypes
 import datetime
 import logging
 import os
@@ -19,11 +18,11 @@ from ptrace.error import PTRACE_ERRORS
 from ptrace.error import writeError
 from ptrace.func_call import FunctionCallOptions
 
-from tracer import backtrace
 from tracer import fd, utils
 from tracer.Report import Report
 from tracer.Report import UnknownFd
-from tracer.addr2line import Addr2line
+from tracer.backtracing.Libunwind import Libunwind
+from tracer.backtracing.NullBacktracer import NullBacktracer
 from tracer.fd_resolve import resolve
 from tracer.mmap_tracer import MmapTracer
 
@@ -38,8 +37,6 @@ except:
     # color log is just optional feature
     pass
 
-root = os.path.dirname(os.path.realpath(__file__)) + "/../"
-
 
 class SyscallTracer(Application):
     def __init__(self):
@@ -48,8 +45,7 @@ class SyscallTracer(Application):
         self.data = Report(self.options.output)
         self.pipes = 0
         self.sockets = 0
-        self.lib = ctypes.CDLL(root + "backtrace/backtrace.so")
-        self.query = None
+        self.backtracer = NullBacktracer()
 
     def parseOptions(self):
         parser = OptionParser(usage="%prog [options] -- program [arg1 arg2 ...]")
@@ -58,6 +54,7 @@ class SyscallTracer(Application):
         parser.add_option('--trace-mmap', action="store_true", default=False)
         parser.add_option('--syscalls', '-s', help='print each syscall', action="store_true", default=False)
         parser.add_option('--print-data', '-d', help='print captured data to stdout', action="store_true", default=False)
+        parser.add_option('--backtrace', '-b', help='collect backtraces with libunwind', action="store_true", default=False)
 
         self.createLogOptions(parser)
 
@@ -68,6 +65,9 @@ class SyscallTracer(Application):
                 self.program[0],
                 datetime.datetime.now().strftime("%d-%m-%Y_%H:%M:%S.%f")
             )
+
+        if self.options.backtrace:
+            self.backtracer = Libunwind()
 
         self.options.enter = True
 
@@ -200,9 +200,9 @@ class SyscallTracer(Application):
                 content = syscall.process.readBytes(syscall.arguments[1].value, wrote)
 
             if family == 'read':
-                proc.read(syscall.arguments[0].value, content, self.create_backtrace(syscall.process))
+                proc.read(syscall.arguments[0].value, content, self.backtracer.create_backtrace(syscall.process))
             else:
-                proc.write(syscall.arguments[0].value, content, self.create_backtrace(syscall.process))
+                proc.write(syscall.arguments[0].value, content, self.backtracer.create_backtrace(syscall.process))
 
     def syscallTrace(self, process):
         # First query to break at next syscall
@@ -335,24 +335,4 @@ class SyscallTracer(Application):
         proc.descriptors.open(fd.File(self.data, 1, "stdout"))
         proc.descriptors.open(fd.File(self.data, 2, "stderr"))
         return pid
-
-    def create_backtrace(self, process):
-        self.lib.init.restype = ctypes.POINTER(ctypes.c_long)
-        data = self.lib.init(process.pid)
-        casted = ctypes.cast(data, ctypes.POINTER(ctypes.c_long))
-        print(hex(casted[0]))
-
-        if not self.query:
-            self.query = Addr2line(self.data.get_process(process.pid)['executable'])
-
-        list = []
-        i = 0
-        while True:
-            resolved = self.query.resolve(casted[i])
-            list.append(backtrace.Frame(casted[i], resolved if resolved else ""))
-            if casted[i] == 0:
-                break
-            i += 1
-
-        return list
 

@@ -1,5 +1,6 @@
 import subprocess
 
+
 class Addr2line:
     def __init__(self, executable):
         self.executable = executable
