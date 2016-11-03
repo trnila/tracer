@@ -39,6 +39,8 @@ except:
     # color log is just optional feature
     pass
 
+root = os.path.dirname(os.path.realpath(__file__)) + "/../"
+
 
 class SyscallTracer(Application):
     def __init__(self):
@@ -47,7 +49,7 @@ class SyscallTracer(Application):
         self.data = Report(self.options.output)
         self.pipes = 0
         self.sockets = 0
-        self.lib = ctypes.CDLL("./backtrace/backtrace.so")
+        self.lib = ctypes.CDLL(root + "backtrace/backtrace.so")
         self.query = None
 
     def parseOptions(self):
