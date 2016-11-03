@@ -6,6 +6,7 @@ void save_settings() {
 		perror("fopen:");
 	}
 	fprintf(f, "Hello!");
+	fprintf(f, " World!");
 	fclose(f);
 }
 
@@ -17,8 +18,10 @@ void load_settings() {
 
 	char word[200];
 	fscanf(f, "%s", word);
-
 	printf("%s\n", word);
+	fscanf(f, "%s", word);
+	printf("%s\n", word);
+	fflush(stdout);
 	fclose(f);
 }
 

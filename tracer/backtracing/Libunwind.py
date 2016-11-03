@@ -12,12 +12,12 @@ class Libunwind:
 
     def create_backtrace(self, process):
         self.lib.init.restype = ctypes.POINTER(ctypes.c_long)
-        data = self.lib.init(process.pid)
+        data = self.lib.init(process['pid'])
         casted = ctypes.cast(data, ctypes.POINTER(ctypes.c_long))
         print(hex(casted[0]))
 
         if not self.query:
-            self.query = Addr2line(self.data.get_process(process.pid)['executable'])
+            self.query = Addr2line(process['executable'])
 
         list = []
         i = 0

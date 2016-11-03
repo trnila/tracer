@@ -41,11 +41,11 @@ except:
 class SyscallTracer(Application):
     def __init__(self):
         Application.__init__(self)
+        self.backtracer = NullBacktracer()
         self.parseOptions()
         self.data = Report(self.options.output)
         self.pipes = 0
         self.sockets = 0
-        self.backtracer = NullBacktracer()
 
     def parseOptions(self):
         parser = OptionParser(usage="%prog [options] -- program [arg1 arg2 ...]")
@@ -200,9 +200,9 @@ class SyscallTracer(Application):
                 content = syscall.process.readBytes(syscall.arguments[1].value, wrote)
 
             if family == 'read':
-                proc.read(syscall.arguments[0].value, content, self.backtracer.create_backtrace(syscall.process))
+                proc.read(syscall.arguments[0].value, content, self.backtracer.create_backtrace(proc))
             else:
-                proc.write(syscall.arguments[0].value, content, self.backtracer.create_backtrace(syscall.process))
+                proc.write(syscall.arguments[0].value, content, self.backtracer.create_backtrace(proc))
 
     def syscallTrace(self, process):
         # First query to break at next syscall
