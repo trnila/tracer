@@ -6,16 +6,18 @@
 #include <unistd.h>
 #include <sys/ptrace.h>
 #include <sys/wait.h>
+#include <string>
+#include <unordered_map>
 
 #define panic(args...) do { fprintf (stderr, args); ++nerrors; } while (0)
 
-static const int nerrors_max = 100;
+const int nerrors_max = 100;
 int nerrors;
 long data[100];
-static unw_addr_space_t as;
-static struct UPT_info *ui;
+unw_addr_space_t as;
+std::unordered_map<int, struct UPT_info*> unwind_info;
 
-void do_backtrace(long *x) {
+void do_backtrace(long *x, struct UPT_info *ui) {
 	unw_word_t ip, sp, start_ip = 0, off;
 	int n = 0, ret;
 	unw_cursor_t c;
@@ -62,18 +64,39 @@ void do_backtrace(long *x) {
 	}
 }
 
-
-long* init(int pid) {
-	as = unw_create_addr_space(&_UPT_accessors, 0);
-	if (!as) {
-		panic("unw_create_addr_space() failed");
+extern "C" {
+	void init() {
+		as = unw_create_addr_space(&_UPT_accessors, 0);
+		if(!as) {
+			panic("unw_create_addr_space() failed");
+		}
 	}
 
-	ui = _UPT_create(pid);
-	do_backtrace(data);
+	void destroy_pid(int pid) {
+		auto it = unwind_info.find(pid);
 
-	_UPT_destroy (ui);
-	unw_destroy_addr_space(as);
+		if(it != unwind_info.end()) {
+			_UPT_destroy(it->second);
+			unwind_info.erase(it);
+		}
+	}
 
-	return data;
+	void destroy() {
+		for(auto it: unwind_info) {
+			destroy_pid(it.first);
+		}
+
+		unw_destroy_addr_space(as);
+	}
+
+	long* get_backtrace(int pid) {
+		auto it = unwind_info.find(pid);
+		if(it == unwind_info.end()) {
+			struct UPT_info *ui = (UPT_info*) _UPT_create(pid);
+			it = unwind_info.insert(std::make_pair(pid, ui)).first;
+		}
+
+		do_backtrace(data, it->second);
+		return data;
+	}
 }

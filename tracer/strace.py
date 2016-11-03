@@ -268,6 +268,8 @@ class SyscallTracer(Application):
         logging.info("*** %s ***" % event)
         self.data.get_process(event.process.pid)['exitCode'] = event.exitcode
 
+        self.backtracer.process_exited(event.process.pid)
+
     def prepareProcess(self, process):
         process.syscall()
 
