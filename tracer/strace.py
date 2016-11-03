@@ -60,6 +60,10 @@ class SyscallTracer(Application):
 
         self.options, self.program = parser.parse_args()
 
+        if self.options.pid is None and not self.program:
+            parser.print_help()
+            exit(1)
+
         if not self.options.output:
             self.options.output = '/tmp/tracer_%s_%s' % (
                 self.program[0],
@@ -70,10 +74,6 @@ class SyscallTracer(Application):
             self.backtracer = Libunwind()
 
         self.options.enter = True
-
-        if self.options.pid is None and not self.program:
-            parser.print_help()
-            exit(1)
 
         self.processOptions()
 
