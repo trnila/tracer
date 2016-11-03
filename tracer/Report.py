@@ -149,8 +149,11 @@ class Report:
         with open(os.path.join(self.path, file_id), 'ab') as file:
             file.write(content)
 
-    def save(self):
-        with open(os.path.join(self.path, 'data.json'), 'w') as out:
+    def save(self, out=None):
+        if not out:
+            with open(os.path.join(self.path, 'data.json'), 'w') as out:
+                self.save(out)
+        else:
             json.dump(self.data, out, sort_keys=True, indent=4, cls=AppJSONEncoder)
 
     def _get_group(self, pid):

@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 import ctypes
 import datetime
-import json
 import logging
 import os
 import socket
+import sys
 from optparse import OptionParser
 from struct import unpack
 from sys import exit
@@ -25,7 +25,6 @@ from tracer.Report import Report
 from tracer.Report import UnknownFd
 from tracer.addr2line import Addr2line
 from tracer.fd_resolve import resolve
-from tracer.json_encode import AppJSONEncoder
 from tracer.mmap_tracer import MmapTracer
 
 logging.getLogger().setLevel(logging.DEBUG)
@@ -57,6 +56,8 @@ class SyscallTracer(Application):
         self.createCommonOptions(parser)
         parser.add_option('--output', '-o')
         parser.add_option('--trace-mmap', action="store_true", default=False)
+        parser.add_option('--syscalls', '-s', help='print each syscall', action="store_true", default=False)
+        parser.add_option('--print-data', '-d', help='print captured data to stdout', action="store_true", default=False)
 
         self.createLogOptions(parser)
 
@@ -78,15 +79,15 @@ class SyscallTracer(Application):
 
     def displaySyscall(self, syscall):
         text = syscall.format()
-        if syscall.result is not None:
-            text = "%-40s = %s" % (text, syscall.result_text)
-        prefix = ["[%s]" % syscall.process.pid]
-        if prefix:
-            text = ''.join(prefix) + ' ' + text
-        logging.debug(text)
+        if self.options.syscalls:
+            if syscall.result is not None:
+                text = "%-40s = %s" % (text, syscall.result_text)
+            prefix = ["[%s]" % syscall.process.pid]
+            if prefix:
+                text = ''.join(prefix) + ' ' + text
+            logging.debug(text)
 
         proc = self.data.get_process(syscall.process.pid)
-
 
         if syscall.result >= 0 or syscall.result == -115:  # EINPROGRESS
             if syscall.name == 'open':
@@ -314,9 +315,11 @@ class SyscallTracer(Application):
         except PTRACE_ERRORS as err:
             writeError(logging.getLogger(), err, "Debugger error")
         self.debugger.quit()
-        print(json.dumps(self.data.data, sort_keys=True, indent=4, cls=AppJSONEncoder))
 
         self.data.save()
+        if self.options.print_data:
+            self.data.save(sys.stdout)
+
         print("Report saved in %s" % self.options.output)
 
     def createChild(self, program, **kwargs):
