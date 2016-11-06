@@ -2,6 +2,7 @@ import copy
 import json
 import os
 
+from tracer import utils
 from tracer.json_encode import AppJSONEncoder
 
 
@@ -25,7 +26,7 @@ class Capture:
         self.__write('read', content, backtrace)
 
     def to_json(self):
-        return {**self.descriptor.to_json(), **self.files, **{'operations': self.operations}}
+        return utils.merge_dicts(self.descriptor.to_json(), self.files, {'operations': self.operations})
 
     def __get_id(self):
         return "%s_%s_%s" % (self.process['pid'], self.descriptor.get_label(), self.n)
