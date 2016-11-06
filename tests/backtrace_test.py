@@ -10,7 +10,7 @@ def extract_traces(traces):
 
 class BacktraceTest(TracerTestCase):
     def test_backtrace(self):
-        data = self.execute("./examples/read_write_backtrace", options=['-b'])
+        data = self.execute("./examples/backtrace/read_write_backtrace", options=['-b'])
         p = data.get_first_process()
         file = p.get_resource_by(type='file', path='/tmp/file')
 
