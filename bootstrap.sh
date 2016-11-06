@@ -16,6 +16,9 @@ git clone https://github.com/trnila/tracer.git -b develop
 git clone https://github.com/trnila/tracer-gui.git gui -b develop
 (
 	cd gui
+	if python -V 2>&1 | grep 3.5 ; then
+		pip install PyQt5
+	fi
 	pip install -r requirements.txt
 )
 
