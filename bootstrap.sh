@@ -29,10 +29,15 @@ set -e
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 rm -rf /tmp/report1
 
-source "$DIR/python/bin/activate"
+"$DIR/python/bin/python" "$DIR/tracer/tracer.py"  -s -b -o /tmp/report1  -- "$@"
 
-"$DIR/tracer/tracer.py"  -s -b -o /tmp/report1  -- "$@"
-"$DIR/gui/app.py" /tmp/report1
+
+BIN="$DIR/gui/app.py"
+if python -V 2>&1 | grep 3.5 ; then
+	BIN="python3 $DIR/gui/app.py"
+fi
+
+"$BIN" /tmp/report1
 EOF
 
 chmod +x run.sh
