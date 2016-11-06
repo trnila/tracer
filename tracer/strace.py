@@ -41,6 +41,7 @@ except:
 class SyscallTracer(Application):
     def __init__(self):
         Application.__init__(self)
+        self.debugger = PtraceDebugger()
         self.backtracer = NullBacktracer()
         self.parseOptions()
         self.data = Report(self.options.output)
@@ -72,6 +73,7 @@ class SyscallTracer(Application):
 
         if self.options.backtrace:
             self.backtracer = Libunwind()
+            #self.backtracer = PythonPtraceBacktracer(self.debugger)
 
         self.options.enter = True
 
@@ -300,7 +302,6 @@ class SyscallTracer(Application):
 
     def main(self):
         self.pids = {}
-        self.debugger = PtraceDebugger()
         self.debugger.traceClone()
         self.debugger.traceExec()
         self.debugger.traceFork()
