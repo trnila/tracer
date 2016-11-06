@@ -70,3 +70,11 @@ def parse_addr(address_bytes):
 
 def get_root():
     return os.path.dirname(os.path.realpath(__file__)) + "/../"
+
+
+# replace with ** when python3.5 used
+def merge_dicts(*dicts):
+    res = {}
+    for dict in dicts:
+        res.update(dict)
+    return res
