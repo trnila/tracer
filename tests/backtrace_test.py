@@ -34,6 +34,19 @@ class BacktraceTest(TracerTestCase):
         expected = ['read_write_backtrace.c:21', 'read_write_backtrace.c:35', 'read_write_backtrace.c:40']
         self.assertEqual(got, expected)
 
+    def test_multiple_sources(self):
+        data = self.execute("./examples/backtrace/more_sources/main", options=['-b'])
+        p = data.get_first_process()
+        file = p.get_resource_by(type='file', path='stdout')
+
+        expected = ['a.c:6', 'a.c:11', 'main.c:10']
+        got = extract_traces(file['operations'][0]['backtrace'])
+        self.assertEqual(expected, got)
+
+        expected = ['main.c:7', 'a.c:7', 'a.c:11', 'main.c:10']
+        got = extract_traces(file['operations'][1]['backtrace'])
+        self.assertEqual(expected, got)
+
 
 if __name__ == '__main__':
     sys.argv.append('-b')
