@@ -202,9 +202,9 @@ class SyscallTracer(Application):
                 content = syscall.process.readBytes(syscall.arguments[1].value, wrote)
 
             if family == 'read':
-                proc.read(syscall.arguments[0].value, content, self.backtracer.create_backtrace(proc))
+                proc.read(syscall.arguments[0].value, content, self.backtracer.create_backtrace(syscall.process))
             else:
-                proc.write(syscall.arguments[0].value, content, self.backtracer.create_backtrace(proc))
+                proc.write(syscall.arguments[0].value, content, self.backtracer.create_backtrace(syscall.process))
 
     def syscallTrace(self, process):
         # First query to break at next syscall

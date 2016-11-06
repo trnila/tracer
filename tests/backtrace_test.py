@@ -47,6 +47,21 @@ class BacktraceTest(TracerTestCase):
         got = extract_traces(file['operations'][1]['backtrace'])
         self.assertEqual(expected, got)
 
+    def test_dynamic_lib(self):
+        dir = "./examples/backtrace/dynamic_lib"
+
+        data = self.execute(dir + "/main", options=['-b'], env={'LD_LIBRARY_PATH': dir})
+        p = data.get_first_process()
+        file = p.get_resource_by(type='file', path='stdout')
+
+        expected = ['dynamic.c:6', 'main.c:11']
+        got = extract_traces(file['operations'][0]['backtrace'])
+        self.assertEqual(expected, got)
+
+        expected = ['main.c:8', 'dynamic.c:7', 'main.c:11']
+        got = extract_traces(file['operations'][1]['backtrace'])
+        self.assertEqual(expected, got)
+
 
 if __name__ == '__main__':
     sys.argv.append('-b')

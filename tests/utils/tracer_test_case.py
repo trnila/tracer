@@ -20,7 +20,7 @@ class TracerTestCase(unittest.TestCase):
         for pid, proc in data.items():
             self.assertEqual(0, proc['exitCode'])
 
-    def execute(self, program, args=None, options=None):
+    def execute(self, program, args=None, options=None, env=None):
         if args is None:
             args = []
 
@@ -30,8 +30,9 @@ class TracerTestCase(unittest.TestCase):
         options = ['-o', '/tmp/'] + options
 
         arguments = [self.project_dir + '/tracer.py'] + options + ['--', program] + args
-        process = Popen(arguments, stdout=PIPE, stderr=PIPE, cwd=self.project_dir)
+        process = Popen(arguments, stdout=PIPE, stderr=PIPE, cwd=self.project_dir, env=env)
         stdout, stderr = process.communicate()
+        # import sys
         # print(stdout.decode('utf-8'))
         # print(stderr.decode('utf-8'), file=sys.stderr)
 
