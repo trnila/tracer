@@ -15,6 +15,24 @@ source tracer/bin/activate
 ```
 
 ## Using bootstrap (includes gui)
+### Dependencies
+- python >= 3.4
+- graphviz
+- PyQt5
+- libunwind (optional, for backtraces)
+- addr2line (optional, for backtraces)
+
+#### Archlinux
+```sh
+pacman -S base-devel git python-virtualenv graphviz
+```
+
+#### Debian based systems
+```sh
+apt-get install curl git virtualenv make gcc g++ libunwind-dev graphviz python3-pyqt5
+```
+
+#### Installation
 ```sh
 curl https://raw.githubusercontent.com/trnila/tracer/master/bootstrap.sh | sh
 cd tracer
