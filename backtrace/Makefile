@@ -1,7 +1,7 @@
 CXXFLAGS=-fPIC -g -std=c++11
 LDFLAGS=-lunwind -lunwind-x86_64 -lunwind-ptrace
 
-all: backtrace.so a
+all: backtrace.so 
 
 backtrace.so: backtrace.o
 	g++ $^ $(LDFLAGS) -shared -o $@

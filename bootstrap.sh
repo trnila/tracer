@@ -32,12 +32,12 @@ rm -rf /tmp/report1
 "$DIR/python/bin/python" "$DIR/tracer/tracer.py"  -s -b -o /tmp/report1  -- "$@"
 
 
-BIN="$DIR/gui/app.py"
-if python -V 2>&1 | grep 3.5 ; then
+BIN="$DIR/python/bin/python $DIR/gui/app.py"
+if ! python -V 2>&1 | grep 3.5 ; then
 	BIN="python3 $DIR/gui/app.py"
 fi
 
-"$BIN" /tmp/report1
+$BIN /tmp/report1
 EOF
 
 chmod +x run.sh
