@@ -4,7 +4,7 @@ mkdir tracer
 cd tracer
 
 virtualenv -p python3 python
-source python/bin/activate
+. python/bin/activate
 pip install python-ptrace
 
 git clone https://github.com/trnila/tracer.git -b develop
