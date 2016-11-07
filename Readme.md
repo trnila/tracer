@@ -27,9 +27,14 @@ source tracer/bin/activate
 pacman -S base-devel git python-virtualenv graphviz
 ```
 
-#### Debian based systems
+#### Debian
 ```sh
 apt-get install curl git virtualenv make gcc g++ libunwind-dev graphviz python3-pyqt5
+```
+
+#### Ubuntu 14.04
+```sh
+apt-get install curl git python-virtualenv make gcc g++ libunwind8-dev graphviz python3-pyqt5
 ```
 
 #### Installation
