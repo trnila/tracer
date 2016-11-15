@@ -2,6 +2,7 @@
 import datetime
 import logging
 import os
+import signal
 import socket
 import sys
 from optparse import OptionParser
@@ -301,6 +302,8 @@ class SyscallTracer(Application):
         self.syscallTrace(process)
 
     def main(self):
+        signal.signal(signal.SIGTERM, self.handle_sigterm)
+
         self.pids = {}
         self.debugger.traceClone()
         self.debugger.traceExec()
@@ -339,3 +342,5 @@ class SyscallTracer(Application):
         proc.descriptors.open(fd.File(self.data, 2, "stderr"))
         return pid
 
+    def handle_sigterm(self):
+        self.debugger.quit()
