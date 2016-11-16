@@ -3,10 +3,8 @@ import datetime
 import logging
 import os
 import signal
-import socket
 import sys
 from optparse import OptionParser
-from struct import unpack
 from sys import exit
 
 from ptrace.debugger import Application
@@ -22,10 +20,10 @@ from ptrace.func_call import FunctionCallOptions
 from tracer import fd, utils
 from tracer.Report import Report
 from tracer.Report import UnknownFd
-from tracer.SyscallHandler import SyscallHandler, Open, Socket, Pipe, Bind, ConnectLike, Close, Dup2, Mmap, DupLike
+from tracer.SyscallHandler import SyscallHandler, Open, Socket, Pipe, Bind, ConnectLike, Close, Dup2, Mmap, DupLike, \
+    ReadOrWrite, Kill
 from tracer.backtracing.Libunwind import Libunwind
 from tracer.backtracing.NullBacktracer import NullBacktracer
-from tracer.fd_resolve import resolve
 
 logging.getLogger().setLevel(logging.DEBUG)
 try:
@@ -58,6 +56,8 @@ class SyscallTracer(Application):
         self.handler.register("close", Close)
         self.handler.register("mmap", Mmap)
         self.handler.register(["dup", "fcntl"], DupLike) # elif syscall.name == 'dup' or (syscall.name == 'fcntl' and syscall.arguments[1].value == 0):  # F_DUPFD = 0
+        self.handler.register("kill", Kill)
+        self.handler.register(["read", "write", "sendmsg", "recvmsg", "sendto", "recvfrom"], ReadOrWrite)
 
     def parseOptions(self):
         parser = OptionParser(usage="%prog [options] -- program [arg1 arg2 ...]")
@@ -100,78 +100,7 @@ class SyscallTracer(Application):
                 text = ''.join(prefix) + ' ' + text
             logging.debug(text)
 
-        proc = self.data.get_process(syscall.process.pid)
         self.handler.handle(self, syscall)
-
-        if syscall.name == 'kill':
-            proc['kills'].append({
-                'pid': syscall.arguments[0].value,
-                'signal': syscall.arguments[1].value
-            })
-
-        if syscall.name in ["read", "write", "sendmsg", "recvmsg", "sendto", "recvfrom"] and syscall.result > 0:
-            process = syscall.process
-         
-
-
-            descriptor = proc.descriptors.get(syscall.arguments[0].value)
-            if isinstance(descriptor, fd.Socket) and descriptor.domain in [socket.AF_INET, socket.AF_INET6]:
-                try:
-                    if descriptor.local.address.__str__() == '0.0.0.0':
-                        resolved = resolve(syscall.process.pid, syscall.arguments[0].value, 1)
-                        descriptor.local = resolved['dst']
-                except:
-                    pass
-
-            family = {
-                "read": "read",
-                "write": "write",
-                "sendmsg": "write",
-                "recvmsg": "read",
-                "sendto": "write",
-                "recvfrom": "read"
-            }[syscall.name]
-
-            content = b""
-
-            if syscall.name in ['sendmsg', 'recvmsg']:
-                bytes_content = syscall.process.readBytes(syscall.arguments[1].value, 32)
-                items = unpack("PIPL", bytes_content)
-
-                for i in range(0, items[3]):
-                    bytes_content = syscall.process.readBytes(items[2] + 16 * i, 16)
-                    i = unpack("PL", bytes_content)
-                    content += syscall.process.readBytes(i[0], i[1])
-            else:
-                wrote = syscall.result if family == 'read' else syscall.arguments[2].value
-                content = syscall.process.readBytes(syscall.arguments[1].value, wrote)
-
-            data = {
-                "backtrace": self.backtracer.create_backtrace(syscall.process)
-            }
-            if syscall.name in ['recvfrom', 'sendto'] and descriptor.type in [socket.SOCK_DGRAM]:
-                # TODO: read addr, IPV6 support!
-                #sock_size = syscall.process.readWord(syscall.arguments[5].value)
-
-                des = proc.descriptors.get(syscall.arguments[0].value)
-                if not des.local:
-                    addr = resolve(syscall.process.pid, syscall.arguments[0].value, 1)['dst']
-                    if addr['address'].__str__() == "0.0.0.0":
-                        addr = {
-                            'address': utils.get_all_interfaces(),
-                            'port': addr['port']
-                        }
-                    des.local = addr
-
-                addr = utils.parse_addr(syscall.process.readBytes(syscall.arguments[4].value, 8))
-                data['address'] = addr
-                import base64
-                data['_'] = base64.b64encode(content).decode('utf-8')
-
-            if family == 'read':
-                proc.read(syscall.arguments[0].value, content, **data)
-            else:
-                proc.write(syscall.arguments[0].value, content, **data)
 
     def syscallTrace(self, process):
         # First query to break at next syscall
@@ -207,8 +136,6 @@ class SyscallTracer(Application):
     def syscall(self, process):
         state = process.syscall_state
         syscall = state.event(self.syscall_options)
-
-        proc = self.data.get_process(process.pid)
 
         if syscall.name == "execve" and syscall.result is not None:
             proc = self.data.get_process(syscall.process.pid)
