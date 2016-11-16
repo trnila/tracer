@@ -1,5 +1,7 @@
 import json
 import os
+import shutil
+import tempfile
 import unittest
 from subprocess import PIPE
 from subprocess import Popen
@@ -11,6 +13,7 @@ class TracerTestCase(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.project_dir = os.path.realpath(os.path.dirname(os.path.realpath(__file__)) + "/../../")
+        self.tracer_output = None
 
     def assertFileEqual(self, file1, file2):
         with open(file1) as f1, open(file2) as f2:
@@ -20,6 +23,12 @@ class TracerTestCase(unittest.TestCase):
         for pid, proc in data.items():
             self.assertEqual(0, proc['exitCode'])
 
+    def setUp(self):
+        self.tracer_output = tempfile.mkdtemp("tracer_report")
+
+    def tearDown(self):
+        shutil.rmtree(self.tracer_output)
+
     def execute(self, program, args=None, options=None, env=None):
         if args is None:
             args = []
@@ -27,8 +36,7 @@ class TracerTestCase(unittest.TestCase):
         if options is None:
             options = []
 
-        output_dir = "/tmp/tracing_test"
-        options = ['-o', output_dir] + options
+        options = ['-o', self.tracer_output] + options
 
         arguments = [self.project_dir + '/tracer.py'] + options + ['--', program] + args
         process = Popen(arguments, stdout=PIPE, stderr=PIPE, cwd=self.project_dir, env=env)
@@ -39,5 +47,5 @@ class TracerTestCase(unittest.TestCase):
 
         self.assertEqual(0, process.returncode)
 
-        with open(output_dir + "/data.json") as file:
-            return System(output_dir, json.load(file))
+        with open(self.tracer_output + "/data.json") as file:
+            return System(self.tracer_output, json.load(file))
