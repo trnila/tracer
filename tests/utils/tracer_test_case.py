@@ -27,7 +27,8 @@ class TracerTestCase(unittest.TestCase):
         if options is None:
             options = []
 
-        options = ['-o', '/tmp/'] + options
+        output_dir = "/tmp/tracing_test"
+        options = ['-o', output_dir] + options
 
         arguments = [self.project_dir + '/tracer.py'] + options + ['--', program] + args
         process = Popen(arguments, stdout=PIPE, stderr=PIPE, cwd=self.project_dir, env=env)
@@ -38,5 +39,5 @@ class TracerTestCase(unittest.TestCase):
 
         self.assertEqual(0, process.returncode)
 
-        with open("/tmp/data.json") as file:
-            return System("/tmp/", json.load(file))
+        with open(output_dir + "/data.json") as file:
+            return System(output_dir, json.load(file))

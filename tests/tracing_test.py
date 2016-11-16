@@ -30,7 +30,7 @@ class TracingTest(TracerTestCase):
 
         output = subprocess.Popen([path], stdout=subprocess.PIPE).communicate()[0]
         stdout = p.get_resource_by(type='file', path='stdout')
-        self.assertEqual(output.decode('utf-8'), read('/tmp/' + stdout['write_content']))
+        self.assertEqual(output, data.read_file(stdout['write_content']))
 
     def test_pipes(self):
         data = self.execute("sh", ['-c', "cat /etc/passwd | tr a-z A-Z | tac"])
@@ -55,11 +55,15 @@ class TracingTest(TracerTestCase):
         # check pipe
         pipe_src = cat.get_resource_by(type='pipe')
         pipe_dst = tr.get_resource_by(type='pipe', pipe_id=pipe_src['pipe_id'])
-        self.assertFileEqual('/tmp/' + pipe_src['write_content'], '/tmp/' + pipe_dst['read_content'])
+        self.assertIsNotNone(pipe_src)
+        self.assertIsNotNone(pipe_dst)
+        self.assertEqual(data.read_file(pipe_src['write_content']), data.read_file(pipe_dst['read_content']))
 
         pipe_src = tr.get_resource_by(type='pipe', pipe_id=1)
         pipe_dst = tac.get_resource_by(type='pipe', pipe_id=pipe_src['pipe_id'])
-        self.assertFileEqual('/tmp/' + pipe_src['write_content'], '/tmp/' + pipe_dst['read_content'])
+        self.assertIsNotNone(pipe_src)
+        self.assertIsNotNone(pipe_dst)
+        self.assertEqual(data.read_file(pipe_src['write_content']), data.read_file(pipe_dst['read_content']))
 
     def test_env_propagation(self):
         data = self.execute("sh", ['-c', 'export _MYENV=ok; sh -c "uname; ls"'])
@@ -134,10 +138,10 @@ class TracingTest(TracerTestCase):
         thread = data.get_process_by(thread=True)
 
         file = process.get_resource_by(type="file", path="/tmp/file")
-        self.assertEqual("process", read('/tmp/' + file['write_content']))
+        self.assertEqual("process", data.read_file(file['write_content']).decode('utf-8'))
 
         file = thread.get_resource_by(type="file", path="/tmp/file")
-        self.assertEqual("thread", read('/tmp/' + file['write_content']))
+        self.assertEqual("thread", data.read_file(file['write_content']).decode('utf-8'))
 
     def test_process_change_fd_in_thread(self):
         data = self.execute('python', ['examples/thread_fail.py'])
@@ -146,10 +150,10 @@ class TracingTest(TracerTestCase):
         thread = data.get_process_by(thread=True)
 
         file = process.get_resource_by(type="file", path="/tmp/file")
-        self.assertEqual("test", read('/tmp/' + file['write_content']))
+        self.assertEqual("test", data.read_file(file['write_content']).decode('utf-8'))
 
         file = thread.get_resource_by(type="file", path="/tmp/file")
-        self.assertEqual("another", read('/tmp/' + file['write_content']))
+        self.assertEqual("another", data.read_file(file['write_content']).decode('utf-8'))
 
     def test_multiple_reopen(self):
         data = self.execute('python', ['examples/multiple_read_write.py'])
@@ -161,10 +165,10 @@ class TracingTest(TracerTestCase):
         for capture in process['descriptors']:
             if capture['type'] == 'file' and capture['path'] == "/tmp/file":
                 if 'read_content' in capture:
-                    self.assertEqual(reads[0], read('/tmp/' + capture['read_content']))
+                    self.assertEqual(reads[0], data.read_file(capture['read_content']).decode('utf-8'))
                     reads.pop(0)
                 else:
-                    self.assertEqual(writes[0], read('/tmp/' + capture['write_content']))
+                    self.assertEqual(writes[0], data.read_file(capture['write_content']).decode('utf-8'))
                     writes.pop(0)
 
         self.assertEqual([], reads)
