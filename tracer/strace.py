@@ -110,7 +110,16 @@ class SyscallTracer(Application):
             elif syscall.name == 'bind':
                 descriptor = proc.descriptors.get(syscall.arguments[0].value)
                 bytes_content = syscall.process.readBytes(syscall.arguments[1].value, syscall.arguments[2].value)
-                descriptor.local = utils.parse_addr(bytes_content)
+
+                if descriptor.type == 'socket' and descriptor.type == socket.SOCK_DGRAM:
+                    addr = utils.parse_addr(bytes_content)
+                    if addr.address.__str__() == "0.0.0.0":
+                        addr = {
+                            'address': utils.get_all_interfaces(),
+                            'port': addr.port
+                        }
+                    descriptor.local = addr
+
                 descriptor.server = True
                 descriptor.used = 8
             elif syscall.name in ['connect', 'accept', 'syscall<288>']:
@@ -202,10 +211,32 @@ class SyscallTracer(Application):
                 wrote = syscall.result if family == 'read' else syscall.arguments[2].value
                 content = syscall.process.readBytes(syscall.arguments[1].value, wrote)
 
+            data = {
+                "backtrace": self.backtracer.create_backtrace(syscall.process)
+            }
+            if syscall.name in ['recvfrom', 'sendto'] and descriptor.type in [socket.SOCK_DGRAM]:
+                # TODO: read addr, IPV6 support!
+                #sock_size = syscall.process.readWord(syscall.arguments[5].value)
+
+                des = proc.descriptors.get(syscall.arguments[0].value)
+                if not des.local:
+                    addr = resolve(syscall.process.pid, syscall.arguments[0].value, 1)['dst']
+                    if addr['address'].__str__() == "0.0.0.0":
+                        addr = {
+                            'address': utils.get_all_interfaces(),
+                            'port': addr['port']
+                        }
+                    des.local = addr
+
+                addr = utils.parse_addr(syscall.process.readBytes(syscall.arguments[4].value, 8))
+                data['address'] = addr
+                import base64
+                data['_'] = base64.b64encode(content).decode('utf-8')
+
             if family == 'read':
-                proc.read(syscall.arguments[0].value, content, self.backtracer.create_backtrace(syscall.process))
+                proc.read(syscall.arguments[0].value, content, **data)
             else:
-                proc.write(syscall.arguments[0].value, content, self.backtracer.create_backtrace(syscall.process))
+                proc.write(syscall.arguments[0].value, content, **data)
 
     def syscallTrace(self, process):
         # First query to break at next syscall
@@ -303,6 +334,7 @@ class SyscallTracer(Application):
 
     def main(self):
         signal.signal(signal.SIGTERM, self.handle_sigterm)
+        signal.signal(signal.SIGINT, self.handle_sigterm)
 
         self.pids = {}
         self.debugger.traceClone()

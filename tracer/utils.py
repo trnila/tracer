@@ -72,6 +72,11 @@ def get_root():
     return os.path.dirname(os.path.realpath(__file__)) + "/../"
 
 
+def get_all_interfaces():
+    import netifaces
+    return [netifaces.ifaddresses(iface)[netifaces.AF_INET][0]['addr'] for iface in netifaces.interfaces() if netifaces.AF_INET in netifaces.ifaddresses(iface)]
+
+
 # replace with ** when python3.5 used
 def merge_dicts(*dicts):
     res = {}

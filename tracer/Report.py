@@ -19,11 +19,14 @@ class Capture:
         self.files = {}
         self.operations = []
 
-    def write(self, content, backtrace):
-        self.__write('write', content, backtrace)
+    def write(self, content, **kwargs):
+        self.__write('write', content, **kwargs)
 
-    def read(self, content, backtrace):
-        self.__write('read', content, backtrace)
+    def read(self, content, **kwargs):
+        self.__write('read', content, **kwargs)
+
+    def read_from(self, content, **kwargs):
+        self.__write('read', content, **kwargs)
 
     def to_json(self):
         return utils.merge_dicts(self.descriptor.to_json(), self.files, {'operations': self.operations})
@@ -31,12 +34,12 @@ class Capture:
     def __get_id(self):
         return "%s_%s_%s" % (self.process['pid'], self.descriptor.get_label(), self.n)
 
-    def __write(self, action, content, backtrace):
+    def __write(self, action, content, **kwargs):
         filename = self.__get_id() + "." + action
 
         self.files[action + '_content'] = filename
         self.report.append_file(filename, content)
-        self.operations.append({'type': action, 'size': len(content), 'backtrace': backtrace})
+        self.operations.append(utils.merge_dicts({'type': action, 'size': len(content)}, kwargs))
 
 
 class Descriptors:
@@ -86,13 +89,13 @@ class Process:
     def __setitem__(self, key, value):
         self.data[key] = value
 
-    def read(self, fd, content, backtrace):
+    def read(self, fd, content, **kwargs):
         self.__prepare_capture(fd)
-        self.captures[fd].read(content, backtrace)
+        self.captures[fd].read(content, **kwargs)
 
-    def write(self, fd, content, backtrace):
+    def write(self, fd, content, **kwargs):
         self.__prepare_capture(fd)
-        self.captures[fd].write(content, backtrace)
+        self.captures[fd].write(content, **kwargs)
 
     def mmap(self, fd, params):
         self.__prepare_capture(fd)
