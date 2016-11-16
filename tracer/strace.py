@@ -22,10 +22,10 @@ from ptrace.func_call import FunctionCallOptions
 from tracer import fd, utils
 from tracer.Report import Report
 from tracer.Report import UnknownFd
+from tracer.SyscallHandler import SyscallHandler, Open, Socket, Pipe, Bind, ConnectLike, Close, Dup2, Mmap, DupLike
 from tracer.backtracing.Libunwind import Libunwind
 from tracer.backtracing.NullBacktracer import NullBacktracer
 from tracer.fd_resolve import resolve
-from tracer.mmap_tracer import MmapTracer
 
 logging.getLogger().setLevel(logging.DEBUG)
 try:
@@ -48,6 +48,16 @@ class SyscallTracer(Application):
         self.data = Report(self.options.output)
         self.pipes = 0
         self.sockets = 0
+        self.handler = SyscallHandler()
+        self.handler.register("open", Open)
+        self.handler.register("socket", Socket)
+        self.handler.register("pipe", Pipe)
+        self.handler.register("bind", Bind)
+        self.handler.register(["connect", "accept", "syscall<288>"], ConnectLike)
+        self.handler.register("dup2", Dup2)
+        self.handler.register("close", Close)
+        self.handler.register("mmap", Mmap)
+        self.handler.register(["dup", "fcntl"], DupLike) # elif syscall.name == 'dup' or (syscall.name == 'fcntl' and syscall.arguments[1].value == 0):  # F_DUPFD = 0
 
     def parseOptions(self):
         parser = OptionParser(usage="%prog [options] -- program [arg1 arg2 ...]")
@@ -91,82 +101,7 @@ class SyscallTracer(Application):
             logging.debug(text)
 
         proc = self.data.get_process(syscall.process.pid)
-
-        if syscall.result >= 0 or syscall.result == -115:  # EINPROGRESS
-            if syscall.name == 'open':
-                proc.descriptors.open(fd.File(self.data, syscall.result, syscall.arguments[0].text.strip('\'')))
-            elif syscall.name == 'socket':
-                descriptor = fd.Socket(self.data, syscall.result, self.sockets)
-                descriptor.domain = syscall.arguments[0].value
-                descriptor.type = syscall.arguments[1].value
-                proc.descriptors.open(descriptor)
-                self.sockets += 1
-            elif syscall.name == 'pipe':
-                pipe = syscall.process.readBytes(syscall.arguments[0].value, 8)
-                fd1, fd2 = unpack("ii", pipe)
-                proc.descriptors.open(fd.Pipe(self.data, fd1, self.pipes))
-                proc.descriptors.open(fd.Pipe(self.data, fd2, self.pipes))
-                self.pipes += 1
-            elif syscall.name == 'bind':
-                descriptor = proc.descriptors.get(syscall.arguments[0].value)
-                bytes_content = syscall.process.readBytes(syscall.arguments[1].value, syscall.arguments[2].value)
-
-                if descriptor.type == 'socket' and descriptor.type == socket.SOCK_DGRAM:
-                    addr = utils.parse_addr(bytes_content)
-                    if addr.address.__str__() == "0.0.0.0":
-                        addr = {
-                            'address': utils.get_all_interfaces(),
-                            'port': addr.port
-                        }
-                    descriptor.local = addr
-
-                descriptor.server = True
-                descriptor.used = 8
-            elif syscall.name in ['connect', 'accept', 'syscall<288>']:
-                # struct sockaddr { unsigned short family; }
-                if syscall.name == 'connect':
-                    bytes_content = syscall.process.readBytes(syscall.arguments[1].value, syscall.arguments[2].value)
-                    fdnum = syscall.arguments[0].value
-
-                    resolved = resolve(syscall.process.pid, fdnum, 1)
-                    if 'dst' in resolved:
-                        proc.descriptors.get(fdnum).local = resolved['dst']  # TODO: rewrite
-                elif syscall.name in ['accept', 'syscall<288>']:
-                    bytes_content = syscall.process.readBytes(syscall.arguments[2].value, 4)
-                    socket_size = unpack("I", bytes_content)[0]
-                    bytes_content = syscall.process.readBytes(syscall.arguments[1].value, socket_size)
-                    fdnum = syscall.result
-
-                    # mark accepting socket as server
-                    descriptor = proc.descriptors.get(syscall.arguments[0].value)
-                    descriptor.server = True
-                    descriptor.used = 8
-
-                    remote_desc = proc.descriptors.open(fd.Socket(self.data, fdnum, self.sockets))
-                    remote_desc.local = proc.descriptors.get(syscall.arguments[0].value).local
-                    self.sockets += 1
-                else:
-                    raise Exception("Unexpected syscall")
-
-                descriptor = proc.descriptors.get(fdnum)
-                parsed = utils.parse_addr(bytes_content)
-                descriptor.domain = parsed.get_domain()
-                descriptor.remote = parsed
-            elif syscall.name == 'dup2':
-                a = syscall.arguments[0].value
-                b = syscall.arguments[1].value
-
-                proc.descriptors.close(b)
-                proc.descriptors.clone(b, a)
-            elif syscall.name == 'close':
-                proc.descriptors.close(syscall.arguments[0].value)
-            elif syscall.name == 'dup' or (syscall.name == 'fcntl' and syscall.arguments[1].value == 0):  # F_DUPFD = 0
-                new = syscall.result
-                old = syscall.arguments[0].value
-                proc.descriptors.clone(new, old)
-            elif syscall.name == 'mmap':
-                if syscall.arguments[4].value != 18446744073709551615:
-                    proc.mmap(syscall.arguments[4].value, MmapTracer(proc['pid'], syscall.result, syscall.arguments[1].value, syscall.arguments[2].value, syscall.arguments[3].value))
+        self.handler.handle(self, syscall)
 
         if syscall.name == 'kill':
             proc['kills'].append({
@@ -369,9 +304,9 @@ class SyscallTracer(Application):
         proc['arguments'] = program
         proc['env'] = dict(os.environ)
 
-        proc.descriptors.open(fd.File(self.data, 0, "stdin"))
-        proc.descriptors.open(fd.File(self.data, 1, "stdout"))
-        proc.descriptors.open(fd.File(self.data, 2, "stderr"))
+        proc.descriptors.open(fd.File(0, "stdin"))
+        proc.descriptors.open(fd.File(1, "stdout"))
+        proc.descriptors.open(fd.File(2, "stderr"))
         return pid
 
     def handle_sigterm(self):

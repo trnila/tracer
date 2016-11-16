@@ -7,8 +7,7 @@ class Descriptor:
     READ = 1
     WRITE = 2
 
-    def __init__(self, location, fd):
-        self.location = location
+    def __init__(self, fd):
         self.fd = fd
         self.used = 0
 
@@ -24,8 +23,8 @@ class Descriptor:
 
 
 class Pipe(Descriptor):
-    def __init__(self, location, fd, pipe_id):
-        super().__init__(location, fd)
+    def __init__(self, fd, pipe_id):
+        super().__init__(fd)
         self.pipe_id = pipe_id
 
     def get_label(self):
@@ -38,8 +37,8 @@ class Pipe(Descriptor):
 
 
 class File(Descriptor):
-    def __init__(self, location, fd, path):
-        super().__init__(location, fd)
+    def __init__(self, fd, path):
+        super().__init__(fd)
         self.path = os.path.realpath(path) if path not in ['stdout', 'stdin', 'stderr'] else path # TODO: fix
         self.seeks = []
         self.mmaps = []
@@ -55,8 +54,8 @@ class File(Descriptor):
 
 
 class Socket(Descriptor):
-    def __init__(self, location, fd, socket_id):
-        super().__init__(location, fd)
+    def __init__(self, fd, socket_id):
+        super().__init__(fd)
         self.label = "socket"
         self.domain = None
         self.type = None
