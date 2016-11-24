@@ -236,5 +236,5 @@ class SyscallTracer(Application):
         proc.descriptors.open(fd.File(2, "stderr"))
         return pid
 
-    def handle_sigterm(self):
+    def handle_sigterm(self, signum, frame):
         self.debugger.quit()
