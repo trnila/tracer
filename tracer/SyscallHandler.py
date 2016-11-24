@@ -73,6 +73,8 @@ def Bind(proc, syscall, tracer):
     descriptor.used = 8
 
 def ConnectLike(proc, syscall, tracer): #elif syscall.name in ['connect', 'accept', 'syscall<288>']:
+    global sockets
+
     # struct sockaddr { unsigned short family; }
     if syscall.name == 'connect':
         bytes_content = syscall.process.readBytes(syscall.arguments[1].value, syscall.arguments[2].value)
