@@ -21,7 +21,7 @@ from tracer import fd, utils
 from tracer.Report import Report
 from tracer.Report import UnknownFd
 from tracer.SyscallHandler import SyscallHandler, Open, Socket, Pipe, Bind, ConnectLike, Close, Dup2, Mmap, DupLike, \
-    ReadOrWrite, Kill
+    ReadOrWrite, Kill, Execve
 from tracer.backtracing.Libunwind import Libunwind
 from tracer.backtracing.NullBacktracer import NullBacktracer
 
@@ -58,6 +58,7 @@ class SyscallTracer(Application):
         self.handler.register(["dup", "fcntl"], DupLike) # elif syscall.name == 'dup' or (syscall.name == 'fcntl' and syscall.arguments[1].value == 0):  # F_DUPFD = 0
         self.handler.register("kill", Kill)
         self.handler.register(["read", "write", "sendmsg", "recvmsg", "sendto", "recvfrom"], ReadOrWrite)
+        self.handler.register("execve", Execve)
 
     def parseOptions(self):
         parser = OptionParser(usage="%prog [options] -- program [arg1 arg2 ...]")
@@ -136,14 +137,6 @@ class SyscallTracer(Application):
     def syscall(self, process):
         state = process.syscall_state
         syscall = state.event(self.syscall_options)
-
-        if syscall.name == "execve" and syscall.result is not None:
-            proc = self.data.get_process(syscall.process.pid)
-            proc['executable'] = syscall.arguments[0].text.strip("'")
-            proc['arguments'] = utils.parse_args(syscall.arguments[1].text)
-
-            env = dict([i.split("=", 1) for i in utils.parse_args(syscall.arguments[2].text)])
-            proc['env'] = env
 
         if syscall and (syscall.result is not None):
             try:

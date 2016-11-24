@@ -26,6 +26,13 @@ class SyscallHandler:
                 proc = tracer.data.get_process(syscall.process.pid)
                 self.handlers[syscall.name](proc, syscall, tracer)
 
+def Execve(proc, syscall, tracer):
+    proc['executable'] = syscall.arguments[0].text.strip("'")
+    proc['arguments'] = utils.parse_args(syscall.arguments[1].text)
+
+    env = dict([i.split("=", 1) for i in utils.parse_args(syscall.arguments[2].text)])
+    proc['env'] = env
+
 
 def Open(proc, syscall, tracer):
     proc.descriptors.open(fd.File(syscall.result, syscall.arguments[0].text.strip('\'')))
