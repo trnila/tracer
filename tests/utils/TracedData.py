@@ -62,7 +62,8 @@ class System:
         return self.processes[pid]
 
     def read_file(self, pid):
-        return open(self.resource_path + "/" + pid, 'rb').read()
+        with open(self.resource_path + "/" + pid, 'rb') as f:
+            return f.read()
 
 
 class TracedData:
