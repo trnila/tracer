@@ -1,5 +1,6 @@
+#!/usr/bin/env python3
+import os.path
 import socket
-import os, os.path
 
 sockfile = "/tmp/reverse.sock"
 

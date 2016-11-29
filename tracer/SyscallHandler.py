@@ -9,6 +9,7 @@ from tracer.mmap_tracer import MmapTracer
 sockets = 0
 pipes = 0
 
+
 class SyscallHandler:
     def __init__(self):
         self.handlers = {}
@@ -26,6 +27,7 @@ class SyscallHandler:
                 proc = tracer.data.get_process(syscall.process.pid)
                 self.handlers[syscall.name](proc, syscall, tracer)
 
+
 def Execve(proc, syscall, tracer):
     proc['executable'] = syscall.arguments[0].text.strip("'")
     proc['arguments'] = utils.parse_args(syscall.arguments[1].text)
@@ -36,6 +38,7 @@ def Execve(proc, syscall, tracer):
 
 def Open(proc, syscall, tracer):
     proc.descriptors.open(fd.File(syscall.result, syscall.arguments[0].text.strip('\'')))
+
 
 def Socket(proc, syscall, tracer):
     descriptor = fd.Socket(syscall.result, sockets)
@@ -56,23 +59,25 @@ def Pipe(proc, syscall, tracer):
     proc.descriptors.open(fd.Pipe(fd2, pipes))
     pipes += 1
 
+
 def Bind(proc, syscall, tracer):
     descriptor = proc.descriptors.get(syscall.arguments[0].value)
     bytes_content = syscall.process.readBytes(syscall.arguments[1].value, syscall.arguments[2].value)
+    addr = utils.parse_addr(bytes_content)
 
-    if descriptor.type == 'socket' and descriptor.type == socket.SOCK_DGRAM:
-        addr = utils.parse_addr(bytes_content)
-        if addr.address.__str__() == "0.0.0.0":
-            addr = {
-                'address': utils.get_all_interfaces(),
-                'port': addr.port
-            }
-        descriptor.local = addr
+    if descriptor.type == socket.AF_INET and addr.address.__str__() == "0.0.0.0":
+        addr = {
+            'address': utils.get_all_interfaces(),
+            'port': addr.port
+        }
+
+    descriptor.local = addr
 
     descriptor.server = True
     descriptor.used = 8
 
-def ConnectLike(proc, syscall, tracer): #elif syscall.name in ['connect', 'accept', 'syscall<288>']:
+
+def ConnectLike(proc, syscall, tracer):  # elif syscall.name in ['connect', 'accept', 'syscall<288>']:
     global sockets
 
     # struct sockaddr { unsigned short family; }
@@ -137,7 +142,7 @@ def Kill(proc, syscall, tracer):
         'signal': syscall.arguments[1].value
     })
 
-    
+
 def ReadOrWrite(proc, syscall, tracer):
     descriptor = proc.descriptors.get(syscall.arguments[0].value)
     if isinstance(descriptor, fd.Socket) and descriptor.domain in [socket.AF_INET, socket.AF_INET6]:

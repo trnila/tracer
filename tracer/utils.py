@@ -52,7 +52,6 @@ def parse_ipv6(s):
 
 def parse_addr(address_bytes):
     family = unpack("H", address_bytes[0:2])[0]
-
     if family == socket.AF_UNIX:
         return fd.UnixAddress(address_bytes[2:].decode('utf-8'))
     elif family in [socket.AF_INET6, socket.AF_INET]:
