@@ -1,0 +1,9 @@
+ls
+cat /etc/passwd | grep root | wc -l
+curl example.org
+echo 1 > /dev/udp/example.org/12345
+ping example.org -c 3
+LD_LIBRARY_PATH=./examples/backtrace/dynamic_lib ./examples/backtrace/dynamic_lib/main
+./examples/signals_child_to_parent
+dig ANY example.org
+netstat -lt
