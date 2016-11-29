@@ -32,7 +32,7 @@ class Libunwind:
                     if mapping.pathname not in self.symbols:
                         self.symbols[mapping.pathname] = Addr2line(mapping.pathname)
 
-                    addr = casted[i] - mapping.start if ".so" in mapping.pathname else casted[i]
+                    addr = casted[i] - mapping.start # TODO: why relative address for code?
 
                     resolved = self.symbols[mapping.pathname].resolve(addr)
                     list.append(Frame(casted[i], resolved if resolved else ""))
