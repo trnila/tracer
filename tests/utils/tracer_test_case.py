@@ -8,13 +8,48 @@ from subprocess import Popen
 
 from tests.utils.TracedData import System
 
+project_dir = os.path.realpath(os.path.dirname(os.path.realpath(__file__)) + "/../../")
+
+
+class TracingResult:
+    def __init__(self, output_dir, process):
+        self.output_dir = output_dir
+        self.process = process
+        self.system = None
+
+    def wait(self):
+        stdout, stderr = self.process.communicate()
+        #print(stdout.decode('utf-8'), stderr.decode('utf-8'))
+
+        with open(self.output_dir + "/data.json") as file:
+            self.system = System(self.output_dir, json.load(file))
+
+
+class Tracing:
+    def __init__(self, program, args=None, options=None, env=None, background=False):
+        self.output_dir = tempfile.mkdtemp("tracer_report")
+        self.program = program
+        self.args = args if args else []
+        self.options = (options if options else []) + ['-o', self.output_dir]
+        self.env = env if env else {}
+        self.background = background
+
+    def __enter__(self):
+        arguments = [project_dir + '/tracer.py'] + self.options + ['--', self.program] + self.args
+        process = Popen(arguments, stdout=PIPE, stderr=PIPE, cwd=project_dir, env=self.env)
+
+        res = TracingResult(self.output_dir, process)
+        if not self.background:
+            res.wait()
+            return res.system
+        else:
+            return res
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        shutil.rmtree(self.output_dir)
+
 
 class TracerTestCase(unittest.TestCase):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.project_dir = os.path.realpath(os.path.dirname(os.path.realpath(__file__)) + "/../../")
-        self.tracer_output = None
-
     def assertFileEqual(self, file1, file2):
         with open(file1) as f1, open(file2) as f2:
             self.assertEqual(f1.read(), f2.read())
@@ -23,29 +58,6 @@ class TracerTestCase(unittest.TestCase):
         for pid, proc in data.items():
             self.assertEqual(0, proc['exitCode'])
 
-    def setUp(self):
-        self.tracer_output = tempfile.mkdtemp("tracer_report")
-
-    def tearDown(self):
-        shutil.rmtree(self.tracer_output)
-
-    def execute(self, program, args=None, options=None, env=None):
-        if args is None:
-            args = []
-
-        if options is None:
-            options = []
-
-        options = ['-o', self.tracer_output] + options
-
-        arguments = [self.project_dir + '/tracer.py'] + options + ['--', program] + args
-        process = Popen(arguments, stdout=PIPE, stderr=PIPE, cwd=self.project_dir, env=env)
-        stdout, stderr = process.communicate()
-        # import sys
-        # print(stdout.decode('utf-8'))
-        # print(stderr.decode('utf-8'), file=sys.stderr)
-
-        self.assertEqual(0, process.returncode)
-
-        with open(self.tracer_output + "/data.json") as file:
-            return System(self.tracer_output, json.load(file))
+    def execute(self, program, arguments=[], **kwargs):
+        resolved = shutil.which(program)
+        return Tracing(resolved if resolved else program, arguments, **kwargs);
