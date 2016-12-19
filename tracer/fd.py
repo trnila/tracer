@@ -42,6 +42,7 @@ class File(Descriptor):
         self.path = os.path.realpath(path) if path not in ['stdout', 'stdin', 'stderr'] else path # TODO: fix
         self.seeks = []
         self.mmaps = []
+        self.mode = None
 
     def get_label(self):
         return self.path.replace('/', '_')
@@ -50,6 +51,7 @@ class File(Descriptor):
         json = super().to_json()
         json["path"] = self.path
         json['mmap'] = self.mmaps
+        json["mode"] = self.mode
         return json
 
 

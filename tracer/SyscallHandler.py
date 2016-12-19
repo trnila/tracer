@@ -37,7 +37,9 @@ def Execve(proc, syscall, tracer):
 
 
 def Open(proc, syscall, tracer):
-    proc.descriptors.open(fd.File(syscall.result, syscall.arguments[0].text.strip('\'')))
+    res = fd.File(syscall.result, syscall.arguments[0].text.strip('\''))
+    res.mode = syscall.arguments[2].value
+    proc.descriptors.open(res)
 
 
 def Socket(proc, syscall, tracer):
