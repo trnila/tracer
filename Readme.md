@@ -6,7 +6,7 @@ git clone https://github.com/trnila/tracer.git
 cd tracer
 virtualenv tracer
 source tracer/bin/activate
-pip install python-ptrace
+pip install < requirements.txt
 ```
 ### Usage
 ```sh
