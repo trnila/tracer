@@ -1,11 +1,18 @@
-STANDALONE=$(shell find **/ -type f -name "Makefile" -exec dirname {} \;)
+STANDALONE=$(shell find . ! -path ./Makefile -type f -name "Makefile" -exec dirname {} \;)
 SOURCES=$(shell find -name "*.c" ! -path './backtrace/dynamic_lib*' ! -path './backtrace/more_sources*') #TODO: use STANDALONE
-LDFLAGS=-lrt -pthread
-CFLAGS=-g
+LDFLAGS=-pthread
+CFLAGS=-g -std=c99
+CC=gcc
 
 all: bins standalone 100mb 10mb
 
 bins: $(SOURCES:.c=)
+
+mmap/mmap: mmap/mmap.c
+	$(CC) $(CFLAGS) -o $@ $^ -lrt
+
+mmap/mmap_memory: mmap/mmap_memory.c
+	$(CC) $(CFLAGS) -o $@ $^ -lrt
 
 standalone:
 	for i in $(STANDALONE) ; do \

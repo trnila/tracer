@@ -19,7 +19,7 @@ int main() {
 
 	int pipes[2];
 	pipe(pipes);
-	pid_t child = fork();
+	int child = fork();
 	if(child == 0) {
 		signal(SIGUSR1, childHandler);
 		c = 'R';

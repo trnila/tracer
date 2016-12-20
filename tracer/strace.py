@@ -216,7 +216,11 @@ class SyscallTracer(Application):
         print("Report saved in %s" % self.options.output)
 
     def createChild(self, program, **kwargs):
-        pid = Application.createChild(self, program)
+        try:
+            pid = Application.createChild(self, program)
+        except Exception as e:
+            print("Could not execute %s: %s" % (program, e))
+            sys.exit(1)
         logging.debug("execve(%s, %s, [/* 40 vars */]) = %s" % (program[0], program, pid))
 
         proc = self.data.new_process(pid, 0, False)

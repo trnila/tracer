@@ -1,5 +1,6 @@
 import sys
 import unittest
+import os
 
 from .utils.tracer_test_case import TracerTestCase
 
@@ -8,6 +9,7 @@ def extract_traces(traces):
     return [i['location'].split('/')[-1] for i in traces if i['location']]
 
 
+@unittest.skipIf("TRAVIS" in os.environ and os.environ["TRAVIS"] == "true", "not supported on travis")
 class BacktraceTest(TracerTestCase):
     def test_backtrace(self):
         with self.execute("./examples/backtrace/read_write_backtrace", options=['-b']) as data:

@@ -8,7 +8,7 @@ void handler(int sig) {}
 
 int main() {
 	int parent = getpid();
-	pid_t child = fork();
+	int child = fork();
 	if(child == 0) {
 		sleep(1);
 		kill(parent, SIGUSR1);

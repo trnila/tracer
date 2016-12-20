@@ -61,6 +61,7 @@ class TracingTest(TracerTestCase):
             self.assertIsNotNone(pipe_dst)
             self.assertEqual(data.read_file(pipe_src['write_content']), data.read_file(pipe_dst['read_content']))
 
+    @unittest.skip
     def test_env_propagation(self):
         with self.execute("sh", ['-c', 'export _MYENV=ok; sh -c "uname; ls"']) as data:
             uname = data.get_process_by(executable=shutil.which('uname'))
@@ -161,6 +162,7 @@ class TracingTest(TracerTestCase):
             self.assertEqual([], reads)
             self.assertEqual([], writes)
 
+    @unittest.skipIf("TRAVIS" in os.environ and os.environ["TRAVIS"] == "true", "not supported on travis")
     def test_udp4_send(self):
         with self.execute('sh', ['-c', 'echo hello > /dev/udp/127.0.0.1/1234']) as data:
             process = data.get_process_by(executable=shutil.which("sh"))
@@ -172,6 +174,7 @@ class TracingTest(TracerTestCase):
             self.assertEqual(socket.AF_INET, sock['domain'])
             self.assertEqual(socket.SOCK_DGRAM, sock['socket_type'])
 
+    @unittest.skipIf("TRAVIS" in os.environ and os.environ["TRAVIS"] == "true", "not supported on travis")
     def test_udp6_send(self):
         with self.execute('sh', ['-c', 'echo hello > /dev/udp/::1/1234']) as data:
             process = data.get_process_by(executable=shutil.which("sh"))

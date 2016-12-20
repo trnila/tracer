@@ -19,7 +19,7 @@ class TracingResult:
 
     def wait(self):
         stdout, stderr = self.process.communicate()
-        #print(stdout.decode('utf-8'), stderr.decode('utf-8'))
+        print(stdout.decode('utf-8'), stderr.decode('utf-8'))
 
         with open(self.output_dir + "/data.json") as file:
             self.system = System(self.output_dir, json.load(file))
@@ -31,8 +31,12 @@ class Tracing:
         self.program = program
         self.args = args if args else []
         self.options = (options if options else []) + ['-o', self.output_dir]
-        self.env = env if env else {}
         self.background = background
+
+        _env = os.environ.copy()
+        if env:
+            _env.update(env)
+        self.env = _env
 
     def __enter__(self):
         arguments = [project_dir + '/tracer.py'] + self.options + ['--', self.program] + self.args

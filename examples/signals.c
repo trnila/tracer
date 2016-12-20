@@ -19,7 +19,7 @@ void parentHandler(int sig) {
 
 int main() {
 	parent = getpid();
-	pid_t child = fork();
+	int child = fork();
 	if(child == 0) {
 		signal(SIGUSR2, childHandler);
 		kill(parent, SIGUSR1);

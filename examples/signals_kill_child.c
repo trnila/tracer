@@ -5,7 +5,7 @@
 #include <wait.h>
 
 int main() {
-	pid_t child = fork();
+	int child = fork();
 	if(child == 0) {
 		printf("Waiting to be killed\n");
 		pause();

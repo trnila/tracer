@@ -1,0 +1,12 @@
+dist: trusty
+before_install:
+    - "sudo apt-get install strace libunwind8"
+    - "make"
+language: python
+python:
+    - "3.5"
+
+install: "pip install -r requirements.txt"
+script: 
+    - "python tracer.py ls;" 
+    - "pytest -q tests/"
