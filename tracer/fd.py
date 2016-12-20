@@ -41,6 +41,8 @@ class File(Descriptor):
         super().__init__(fd)
         self.path = os.path.realpath(path) if path not in ['stdout', 'stdin', 'stderr'] else path # TODO: fix
         self.seeks = []
+        self.backtrace = None
+        self.opened_pid = None
         self.mmaps = []
         self.mode = None
 
@@ -52,6 +54,8 @@ class File(Descriptor):
         json["path"] = self.path
         json['mmap'] = self.mmaps
         json["mode"] = self.mode
+        json["backtrace"] = self.backtrace
+        json["opened_pid"] = self.opened_pid
         return json
 
 

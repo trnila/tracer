@@ -39,6 +39,8 @@ def Execve(proc, syscall, tracer):
 def Open(proc, syscall, tracer):
     res = fd.File(syscall.result, syscall.arguments[0].text.strip('\''))
     res.mode = syscall.arguments[2].value
+    res.backtrace = tracer.backtracer.create_backtrace(syscall.process)
+    res.opened_pid = syscall.process.pid
     proc.descriptors.open(res)
 
 
