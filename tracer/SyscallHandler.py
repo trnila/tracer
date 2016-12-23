@@ -28,6 +28,11 @@ class SyscallHandler:
                 self.handlers[syscall.name](proc, syscall, tracer)
 
 
+def handle(descriptor, syscall, tracer):
+    descriptor.backtrace = tracer.backtracer.create_backtrace(syscall.process)
+    descriptor.opened_pid = syscall.process.pid
+
+
 def Execve(proc, syscall, tracer):
     proc['executable'] = syscall.arguments[0].text.strip("'")
     proc['arguments'] = utils.parse_args(syscall.arguments[1].text)
@@ -38,18 +43,16 @@ def Execve(proc, syscall, tracer):
 
 def Open(proc, syscall, tracer):
     res = fd.File(syscall.result, syscall.arguments[0].text.strip('\''))
+    handle(res, syscall, tracer)
     res.mode = syscall.arguments[2].value
-    res.backtrace = tracer.backtracer.create_backtrace(syscall.process)
-    res.opened_pid = syscall.process.pid
     proc.descriptors.open(res)
 
 
 def Socket(proc, syscall, tracer):
     descriptor = fd.Socket(syscall.result, sockets)
+    handle(descriptor, syscall, tracer)
     descriptor.domain = syscall.arguments[0].value
     descriptor.type = syscall.arguments[1].value
-    descriptor.backtrace = tracer.backtracer.create_backtrace(syscall.process)
-    descriptor.opened_pid = syscall.process.pid
     proc.descriptors.open(descriptor)
 
     global sockets
@@ -61,8 +64,8 @@ def Pipe(proc, syscall, tracer):
 
     pipe = syscall.process.readBytes(syscall.arguments[0].value, 8)
     fd1, fd2 = unpack("ii", pipe)
-    proc.descriptors.open(fd.Pipe(fd1, pipes))
-    proc.descriptors.open(fd.Pipe(fd2, pipes))
+    handle(proc.descriptors.open(fd.Pipe(fd1, pipes)), syscall, tracer)
+    handle(proc.descriptors.open(fd.Pipe(fd2, pipes)), syscall, tracer)
     pipes += 1
 
 
