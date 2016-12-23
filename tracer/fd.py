@@ -10,14 +10,17 @@ class Descriptor:
     def __init__(self, fd):
         self.fd = fd
         self.used = 0
+        self.backtrace = None
+        self.opened_pid = None
 
     def get_label(self):
         return ""
 
     def to_json(self):
-        json = {
-            "type": type(self).__name__.lower(),
-        }
+        json = {}
+        json["type"] = type(self).__name__.lower()
+        json["backtrace"] = self.backtrace
+        json["opened_pid"] = self.opened_pid
 
         return json
 
@@ -41,8 +44,6 @@ class File(Descriptor):
         super().__init__(fd)
         self.path = os.path.realpath(path) if path not in ['stdout', 'stdin', 'stderr'] else path # TODO: fix
         self.seeks = []
-        self.backtrace = None
-        self.opened_pid = None
         self.mmaps = []
         self.mode = None
 
@@ -54,8 +55,6 @@ class File(Descriptor):
         json["path"] = self.path
         json['mmap'] = self.mmaps
         json["mode"] = self.mode
-        json["backtrace"] = self.backtrace
-        json["opened_pid"] = self.opened_pid
         return json
 
 

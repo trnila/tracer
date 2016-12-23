@@ -48,6 +48,8 @@ def Socket(proc, syscall, tracer):
     descriptor = fd.Socket(syscall.result, sockets)
     descriptor.domain = syscall.arguments[0].value
     descriptor.type = syscall.arguments[1].value
+    descriptor.backtrace = tracer.backtracer.create_backtrace(syscall.process)
+    descriptor.opened_pid = syscall.process.pid
     proc.descriptors.open(descriptor)
 
     global sockets
