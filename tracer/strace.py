@@ -17,11 +17,11 @@ from ptrace.error import PTRACE_ERRORS
 from ptrace.error import writeError
 from ptrace.func_call import FunctionCallOptions
 
-from tracer import fd, utils
+from tracer import fd
 from tracer.Report import Report
 from tracer.Report import UnknownFd
 from tracer.SyscallHandler import SyscallHandler, Open, Socket, Pipe, Bind, ConnectLike, Close, Dup2, Mmap, DupLike, \
-    ReadOrWrite, Kill, Execve
+    ReadOrWrite, Kill, Execve, SetSockOpt
 from tracer.backtracing.Libunwind import Libunwind
 from tracer.backtracing.NullBacktracer import NullBacktracer
 
@@ -59,6 +59,7 @@ class SyscallTracer(Application):
         self.handler.register("kill", Kill)
         self.handler.register(["read", "write", "sendmsg", "recvmsg", "sendto", "recvfrom"], ReadOrWrite)
         self.handler.register("execve", Execve)
+        self.handler.register("setsockopt", SetSockOpt)
 
     def parseOptions(self):
         parser = OptionParser(usage="%prog [options] -- program [arg1 arg2 ...]")

@@ -68,6 +68,7 @@ class Socket(Descriptor):
         self.remote = None
         self.server = False
         self.socket_id = socket_id
+        self.sockopts = []
 
     def get_label(self):
         return 'socket_%d' % self.socket_id
@@ -80,6 +81,7 @@ class Socket(Descriptor):
         json['remote'] = self.remote
         json['server'] = self.server
         json['socket_id'] = self.socket_id
+        json['sockopts'] = self.sockopts
         return json
 
 

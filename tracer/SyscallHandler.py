@@ -1,7 +1,9 @@
 import socket
+import struct
 from struct import unpack
 
 from tracer import fd
+from tracer import maps
 from tracer import utils
 from tracer.fd_resolve import resolve
 from tracer.mmap_tracer import MmapTracer
@@ -211,3 +213,17 @@ def ReadOrWrite(proc, syscall, tracer):
         proc.read(syscall.arguments[0].value, content, **data)
     else:
         proc.write(syscall.arguments[0].value, content, **data)
+
+
+def SetSockOpt(proc, syscall, tracer):
+    level = syscall.arguments[1].value
+    option_name = syscall.arguments[2].value
+    value = struct.unpack("i", syscall.process.readBytes(syscall.arguments[3].value, syscall.arguments[4].value))[0]
+
+    descriptor = proc.descriptors.get(syscall.arguments[0].value)
+    descriptor.sockopts.append({
+        "optname": maps.sockopts.get(option_name),
+        "level": maps.socklevel.get(level),
+        "value": value,
+        "backtrace": tracer.backtracer.create_backtrace(syscall.process)
+    })
