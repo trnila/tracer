@@ -43,3 +43,6 @@ curl https://raw.githubusercontent.com/trnila/tracer/master/bootstrap.sh | sh
 cd tracer
 ./run.sh sh -c "curl httpbin.com/headers ; cat /etc/passwd | tr a-z A-Z | tac"
 ```
+
+## Tests
+Just run `python -m unittest` or `pytest` if you have pytest installed.
