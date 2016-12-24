@@ -20,8 +20,21 @@ class FlaggedDict:
         return ' | '.join(opts)
 
 
+class DictWithDefault:
+    def __init__(self, data):
+        self.data = data
+
+    def __getitem__(self, item):
+        return self.get(item)
+
+    def get(self, item):
+        if item in self.data:
+            return self.data[item]
+        return item
+
+
 def create_map(module, start_with):
-    return dict([(getattr(module, i), i) for i in dir(module) if i.startswith(start_with)])
+    return DictWithDefault(dict([(getattr(module, i), i) for i in dir(module) if i.startswith(start_with)]))
 
 
 signals = create_map(signal, 'SIG')
