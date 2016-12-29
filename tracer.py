@@ -1,4 +1,4 @@
 #!/usr/bin/env python
-from tracer.strace import SyscallTracer
+from tracer.tracer import Tracer
 
-SyscallTracer().main()
+Tracer().main()

@@ -37,7 +37,7 @@ except:
     pass
 
 
-class SyscallTracer(Application):
+class Tracer(Application):
     def __init__(self):
         Application.__init__(self)
         self.debugger = PtraceDebugger()

@@ -1,3 +1,8 @@
-from tracer.strace import SyscallTracer
+from tracer.tracer import Tracer
 
-SyscallTracer().main()
+
+def main():
+    Tracer().main()
+
+if __name__ == '__main__':
+    main()
