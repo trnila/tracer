@@ -8,5 +8,12 @@ setup(
         entry_points={
             'console_scripts': ['tracer = tracer.__main__:main']
         },
-        ext_modules=[Extension("backtrace", ["backtrace/python.cpp", "backtrace/backtrace.cpp"], libraries=['unwind', 'unwind-x86_64', 'unwind-ptrace'])]
+        ext_modules=[
+                Extension(
+                        "backtrace",
+                        ["backtrace/python.cpp", "backtrace/backtrace.cpp"],
+                        libraries=['unwind', 'unwind-x86_64', 'unwind-ptrace'],
+                        extra_compile_args=['-std=c++11']
+                )
+        ]
 )
