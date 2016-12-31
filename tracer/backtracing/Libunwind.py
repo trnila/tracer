@@ -20,7 +20,14 @@ class CPTrace:
     def get_backtrace(self, process):
         data = self.lib.get_backtrace(process.pid)
         casted = ctypes.cast(data, ctypes.POINTER(ctypes.c_long))
-        return casted
+
+        addresses = []
+        i = 0
+        while casted[i] != 0:
+            addresses.append(casted[i])
+            i += 1
+
+        return addresses
 
 
 class Libunwind:
@@ -30,31 +37,25 @@ class Libunwind:
 
     def __del__(self):
         self.lib.destroy()
+        pass
 
     def process_exited(self, pid):
         self.lib.destroy(pid)
 
     def create_backtrace(self, process):
-        casted = self.lib.get_backtrace(process)
-
         mappings = process.readMappings()
 
-        list = []
-        i = 0
-        while True:
+        backtrace = []
+        for addr in self.lib.get_backtrace(process):
             for mapping in mappings:
-                if casted[i] in mapping and not mapping.pathname.startswith('['):
+                if addr in mapping and not mapping.pathname.startswith('['):
                     if mapping.pathname not in self.symbols:
                         self.symbols[mapping.pathname] = Addr2line(mapping.pathname)
 
-                    addr = casted[i] - mapping.start # TODO: why relative address for code?
+                    addr = addr - mapping.start  # TODO: why relative address for code?
 
                     resolved = self.symbols[mapping.pathname].resolve(addr)
-                    list.append(Frame(casted[i], resolved if resolved else ""))
+                    backtrace.append(Frame(addr, resolved if resolved else ""))
                     break
 
-            if casted[i] == 0:
-                break
-            i += 1
-
-        return list
+        return backtrace
