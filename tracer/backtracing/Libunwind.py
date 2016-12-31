@@ -17,8 +17,8 @@ class CPTrace:
         else:
             self.lib.destroy_pid(pid)
 
-    def get_backtrace(self, process):
-        data = self.lib.get_backtrace(process.pid)
+    def get_backtrace(self, pid):
+        data = self.lib.get_backtrace(pid)
         casted = ctypes.cast(data, ctypes.POINTER(ctypes.c_long))
 
         addresses = []
@@ -32,7 +32,9 @@ class CPTrace:
 
 class Libunwind:
     def __init__(self):
-        self.lib = CPTrace()
+        import backtrace
+        self.lib = backtrace
+        #self.lib = CPTrace()
         self.symbols = {}
 
     def __del__(self):
@@ -46,7 +48,7 @@ class Libunwind:
         mappings = process.readMappings()
 
         backtrace = []
-        for addr in self.lib.get_backtrace(process):
+        for addr in self.lib.get_backtrace(process.pid):
             for mapping in mappings:
                 if addr in mapping and not mapping.pathname.startswith('['):
                     if mapping.pathname not in self.symbols:
