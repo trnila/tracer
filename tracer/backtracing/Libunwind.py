@@ -5,22 +5,37 @@ from .addr2line import Addr2line
 from .backtrace import Frame
 
 
-class Libunwind:
+class CPTrace:
     def __init__(self):
         self.lib = ctypes.CDLL(get_root() + "backtrace/backtrace.so")
         self.lib.init()
+        self.lib.get_backtrace.restype = ctypes.POINTER(ctypes.c_long)
+
+    def destroy(self, pid=None):
+        if pid is None:
+            self.lib.destroy()
+        else:
+            self.lib.destroy_pid(pid)
+
+    def get_backtrace(self, process):
+        data = self.lib.get_backtrace(process.pid)
+        casted = ctypes.cast(data, ctypes.POINTER(ctypes.c_long))
+        return casted
+
+
+class Libunwind:
+    def __init__(self):
+        self.lib = CPTrace()
         self.symbols = {}
 
     def __del__(self):
         self.lib.destroy()
 
     def process_exited(self, pid):
-        self.lib.destroy_pid(pid)
+        self.lib.destroy(pid)
 
     def create_backtrace(self, process):
-        self.lib.get_backtrace.restype = ctypes.POINTER(ctypes.c_long)
-        data = self.lib.get_backtrace(process.pid)
-        casted = ctypes.cast(data, ctypes.POINTER(ctypes.c_long))
+        casted = self.lib.get_backtrace(process)
 
         mappings = process.readMappings()
 
