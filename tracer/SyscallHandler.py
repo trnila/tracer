@@ -51,13 +51,14 @@ def Open(proc, syscall, tracer):
 
 
 def Socket(proc, syscall, tracer):
+    global sockets
+
     descriptor = fd.Socket(syscall.result, sockets)
     handle(descriptor, syscall, tracer)
     descriptor.domain = syscall.arguments[0].value
     descriptor.type = syscall.arguments[1].value
     proc.descriptors.open(descriptor)
 
-    global sockets
     sockets += 1
 
 
