@@ -96,7 +96,7 @@ class TracingTest(TracerTestCase):
 
     def test_unix(self):
         with open('/dev/null', 'w') as null:
-            with self.execute("./examples/unix_socket_server.py", background=True) as srv:
+            with self.execute("./examples/sockets/unix_socket_server.py", background=True) as srv:
                 sleep(1)  # TODO: check when ready
                 with self.execute('sh', ['-c', 'echo hello world | nc -U /tmp/reverse.sock']) as client:
                     proc = client.get_process_by(executable=shutil.which('nc'))
@@ -112,7 +112,7 @@ class TracingTest(TracerTestCase):
                     self.assertEqual("/tmp/reverse.sock", sock['local'])
 
     def test_thread(self):
-        with self.execute('python', ['examples/threads.py']) as data:
+        with self.execute('python', ['examples/threads/threads.py']) as data:
             process = data.get_process_by(thread=False)
             thread = data.get_process_by(thread=True)
 
@@ -123,7 +123,7 @@ class TracingTest(TracerTestCase):
             self.assertEqual(process['env'], thread['env'])
 
     def test_thread_shared_fd(self):
-        with self.execute('examples/thread_fd_share') as data:
+        with self.execute('examples/threads/thread_fd_share') as data:
             process = data.get_process_by(thread=False)
             thread = data.get_process_by(thread=True)
 
@@ -134,7 +134,7 @@ class TracingTest(TracerTestCase):
             self.assertEqual("thread", data.read_file(file['write_content']).decode('utf-8'))
 
     def test_process_change_fd_in_thread(self):
-        with self.execute('python', ['examples/thread_fail.py']) as data:
+        with self.execute('python', ['examples/threads/thread_fail.py']) as data:
             process = data.get_process_by(thread=False)
             thread = data.get_process_by(thread=True)
 
@@ -145,7 +145,7 @@ class TracingTest(TracerTestCase):
             self.assertEqual("another", data.read_file(file['write_content']).decode('utf-8'))
 
     def test_multiple_reopen(self):
-        with self.execute('python', ['examples/multiple_read_write.py']) as data:
+        with self.execute('python', ['examples/files/multiple_read_write.py']) as data:
             process = data.get_process_by(executable=shutil.which("python"))
 
             reads = ['first', 'firstsecond']
@@ -187,7 +187,7 @@ class TracingTest(TracerTestCase):
             self.assertEqual(socket.SOCK_DGRAM, sock['socket_type'])
 
     def test_signals(self):
-        with self.execute('./examples/signals') as data:
+        with self.execute('./examples/signals/signals') as data:
             parent = data.get_process_by(parent=0)
             child = data.get_process_by(parent=parent['pid'])
 
@@ -201,7 +201,7 @@ class TracingTest(TracerTestCase):
             self.assertEqual(signal.SIGUSR2, parent['kills'][0]['signal'])
 
     def test_signal_kill_child(self):
-        with self.execute('./examples/signals_kill_child') as data:
+        with self.execute('./examples/signals/signals_kill_child') as data:
             parent = list(data.processes.values())[0]
             child = list(data.processes.values())[1]
 

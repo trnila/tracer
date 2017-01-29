@@ -1,5 +1,3 @@
-import os
-
 file = "/tmp/file"
 
 def clean():

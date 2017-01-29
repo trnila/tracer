@@ -1,5 +1,4 @@
 import threading
-import time
 
 f = None
 lock = threading.Lock()
