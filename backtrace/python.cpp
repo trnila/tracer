@@ -1,11 +1,5 @@
 #include <Python.h>
-
-extern "C" {
-    void init();
-    long* get_backtrace(int pid);
-    void destroy_pid(int pid);
-    void destroy();
-}
+#include "backtrace.h"
 
 PyObject* module_destroy(PyObject *self, PyObject *args) {
     if(PyTuple_Size(args) == 0) {
