@@ -1,7 +1,37 @@
 #include <Python.h>
 #include "backtrace.h"
 
+PyObject* module_get_backtrace(PyObject *self, PyObject *args);
+PyObject* module_destroy(PyObject *self, PyObject *args);
+
 PyObject* exceptionObj;
+PyMethodDef methods[] = {
+    {"destroy", module_destroy, METH_VARARGS, "Execute a shell command."},
+    {"get_backtrace", module_get_backtrace, METH_VARARGS, "Execute a shell command."},
+    {NULL, NULL, 0, NULL}
+};
+struct PyModuleDef module = {PyModuleDef_HEAD_INIT, "backtrace", NULL, -1, methods};
+
+PyMODINIT_FUNC PyInit_backtrace() {
+    PyObject *m;
+    m = PyModule_Create(&module);
+    if (m == NULL)
+        return nullptr;
+
+    exceptionObj = PyErr_NewException("backtrace.error", NULL, NULL);
+    Py_INCREF(exceptionObj);
+
+    PyModule_AddObject(m, "error", exceptionObj);
+
+    try {
+        init();
+    } catch(BacktraceException& e) {
+        PyErr_SetString(exceptionObj, e.what());
+        return nullptr;
+    }
+
+    return m;
+}
 
 PyObject* module_destroy(PyObject *self, PyObject *args) {
     if(PyTuple_Size(args) == 0) {
@@ -39,33 +69,4 @@ PyObject* module_get_backtrace(PyObject *self, PyObject *args) {
         PyErr_SetString(exceptionObj, e.what());
         return nullptr;
     }
-}
-
-PyMethodDef methods[] = {
-    {"destroy", module_destroy, METH_VARARGS, "Execute a shell command."},
-    {"get_backtrace", module_get_backtrace, METH_VARARGS, "Execute a shell command."},
-    {NULL, NULL, 0, NULL}
-};
-
-struct PyModuleDef module = {PyModuleDef_HEAD_INIT, "backtrace", NULL, -1, methods};
-
-PyMODINIT_FUNC PyInit_backtrace() {
-    PyObject *m;
-    m = PyModule_Create(&module);
-    if (m == NULL)
-        return nullptr;
-
-    exceptionObj = PyErr_NewException("backtrace.error", NULL, NULL);
-    Py_INCREF(exceptionObj);
-
-    PyModule_AddObject(m, "error", exceptionObj);
-
-    try {
-        init();
-    } catch(BacktraceException& e) {
-        PyErr_SetString(exceptionObj, e.what());
-        return nullptr;
-    }
-
-    return m;
 }

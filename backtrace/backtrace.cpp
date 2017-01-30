@@ -14,6 +14,13 @@
 unw_addr_space_t as;
 std::unordered_map<int, struct UPT_info*> unwind_info;
 
+void init() {
+    as = unw_create_addr_space(&_UPT_accessors, 0);
+    if(!as) {
+        throw BacktraceException("unw_create_addr_space() failed");
+    }
+}
+
 std::vector<long> do_backtrace(struct UPT_info *ui) {
     std::vector<long> backtrace;
 
@@ -59,14 +66,6 @@ std::vector<long> do_backtrace(struct UPT_info *ui) {
 	}
 
 	return backtrace;
-}
-
-
-void init() {
-    as = unw_create_addr_space(&_UPT_accessors, 0);
-    if(!as) {
-        throw BacktraceException("unw_create_addr_space() failed");
-    }
 }
 
 void destroy_pid(int pid) {
