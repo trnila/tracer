@@ -1,12 +1,4 @@
-#include <unwind.h>
-#include <errno.h>
 #include <libunwind-ptrace.h>
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
-#include <sys/ptrace.h>
-#include <sys/wait.h>
-#include <string>
 #include <unordered_map>
 #include "backtrace.h"
 #include "utils.h"
