@@ -20,10 +20,12 @@ from ptrace.func_call import FunctionCallOptions
 from tracer import fd
 from tracer.Report import Report
 from tracer.Report import UnknownFd
-from tracer.SyscallHandler import SyscallHandler, Open, Socket, Pipe, Bind, ConnectLike, Close, Dup2, Mmap, DupLike, \
-    ReadOrWrite, Kill, Execve, SetSockOpt
 from tracer.backtracing.Libunwind import Libunwind
 from tracer.backtracing.NullBacktracer import NullBacktracer
+from tracer.syscalls.contents import ReadOrWrite
+from tracer.syscalls.core import Execve, Open, Socket, Pipe, Bind, ConnectLike, Dup2, Close, DupLike
+from tracer.syscalls.handler import SyscallHandler
+from tracer.syscalls.misc import Mmap, Kill, SetSockOpt
 
 logging.getLogger().setLevel(logging.DEBUG)
 try:
