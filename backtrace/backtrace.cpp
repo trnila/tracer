@@ -11,12 +11,12 @@
 #include "backtrace.h"
 #include "utils.h"
 
-
-long data[100];
 unw_addr_space_t as;
 std::unordered_map<int, struct UPT_info*> unwind_info;
 
-void do_backtrace(long *x, struct UPT_info *ui) {
+std::vector<long> do_backtrace(struct UPT_info *ui) {
+    std::vector<long> backtrace;
+
 	unw_word_t ip, sp, start_ip = 0, off;
 	int n = 0, ret;
 	unw_cursor_t c;
@@ -35,7 +35,7 @@ void do_backtrace(long *x, struct UPT_info *ui) {
 			start_ip = ip;
 		}
 
-		x[n] = (long) ip;
+        backtrace.push_back(ip);
 
 		ret = unw_step(&c);
 		if (ret < 0) {
@@ -54,11 +54,11 @@ void do_backtrace(long *x, struct UPT_info *ui) {
 	}
 	while (ret > 0);
 
-	x[n] = 0;
-
 	if (ret < 0) {
 		throw BacktraceException(Formatter() << "unwind failed with ret=" << ret);
 	}
+
+	return backtrace;
 }
 
 
@@ -86,13 +86,12 @@ void destroy() {
     unw_destroy_addr_space(as);
 }
 
-long* get_backtrace(int pid) {
+std::vector<long> get_backtrace(int pid) {
     auto it = unwind_info.find(pid);
     if(it == unwind_info.end()) {
         struct UPT_info *ui = (UPT_info*) _UPT_create(pid);
         it = unwind_info.insert(std::make_pair(pid, ui)).first;
     }
 
-    do_backtrace(data, it->second);
-    return data;
+    return do_backtrace(it->second);
 }

@@ -30,12 +30,10 @@ PyObject* module_get_backtrace(PyObject *self, PyObject *args) {
 
     PyObject* res = Py_BuildValue("[]");
     try {
-        long *addrs = get_backtrace(pid);
-        while(*addrs != 0) {
-            PyList_Append(res, Py_BuildValue("l", *addrs));
-            addrs++;
+        auto addrs = get_backtrace(pid);
+        for(auto addr: addrs) {
+            PyList_Append(res, Py_BuildValue("l", addr));
         }
-
         return res;
     } catch(BacktraceException& e) {
         PyErr_SetString(exceptionObj, e.what());

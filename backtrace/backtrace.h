@@ -1,3 +1,4 @@
+#include <vector>
 #include <stdexcept>
 
 class BacktraceException: public std::runtime_error {
@@ -6,6 +7,6 @@ public:
 };
 
 void init();
-long* get_backtrace(int pid);
+std::vector<long> get_backtrace(int pid);
 void destroy_pid(int pid);
 void destroy();
