@@ -1,6 +1,8 @@
 #include <Python.h>
 #include "backtrace.h"
 
+PyObject* exceptionObj;
+
 PyObject* module_destroy(PyObject *self, PyObject *args) {
     if(PyTuple_Size(args) == 0) {
         destroy();
@@ -27,13 +29,18 @@ PyObject* module_get_backtrace(PyObject *self, PyObject *args) {
     }
 
     PyObject* res = Py_BuildValue("[]");
-    long *addrs = get_backtrace(pid);
-    while(*addrs != 0) {
-        PyList_Append(res, Py_BuildValue("l", *addrs));
-        addrs++;
-    }
+    try {
+        long *addrs = get_backtrace(pid);
+        while(*addrs != 0) {
+            PyList_Append(res, Py_BuildValue("l", *addrs));
+            addrs++;
+        }
 
-    return res;
+        return res;
+    } catch(BacktraceException& e) {
+        PyErr_SetString(exceptionObj, e.what());
+        return nullptr;
+    }
 }
 
 PyMethodDef methods[] = {
@@ -45,6 +52,22 @@ PyMethodDef methods[] = {
 struct PyModuleDef module = {PyModuleDef_HEAD_INIT, "backtrace", NULL, -1, methods};
 
 PyMODINIT_FUNC PyInit_backtrace() {
-    init();
-    return PyModule_Create(&module);
+    PyObject *m;
+    m = PyModule_Create(&module);
+    if (m == NULL)
+        return nullptr;
+
+    exceptionObj = PyErr_NewException("backtrace.error", NULL, NULL);
+    Py_INCREF(exceptionObj);
+
+    PyModule_AddObject(m, "error", exceptionObj);
+
+    try {
+        init();
+    } catch(BacktraceException& e) {
+        PyErr_SetString(exceptionObj, e.what());
+        return nullptr;
+    }
+
+    return m;
 }
