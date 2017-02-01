@@ -232,3 +232,8 @@ class Tracer(Application):
 
     def handle_sigterm(self, signum, frame):
         self.debugger.quit()
+
+    def register_handler(self, syscall):
+        def fn(cb):
+            self.handler.register(syscall, cb)
+        return fn
