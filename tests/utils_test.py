@@ -27,6 +27,7 @@ class UtilsTest(unittest.TestCase):
         self.assertEqual('2606:2800:220:1:248:1893:25c8:1946', str(
             utils.parse_ipv6('0028062601002002931848024619C825')))
 
+
 if __name__ == '__main__':
     sys.argv.append('-b')
     unittest.main()

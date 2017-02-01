@@ -53,6 +53,7 @@ class QueriesTest(unittest.TestCase):
             system.get_process_by(descriptors={"type": "file", "path": "/tmp/passwd"})['executable']
         )
 
+
 if __name__ == '__main__':
     sys.argv.append('-b')
     unittest.main()

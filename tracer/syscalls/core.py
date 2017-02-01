@@ -7,6 +7,7 @@ from tracer.fd_resolve import resolve
 pipes = 0
 sockets = 0
 
+
 def handle(descriptor, syscall):
     descriptor.backtrace = syscall.process.get_backtrace()
     descriptor.opened_pid = syscall.process.pid
@@ -116,6 +117,7 @@ def DupLike(syscall):
     new = syscall.result
     old = syscall.arguments[0].value
     syscall.process.descriptors.clone(new, old)
+
 
 handlers = {
     "open": Open,

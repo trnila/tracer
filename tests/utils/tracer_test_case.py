@@ -64,4 +64,4 @@ class TracerTestCase(unittest.TestCase):
 
     def execute(self, program, arguments=[], **kwargs):
         resolved = shutil.which(program)
-        return Tracing(resolved if resolved else program, arguments, **kwargs);
+        return Tracing(resolved if resolved else program, arguments, **kwargs)

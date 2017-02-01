@@ -34,7 +34,7 @@ class Libunwind:
     def __init__(self):
         import backtrace
         self.lib = backtrace
-        #self.lib = CPTrace()
+        # self.lib = CPTrace()
         self.symbols = {}
 
     def __del__(self):

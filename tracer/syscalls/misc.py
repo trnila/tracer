@@ -7,8 +7,9 @@ from tracer.mmap_tracer import MmapTracer
 def Mmap(syscall):
     if syscall.arguments[4].value != 18446744073709551615:
         syscall.process.mmap(syscall.arguments[4].value,
-                  MmapTracer(syscall.process['pid'], syscall.result, syscall.arguments[1].value, syscall.arguments[2].value,
-                             syscall.arguments[3].value))
+                             MmapTracer(syscall.process['pid'], syscall.result, syscall.arguments[1].value,
+                                        syscall.arguments[2].value,
+                                        syscall.arguments[3].value))
 
 
 def Kill(syscall):

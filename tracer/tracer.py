@@ -24,7 +24,7 @@ from tracer.Report import UnknownFd
 from tracer.backtracing.Libunwind import Libunwind
 from tracer.backtracing.NullBacktracer import NullBacktracer
 from tracer.syscalls.contents import ReadOrWrite
-from tracer.syscalls.core import Execve, Open, Socket, Pipe, Bind, ConnectLike, Dup2, Close, DupLike
+from tracer.syscalls.core import Execve
 from tracer.syscalls.handler import SyscallHandler
 from tracer.syscalls.misc import Mmap, Kill, SetSockOpt
 
@@ -62,8 +62,10 @@ class Tracer(Application):
         parser.add_option('--output', '-o')
         parser.add_option('--trace-mmap', action="store_true", default=False)
         parser.add_option('--syscalls', '-s', help='print each syscall', action="store_true", default=False)
-        parser.add_option('--print-data', '-d', help='print captured data to stdout', action="store_true", default=False)
-        parser.add_option('--backtrace', '-b', help='collect backtraces with libunwind', action="store_true", default=False)
+        parser.add_option('--print-data', '-d', help='print captured data to stdout', action="store_true",
+                          default=False)
+        parser.add_option('--backtrace', '-b', help='collect backtraces with libunwind', action="store_true",
+                          default=False)
 
         self.createLogOptions(parser)
 
@@ -81,7 +83,7 @@ class Tracer(Application):
 
         if self.options.backtrace:
             self.backtracer = Libunwind()
-            #self.backtracer = PythonPtraceBacktracer(self.debugger)
+            # self.backtracer = PythonPtraceBacktracer(self.debugger)
 
         self.options.enter = True
 
@@ -236,4 +238,5 @@ class Tracer(Application):
     def register_handler(self, syscall):
         def fn(cb):
             self.handler.register(syscall, cb)
+
         return fn

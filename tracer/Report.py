@@ -1,7 +1,6 @@
 import copy
 import json
 import os
-from pprint import pprint
 
 from tracer import utils
 from tracer.json_encode import AppJSONEncoder
@@ -137,8 +136,6 @@ class Report:
                 self.descriptor_groups[pid] = Descriptors()
                 self.descriptor_groups[pid].descriptors = copy.deepcopy(self.descriptor_groups[parent].descriptors)
                 self.descriptor_groups[pid].processes = self.descriptor_groups[parent].processes
-
-
             else:
                 self.descriptor_groups[pid] = Descriptors()
 

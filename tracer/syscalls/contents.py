@@ -45,7 +45,7 @@ def ReadOrWrite(syscall):
         # TODO: read addr, IPV6 support!
         # sock_size = syscall.process.readWord(syscall.arguments[5].value)
 
-        des = proc.descriptors.get(syscall.arguments[0].value)
+        des = syscall.process.descriptors.get(syscall.arguments[0].value)
         if not des.local:
             addr = resolve(syscall.process.pid, syscall.arguments[0].value, 1)['dst']
             if addr['address'].__str__() == "0.0.0.0":
@@ -64,6 +64,7 @@ def ReadOrWrite(syscall):
         syscall.process.read(syscall.arguments[0].value, content, **data)
     else:
         syscall.process.write(syscall.arguments[0].value, content, **data)
+
 
 handlers = (
     ["read", "write", "sendmsg", "recvmsg", "sendto", "recvfrom"],

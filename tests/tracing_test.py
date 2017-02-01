@@ -95,21 +95,20 @@ class TracingTest(TracerTestCase):
             self.assertIsNotNone(sock['local']['port'])
 
     def test_unix(self):
-        with open('/dev/null', 'w') as null:
-            with self.execute("./examples/sockets/unix_socket_server.py", background=True) as srv:
-                sleep(1)  # TODO: check when ready
-                with self.execute('sh', ['-c', 'echo hello world | nc -U /tmp/reverse.sock']) as client:
-                    proc = client.get_process_by(executable=shutil.which('nc'))
-                    sock = proc.get_resource_by(type='socket', domain=1)
-                    self.assertEqual("/tmp/reverse.sock", sock['remote'])
-                    self.assertEqual(False, sock['server'])
+        with self.execute("./examples/sockets/unix_socket_server.py", background=True) as srv:
+            sleep(1)  # TODO: check when ready
+            with self.execute('sh', ['-c', 'echo hello world | nc -U /tmp/reverse.sock']) as client:
+                proc = client.get_process_by(executable=shutil.which('nc'))
+                sock = proc.get_resource_by(type='socket', domain=1)
+                self.assertEqual("/tmp/reverse.sock", sock['remote'])
+                self.assertEqual(False, sock['server'])
 
-                    srv.wait()
-                    srv = srv.system
+                srv.wait()
+                srv = srv.system
 
-                    proc = srv.get_first_process()
-                    sock = proc.get_resource_by(type='socket', domain=1)
-                    self.assertEqual("/tmp/reverse.sock", sock['local'])
+                proc = srv.get_first_process()
+                sock = proc.get_resource_by(type='socket', domain=1)
+                self.assertEqual("/tmp/reverse.sock", sock['local'])
 
     def test_thread(self):
         with self.execute('python', ['examples/threads/threads.py']) as data:
@@ -210,6 +209,7 @@ class TracingTest(TracerTestCase):
             self.assertEqual(child['pid'], parent['kills'][0]['pid'])
             self.assertEqual(signal.SIGKILL, parent['kills'][0]['signal'])
             # TODO: add that this process has been killed?
+
 
 if __name__ == '__main__':
     sys.argv.append('-b')

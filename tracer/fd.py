@@ -60,7 +60,7 @@ class Pipe(Descriptor):
 class File(Descriptor):
     def __init__(self, fd, path):
         super().__init__(fd)
-        self.path = os.path.realpath(path) if path not in ['stdout', 'stdin', 'stderr'] else path # TODO: fix
+        self.path = os.path.realpath(path) if path not in ['stdout', 'stdin', 'stderr'] else path  # TODO: fix
         self.seeks = []
         self.mmaps = []
         self.mode = None

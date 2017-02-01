@@ -68,4 +68,3 @@ class MmapTracer:
             'flags': self.flags,
             'regions': self.accessed.get_ranges()
         }
-
