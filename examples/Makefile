@@ -26,7 +26,7 @@ standalone:
 	dd if=/dev/urandom of=$@ bs=1024 count=10240
 
 clean:
-	rm -f $(SOURCES:.c=) exclude
+	rm -f $(SOURCES:.c=) 100mb 10mb 
 	for i in $(STANDALONE) ; do \
 		make -C $$i clean ; \
 	done
