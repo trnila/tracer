@@ -5,19 +5,31 @@ class SyscallHandler:
     def __init__(self):
         self.handlers = {}
 
-    def register(self, syscalls, handler):
-        if isinstance(syscalls, str):
-            syscalls = [syscalls]
+    def register(self, syscalls, handler=None):
+        if isinstance(syscalls, tuple):
+            handler = syscalls[1]
+            syscalls = syscalls[0]
 
-        for syscall in syscalls:
-            self.handlers[syscall] = handler
+        if handler is None:
+            for syscall, cb in syscalls.items():
+                self.register_single(syscall, cb)
+        else:
+            if isinstance(syscalls, str):
+                syscalls = [syscalls]
+
+            for syscall in syscalls:
+                self.register_single(syscall, handler)
+
+    def register_single(self, name, callback):
+        if name not in self.handlers:
+            self.handlers[name] = [callback]
+        else:
+            self.handlers[name].append(callback)
 
     def handle(self, tracer, syscall):
         if syscall.result >= 0 or syscall.result == -115:
             if syscall.name in self.handlers:
-
-
-
                 proc = tracer.data.get_process(syscall.process.pid)
 
-                self.handlers[syscall.name](Syscall(proc, syscall))
+                for handler in self.handlers[syscall.name]:
+                    handler(Syscall(proc, syscall))

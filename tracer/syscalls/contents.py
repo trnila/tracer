@@ -64,3 +64,8 @@ def ReadOrWrite(syscall):
         syscall.process.read(syscall.arguments[0].value, content, **data)
     else:
         syscall.process.write(syscall.arguments[0].value, content, **data)
+
+handlers = (
+    ["read", "write", "sendmsg", "recvmsg", "sendto", "recvfrom"],
+    ReadOrWrite
+)

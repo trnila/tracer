@@ -17,6 +17,7 @@ from ptrace.error import PTRACE_ERRORS
 from ptrace.error import writeError
 from ptrace.func_call import FunctionCallOptions
 
+import tracer
 from tracer import fd
 from tracer.Report import Report
 from tracer.Report import UnknownFd
@@ -49,18 +50,10 @@ class Tracer(Application):
         self.pipes = 0
         self.sockets = 0
         self.handler = SyscallHandler()
-        self.handler.register("open", Open)
-        self.handler.register("socket", Socket)
-        self.handler.register("pipe", Pipe)
-        self.handler.register("bind", Bind)
-        self.handler.register(["connect", "accept", "syscall<288>"], ConnectLike)
-        self.handler.register("dup2", Dup2)
-        self.handler.register("close", Close)
+        self.handler.register(tracer.syscalls.core.handlers)
+        self.handler.register(tracer.syscalls.contents.handlers)
         self.handler.register("mmap", Mmap)
-        self.handler.register(["dup", "fcntl"], DupLike) # elif syscall.name == 'dup' or (syscall.name == 'fcntl' and syscall.arguments[1].value == 0):  # F_DUPFD = 0
         self.handler.register("kill", Kill)
-        self.handler.register(["read", "write", "sendmsg", "recvmsg", "sendto", "recvfrom"], ReadOrWrite)
-        self.handler.register("execve", Execve)
         self.handler.register("setsockopt", SetSockOpt)
 
     def parseOptions(self):
