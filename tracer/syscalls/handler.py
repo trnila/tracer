@@ -1,3 +1,6 @@
+from tracer.fd import Syscall
+
+
 class SyscallHandler:
     def __init__(self):
         self.handlers = {}
@@ -12,5 +15,9 @@ class SyscallHandler:
     def handle(self, tracer, syscall):
         if syscall.result >= 0 or syscall.result == -115:
             if syscall.name in self.handlers:
+
+
+
                 proc = tracer.data.get_process(syscall.process.pid)
-                self.handlers[syscall.name](proc, syscall, tracer)
+
+                self.handlers[syscall.name](Syscall(proc, syscall))

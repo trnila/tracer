@@ -169,7 +169,7 @@ class Tracer(Application):
         process = event.process
         logging.info("*** New process %s ***" % process.pid)
 
-        self.data.new_process(process.pid, process.parent.pid, process.is_thread)
+        self.data.new_process(process.pid, process.parent.pid, process.is_thread, process, self)
 
         self.prepareProcess(process)
         process.parent.syscall()
@@ -185,6 +185,7 @@ class Tracer(Application):
         process = self.createProcess()
         if not process:
             return
+        self.data.get_process(process.pid).handle = process
 
         self.syscall_options = FunctionCallOptions()
 
@@ -226,7 +227,7 @@ class Tracer(Application):
             sys.exit(1)
         logging.debug("execve(%s, %s, [/* 40 vars */]) = %s" % (program[0], program, pid))
 
-        proc = self.data.new_process(pid, 0, False)
+        proc = self.data.new_process(pid, 0, False, None, self)
         proc['executable'] = program[0]
         proc['arguments'] = program
         proc['env'] = dict(os.environ)

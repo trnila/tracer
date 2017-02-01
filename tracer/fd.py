@@ -3,6 +3,24 @@ import os
 import socket
 
 
+class Syscall:
+    def __init__(self, process, syscall):
+        self.process = process
+        self.syscall = syscall
+
+    @property
+    def result(self):
+        return self.syscall.result
+
+    @property
+    def arguments(self):
+        return self.syscall.arguments
+
+    @property
+    def name(self):
+        return self.syscall.name
+
+
 class Descriptor:
     READ = 1
     WRITE = 2

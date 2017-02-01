@@ -1,6 +1,7 @@
 import copy
 import json
 import os
+from pprint import pprint
 
 from tracer import utils
 from tracer.json_encode import AppJSONEncoder
@@ -76,12 +77,21 @@ class Descriptors:
 
 
 class Process:
-    def __init__(self, report, data, descriptors):
+    def __init__(self, report, data, descriptors, handle, tracer):
         self.report = report
         self.data = data
         self.descriptors = descriptors
         self.captures = {}
         self.descriptors.processes.append(self)
+        self.handle = handle
+        self.tracer = tracer
+
+    @property
+    def pid(self):
+        return self['pid']
+
+    def get_backtrace(self):
+        return self.tracer.backtracer.create_backtrace(self.handle)
 
     def __getitem__(self, item):
         return self.data[item]
@@ -121,10 +131,14 @@ class Report:
 
         os.makedirs(path, exist_ok=True)
 
-    def new_process(self, pid, parent, is_thread):
+    def new_process(self, pid, parent, is_thread, handle, tracer):
         if not is_thread:
             if parent:
-                self.descriptor_groups[pid] = copy.deepcopy(self.descriptor_groups[parent])
+                self.descriptor_groups[pid] = Descriptors()
+                self.descriptor_groups[pid].descriptors = copy.deepcopy(self.descriptor_groups[parent].descriptors)
+                self.descriptor_groups[pid].processes = self.descriptor_groups[parent].processes
+
+
             else:
                 self.descriptor_groups[pid] = Descriptors()
 
@@ -142,7 +156,7 @@ class Report:
             "env": self.data[parent]['env'] if parent else None,
             "descriptors": [],
             "kills": []
-        }, self.descriptor_groups[group])
+        }, self.descriptor_groups[group], handle, tracer)
 
         return self.data[pid]
 

@@ -5,8 +5,8 @@ from tracer import fd, utils
 from tracer.fd_resolve import resolve
 
 
-def ReadOrWrite(proc, syscall, tracer):
-    descriptor = proc.descriptors.get(syscall.arguments[0].value)
+def ReadOrWrite(syscall):
+    descriptor = syscall.process.descriptors.get(syscall.arguments[0].value)
     if isinstance(descriptor, fd.Socket) and descriptor.domain in [socket.AF_INET, socket.AF_INET6]:
         try:
             if descriptor.local.address.__str__() == '0.0.0.0':
@@ -27,19 +27,19 @@ def ReadOrWrite(proc, syscall, tracer):
     content = b""
 
     if syscall.name in ['sendmsg', 'recvmsg']:
-        bytes_content = syscall.process.readBytes(syscall.arguments[1].value, 32)
+        bytes_content = syscall.process.handle.readBytes(syscall.arguments[1].value, 32)
         items = unpack("PIPL", bytes_content)
 
         for i in range(0, items[3]):
-            bytes_content = syscall.process.readBytes(items[2] + 16 * i, 16)
+            bytes_content = syscall.process.handle.readBytes(items[2] + 16 * i, 16)
             i = unpack("PL", bytes_content)
-            content += syscall.process.readBytes(i[0], i[1])
+            content += syscall.process.handle.readBytes(i[0], i[1])
     else:
         wrote = syscall.result if family == 'read' else syscall.arguments[2].value
-        content = syscall.process.readBytes(syscall.arguments[1].value, wrote)
+        content = syscall.process.handle.readBytes(syscall.arguments[1].value, wrote)
 
     data = {
-        "backtrace": tracer.backtracer.create_backtrace(syscall.process)
+        "backtrace": syscall.process.get_backtrace()
     }
     if syscall.name in ['recvfrom', 'sendto'] and descriptor.type in [socket.SOCK_DGRAM]:
         # TODO: read addr, IPV6 support!
@@ -55,12 +55,12 @@ def ReadOrWrite(proc, syscall, tracer):
                 }
             des.local = addr
 
-        addr = utils.parse_addr(syscall.process.readBytes(syscall.arguments[4].value, 8))
+        addr = utils.parse_addr(syscall.process.handle.readBytes(syscall.arguments[4].value, 8))
         data['address'] = addr
         import base64
         data['_'] = base64.b64encode(content).decode('utf-8')
 
     if family == 'read':
-        proc.read(syscall.arguments[0].value, content, **data)
+        syscall.process.read(syscall.arguments[0].value, content, **data)
     else:
-        proc.write(syscall.arguments[0].value, content, **data)
+        syscall.process.write(syscall.arguments[0].value, content, **data)
