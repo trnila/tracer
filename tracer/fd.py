@@ -30,18 +30,24 @@ class Descriptor:
         self.used = 0
         self.backtrace = None
         self.opened_pid = None
+        self.data = {}
 
     def get_label(self):
         return ""
 
     def to_json(self):
-        json = {}
+        json = self.data
         json["type"] = type(self).__name__.lower()
         json["backtrace"] = self.backtrace
         json["opened_pid"] = self.opened_pid
 
         return json
 
+    def __setitem__(self, key, value):
+        self.data[key] = value
+
+    def __getitem__(self, item):
+        return self.data[key]
 
 class Pipe(Descriptor):
     last_pipe = -1
