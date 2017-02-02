@@ -26,17 +26,6 @@ from tracer.syscalls.core import handler_execve
 from tracer.syscalls.handler import SyscallHandler
 from tracer.syscalls.misc import mmap, kill, set_sock_opt
 
-logging.getLogger().setLevel(logging.DEBUG)
-try:
-    import colorlog
-
-    handler = colorlog.StreamHandler()
-    handler.setFormatter(colorlog.ColoredFormatter('%(log_color)s%(levelname)s:%(name)s:%(message)s'))
-    colorlog.getLogger().addHandler(handler)
-except ImportError:
-    # color log is just optional feature
-    pass
-
 
 class Tracer(Application):
     def __init__(self):
@@ -68,8 +57,8 @@ class Tracer(Application):
                           default=False)
 
         self.createLogOptions(parser)
-
         self.options, self.program = parser.parse_args()
+        self._setupLog(sys.stdout)
 
         if self.options.pid is None and not self.program:
             parser.print_help()
@@ -88,6 +77,18 @@ class Tracer(Application):
         self.options.enter = True
 
         self.processOptions()
+
+    def _setupLog(self, fd):  # pylint: disable=C0103
+        super()._setupLog(fd)
+        try:
+            import colorlog
+
+            handler = colorlog.StreamHandler()
+            handler.setFormatter(colorlog.ColoredFormatter('%(log_color)s%(levelname)s:%(name)s:%(message)s'))
+            colorlog.getLogger().addHandler(handler)
+        except ImportError:
+            # color log is just optional feature
+            pass
 
     def displaySyscall(self, syscall):  # pylint: disable=C0103
         text = syscall.format()
