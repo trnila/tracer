@@ -3,13 +3,13 @@ import json
 
 
 class AppJSONEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, ipaddress.IPv4Address):
-            return str(obj)
-        elif isinstance(obj, ipaddress.IPv6Address):
-            return str(obj)
+    def default(self, o):
+        if isinstance(o, ipaddress.IPv4Address):
+            return str(o)
+        elif isinstance(o, ipaddress.IPv6Address):
+            return str(o)
 
-        if getattr(obj, "to_json", None):
-            return obj.to_json()
+        if getattr(o, "to_json", None):
+            return o.to_json()
 
-        return json.JSONEncoder.default(self, obj)
+        return json.JSONEncoder.default(self, o)

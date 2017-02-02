@@ -13,7 +13,7 @@ def handle(descriptor, syscall):
     descriptor.opened_pid = syscall.process.pid
 
 
-def Execve(syscall):
+def handler_execve(syscall):
     syscall.process['executable'] = syscall.arguments[0].text.strip("'")
     syscall.process['arguments'] = utils.parse_args(syscall.arguments[1].text)
 
@@ -21,14 +21,14 @@ def Execve(syscall):
     syscall.process['env'] = env
 
 
-def Open(syscall):
+def handler_open(syscall):
     res = fd.File(syscall.result, syscall.arguments[0].text.strip('\''))
     handle(res, syscall)
     res.mode = syscall.arguments[2].value
     syscall.process.descriptors.open(res)
 
 
-def Socket(syscall):
+def handler_socket(syscall):
     global sockets
 
     descriptor = fd.Socket(syscall.result, sockets)
@@ -40,17 +40,17 @@ def Socket(syscall):
     sockets += 1
 
 
-def Pipe(syscall):
+def handler_pipe(syscall):
     global pipes
 
-    pipe = syscall.process.handle.readBytes(syscall.arguments[0].value, 8)
-    fd1, fd2 = unpack("ii", pipe)
+    pipe_fd = syscall.process.handle.readBytes(syscall.arguments[0].value, 8)
+    fd1, fd2 = unpack("ii", pipe_fd)
     handle(syscall.process.descriptors.open(fd.Pipe(fd1, pipes)), syscall)
     handle(syscall.process.descriptors.open(fd.Pipe(fd2, pipes)), syscall)
     pipes += 1
 
 
-def Bind(syscall):
+def handler_bind(syscall):
     descriptor = syscall.process.descriptors.get(syscall.arguments[0].value)
     bytes_content = syscall.process.handle.readBytes(syscall.arguments[1].value, syscall.arguments[2].value)
     addr = utils.parse_addr(bytes_content)
@@ -67,7 +67,7 @@ def Bind(syscall):
     descriptor.used = 8
 
 
-def ConnectLike(syscall):  # elif syscall.name in ['connect', 'accept', 'syscall<288>']:
+def handler_connect_like(syscall):  # elif syscall.name in ['connect', 'accept', 'syscall<288>']:
     global sockets
 
     # struct sockaddr { unsigned short family; }
@@ -101,7 +101,7 @@ def ConnectLike(syscall):  # elif syscall.name in ['connect', 'accept', 'syscall
     descriptor.remote = parsed
 
 
-def Dup2(syscall):
+def handler_dup2(syscall):
     a = syscall.arguments[0].value
     b = syscall.arguments[1].value
 
@@ -109,27 +109,27 @@ def Dup2(syscall):
     syscall.process.descriptors.clone(b, a)
 
 
-def Close(syscall):
+def handler_close(syscall):
     syscall.process.descriptors.close(syscall.arguments[0].value)
 
 
-def DupLike(syscall):
+def handler_dup_like(syscall):
     new = syscall.result
     old = syscall.arguments[0].value
     syscall.process.descriptors.clone(new, old)
 
 
-handlers = {
-    "open": Open,
-    "socket": Socket,
-    "pipe": Pipe,
-    "bind": Bind,
-    "connect": ConnectLike,
-    "accept": ConnectLike,
-    "syscall<288>": ConnectLike,
-    "dup2": Dup2,
-    "dup": DupLike,
-    "close": Close,
-    "fcntl": DupLike,
-    "execve": Execve
+HANDLERS = {
+    "open": handler_open,
+    "socket": handler_socket,
+    "pipe": handler_pipe,
+    "bind": handler_bind,
+    "connect": handler_connect_like,
+    "accept": handler_connect_like,
+    "syscall<288>": handler_connect_like,
+    "dup2": handler_dup2,
+    "dup": handler_dup_like,
+    "close": handler_close,
+    "fcntl": handler_dup_like,
+    "execve": handler_execve
 }

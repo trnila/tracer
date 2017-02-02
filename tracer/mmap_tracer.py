@@ -3,7 +3,7 @@ import os
 import struct
 
 PAGE_SIZE = os.sysconf("SC_PAGE_SIZE")
-pagemap_entry = 8
+PAGEMAP_ENTRY = 8
 
 
 class PageRange:
@@ -15,7 +15,7 @@ class PageRange:
         self.pages.add(page)
 
     def get_ranges(self):
-        if not len(self.pages):
+        if not self.pages:
             return []
 
         ranges = []
@@ -49,12 +49,12 @@ class MmapTracer:
         self.accessed = PageRange(PAGE_SIZE)
 
     def check(self):
-        if not (self.flags & mmap.MAP_PRIVATE):
+        if not self.flags & mmap.MAP_PRIVATE:
             return
 
         with open("/proc/%d/pagemap" % self.pid, 'rb') as file:
             for page in self.accessed.not_used(self.start, self.start + self.size):
-                file.seek(int(page / PAGE_SIZE) * pagemap_entry, 0)
+                file.seek(int(page / PAGE_SIZE) * PAGEMAP_ENTRY, 0)
                 num = struct.unpack('Q', file.read(8))[0]
                 occupied = (num & (1 << 63)) > 0
                 if occupied:

@@ -5,7 +5,7 @@ from tracer import fd, utils
 from tracer.fd_resolve import resolve
 
 
-def ReadOrWrite(syscall):
+def read_or_write(syscall):
     descriptor = syscall.process.descriptors.get(syscall.arguments[0].value)
     if isinstance(descriptor, fd.Socket) and descriptor.domain in [socket.AF_INET, socket.AF_INET6]:
         try:
@@ -66,7 +66,7 @@ def ReadOrWrite(syscall):
         syscall.process.write(syscall.arguments[0].value, content, **data)
 
 
-handlers = (
+HANDLERS = (
     ["read", "write", "sendmsg", "recvmsg", "sendto", "recvfrom"],
-    ReadOrWrite
+    read_or_write
 )

@@ -12,8 +12,8 @@ def parse_args(string):
     start = 0
 
     pos = 0
-    for c in string:
-        if c == "'":
+    for char in string:
+        if char == "'":
             if not capturing:
                 capturing = 1
                 start = pos + 1
@@ -26,21 +26,21 @@ def parse_args(string):
     return args
 
 
-def parse_ipv4(s):
+def parse_ipv4(raw_bytes):
     try:
         return "%d.%d.%d.%d" % (
-            int(s[6:8], 16),
-            int(s[4:6], 16),
-            int(s[2:4], 16),
-            int(s[0:2], 16),
+            int(raw_bytes[6:8], 16),
+            int(raw_bytes[4:6], 16),
+            int(raw_bytes[2:4], 16),
+            int(raw_bytes[0:2], 16),
         )
     except:
         raise ValueError('Invalid address')
 
 
-def parse_ipv6(s):
+def parse_ipv6(raw_bytes):
     result = ""
-    parts = [s[i * 8:i * 8 + 8] for i, y in enumerate(s[::8])]
+    parts = [raw_bytes[i * 8:i * 8 + 8] for i, y in enumerate(raw_bytes[::8])]
     for i in range(0, 4):
         for j in range(0, 4):
             result += format(((int(parts[i], 16) >> (8 * j)) & 0xFF), '02x')
@@ -80,6 +80,6 @@ def get_all_interfaces():
 # replace with ** when python3.5 used
 def merge_dicts(*dicts):
     res = {}
-    for dict in dicts:
-        res.update(dict)
+    for dictionary in dicts:
+        res.update(dictionary)
     return res

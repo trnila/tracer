@@ -5,7 +5,6 @@ import os
 import signal
 import sys
 from optparse import OptionParser
-from sys import exit
 
 from ptrace.debugger import Application
 from ptrace.debugger import NewProcessEvent
@@ -23,10 +22,10 @@ from tracer.Report import Report
 from tracer.Report import UnknownFd
 from tracer.backtracing.Libunwind import Libunwind
 from tracer.backtracing.NullBacktracer import NullBacktracer
-from tracer.syscalls.contents import ReadOrWrite
-from tracer.syscalls.core import Execve
+from tracer.syscalls.contents import read_or_write
+from tracer.syscalls.core import handler_execve
 from tracer.syscalls.handler import SyscallHandler
-from tracer.syscalls.misc import Mmap, Kill, SetSockOpt
+from tracer.syscalls.misc import mmap, kill, set_sock_opt
 
 logging.getLogger().setLevel(logging.DEBUG)
 try:
@@ -35,7 +34,7 @@ try:
     handler = colorlog.StreamHandler()
     handler.setFormatter(colorlog.ColoredFormatter('%(log_color)s%(levelname)s:%(name)s:%(message)s'))
     colorlog.getLogger().addHandler(handler)
-except:
+except ImportError:
     # color log is just optional feature
     pass
 
@@ -50,11 +49,11 @@ class Tracer(Application):
         self.pipes = 0
         self.sockets = 0
         self.handler = SyscallHandler()
-        self.handler.register(tracer.syscalls.core.handlers)
-        self.handler.register(tracer.syscalls.contents.handlers)
-        self.handler.register("mmap", Mmap)
-        self.handler.register("kill", Kill)
-        self.handler.register("setsockopt", SetSockOpt)
+        self.handler.register(tracer.syscalls.core.HANDLERS)
+        self.handler.register(tracer.syscalls.contents.HANDLERS)
+        self.handler.register("mmap", mmap)
+        self.handler.register("kill", kill)
+        self.handler.register("setsockopt", set_sock_opt)
 
     def parseOptions(self):
         parser = OptionParser(usage="%prog [options] -- program [arg1 arg2 ...]")
@@ -73,7 +72,7 @@ class Tracer(Application):
 
         if self.options.pid is None and not self.program:
             parser.print_help()
-            exit(1)
+            sys.exit(1)
 
         if not self.options.output:
             self.options.output = '/tmp/tracer_%s_%s' % (
