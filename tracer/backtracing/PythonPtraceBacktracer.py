@@ -14,10 +14,10 @@ class PythonPtraceBacktracer:
         if not self.query:
             self.query = Addr2line(process['executable'])
 
-        list = []
+        frames = []
 
         for frame in self.debugger.dict[process['pid']].getBacktrace():
             resolved = self.query.resolve(frame.ip)
-            list.append(Frame(frame.ip, resolved if resolved else ""))
+            frames.append(Frame(frame.ip, resolved if resolved else ""))
 
-        return list
+        return frames

@@ -91,11 +91,11 @@ def handler_connect_like(syscall):  # elif syscall.name in ['connect', 'accept',
 
 
 def handler_dup2(syscall):
-    a = syscall.arguments[0].value
-    b = syscall.arguments[1].value
+    fildes = syscall.arguments[0].value
+    fildes2 = syscall.arguments[1].value
 
-    syscall.process.descriptors.close(b)
-    syscall.process.descriptors.clone(b, a)
+    syscall.process.descriptors.close(fildes2)
+    syscall.process.descriptors.clone(fildes2, fildes)
 
 
 def handler_close(syscall):

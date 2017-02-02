@@ -13,9 +13,9 @@ class FlaggedDict:
             return ''
 
         opts = []
-        for value, str in self.flags.items():
+        for value, string in self.flags.items():
             if val & value:
-                opts.append(str)
+                opts.append(string)
 
         return ' | '.join(opts)
 

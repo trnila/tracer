@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 import datetime
 import logging
 import os
@@ -42,6 +41,8 @@ except ImportError:
 class Tracer(Application):
     def __init__(self):
         Application.__init__(self)
+        self.pids = {}
+        self.syscall_options = FunctionCallOptions()
         self.debugger = PtraceDebugger()
         self.backtracer = NullBacktracer()
         self.parseOptions()
@@ -55,7 +56,7 @@ class Tracer(Application):
         self.handler.register("kill", kill)
         self.handler.register("setsockopt", set_sock_opt)
 
-    def parseOptions(self):
+    def parseOptions(self):  # pylint: disable=C0103
         parser = OptionParser(usage="%prog [options] -- program [arg1 arg2 ...]")
         self.createCommonOptions(parser)
         parser.add_option('--output', '-o')
@@ -88,7 +89,7 @@ class Tracer(Application):
 
         self.processOptions()
 
-    def displaySyscall(self, syscall):
+    def displaySyscall(self, syscall):  # pylint: disable=C0103
         text = syscall.format()
         if self.options.syscalls:
             if syscall.result is not None:
@@ -100,7 +101,7 @@ class Tracer(Application):
 
         self.handler.handle(self, syscall)
 
-    def syscallTrace(self, process):
+    def syscallTrace(self, process):  # pylint: disable=C0103
         # First query to break at next syscall
         self.prepareProcess(process)
 
@@ -117,8 +118,8 @@ class Tracer(Application):
                     proc = self.data.get_process(event.process.pid)
                     for capture in proc['descriptors']:
                         if isinstance(capture.descriptor, fd.File):
-                            for mmap in capture.descriptor.mmaps:
-                                mmap.check()
+                            for mmap_area in capture.descriptor.mmaps:
+                                mmap_area.check()
 
                 self.syscall(event.process)
             except ProcessExit as event:
@@ -144,52 +145,48 @@ class Tracer(Application):
         # Break at next syscall
         process.syscall()
 
-    def processExited(self, event):
+    def processExited(self, event):  # pylint: disable=C0103
         # Display syscall which has not exited
         state = event.process.syscall_state
         if (state.next_event == "exit") and (not self.options.enter) and state.syscall:
             self.displaySyscall(state.syscall)
 
         # Display exit message
-        logging.info("*** %s ***" % event)
+        logging.info("*** %s ***", event)
         self.data.get_process(event.process.pid)['exitCode'] = event.exitcode
 
         self.backtracer.process_exited(event.process.pid)
 
-    def prepareProcess(self, process):
+    def prepareProcess(self, process):  # pylint: disable=C0103
         process.syscall()
 
-    def newProcess(self, event):
+    def newProcess(self, event):  # pylint: disable=C0103
         process = event.process
-        logging.info("*** New process %s ***" % process.pid)
+        logging.info("*** New process %s ***", process.pid)
 
         self.data.new_process(process.pid, process.parent.pid, process.is_thread, process, self)
 
         self.prepareProcess(process)
         process.parent.syscall()
 
-    def processExecution(self, event):
+    def processExecution(self, event):  # pylint: disable=C0103
         process = event.process
-        logging.info("*** Process %s execution ***" % process.pid)
+        logging.info("*** Process %s execution ***", process.pid)
         process.syscall()
 
-    def runDebugger(self):
+    def runDebugger(self):  # pylint: disable=C0103
         # Create debugger and traced process
         self.setupDebugger()
         process = self.createProcess()
         if not process:
             return
         self.data.get_process(process.pid).handle = process
-
-        self.syscall_options = FunctionCallOptions()
-
         self.syscallTrace(process)
 
     def main(self):
         signal.signal(signal.SIGTERM, self.handle_sigterm)
         signal.signal(signal.SIGINT, self.handle_sigterm)
 
-        self.pids = {}
         self.debugger.traceClone()
         self.debugger.traceExec()
         self.debugger.traceFork()
@@ -213,17 +210,17 @@ class Tracer(Application):
 
         print("Report saved in %s" % self.options.output)
 
-    def createChild(self, program, **kwargs):
+    def createChild(self, arguments, env=None):  # pylint: disable=C0103
         try:
-            pid = Application.createChild(self, program)
+            pid = Application.createChild(self, arguments, env)
         except Exception as e:
-            print("Could not execute %s: %s" % (program, e))
+            print("Could not execute %s: %s" % (arguments, e))
             sys.exit(1)
-        logging.debug("execve(%s, %s, [/* 40 vars */]) = %s" % (program[0], program, pid))
+        logging.debug("execve(%s, %s, [/* 40 vars */]) = %s", arguments[0], arguments, pid)
 
         proc = self.data.new_process(pid, 0, False, None, self)
-        proc['executable'] = program[0]
-        proc['arguments'] = program
+        proc['executable'] = arguments[0]
+        proc['arguments'] = arguments
         proc['env'] = dict(os.environ)
 
         proc.descriptors.open(fd.File(0, "stdin"))
@@ -235,7 +232,7 @@ class Tracer(Application):
         self.debugger.quit()
 
     def register_handler(self, syscall):
-        def fn(cb):
-            self.handler.register(syscall, cb)
+        def decorated(handler):
+            self.handler.register(syscall, handler)
 
-        return fn
+        return decorated

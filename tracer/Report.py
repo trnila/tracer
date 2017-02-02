@@ -11,11 +11,11 @@ class UnknownFd(BaseException):
 
 
 class Capture:
-    def __init__(self, report, process, descriptor, n):
+    def __init__(self, report, process, descriptor, nth):
         self.report = report
         self.process = process
         self.descriptor = descriptor
-        self.n = n
+        self.nth = nth
         self.files = {}
         self.operations = []
 
@@ -32,7 +32,7 @@ class Capture:
         return utils.merge_dicts(self.descriptor.to_json(), self.files, {'operations': self.operations})
 
     def __get_id(self):
-        return "%s_%s_%s" % (self.process['pid'], self.descriptor.get_label(), self.n)
+        return "%s_%s_%s" % (self.process['pid'], self.descriptor.get_label(), self.nth)
 
     def __write(self, action, content, **kwargs):
         filename = self.__get_id() + "." + action
@@ -56,18 +56,18 @@ class Descriptors:
             print("no descriptor")
             return
 
-        def removekey(d, key):
-            r = dict(d)
+        def remove_key(descriptors, key):
+            r = dict(descriptors)
             del r[key]
             return r
 
-        self.descriptors = removekey(self.descriptors, descriptor)
+        self.descriptors = remove_key(self.descriptors, descriptor)
 
         for process in self.processes:
             process.on_close(descriptor)
 
-    def clone(self, a, b):
-        self.descriptors[a] = self.descriptors[b]
+    def clone(self, new, old):
+        self.descriptors[new] = self.descriptors[old]
 
     def get(self, fd):
         if fd not in self.descriptors:
@@ -166,8 +166,8 @@ class Report:
 
     def save(self, out=None):
         if not out:
-            with open(os.path.join(self.path, 'data.json'), 'w') as out:
-                self.save(out)
+            with open(os.path.join(self.path, 'data.json'), 'w') as file:
+                self.save(file)
         else:
             json.dump(self.data, out, sort_keys=True, indent=4, cls=AppJSONEncoder)
 

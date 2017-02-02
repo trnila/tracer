@@ -49,7 +49,7 @@ def resolve_socket(inode, read):
 
 def resolve(pid, fd, read):
     dst = os.readlink("/proc/" + str(pid) + "/fd/" + str(fd))
-    match = re.search('^(?P<type>socket|pipe):\[(?P<inode>\d+)\]$', dst)
+    match = re.search(r'^(?P<type>socket|pipe):\[(?P<inode>\d+)\]$', dst)
 
     if not match:
         return {

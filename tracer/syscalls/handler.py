@@ -11,8 +11,8 @@ class SyscallHandler:
             syscalls = syscalls[0]
 
         if handler is None:
-            for syscall, cb in syscalls.items():
-                self.register_single(syscall, cb)
+            for syscall, callback in syscalls.items():
+                self.register_single(syscall, callback)
         else:
             if isinstance(syscalls, str):
                 syscalls = [syscalls]

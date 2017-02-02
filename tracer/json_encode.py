@@ -3,7 +3,7 @@ import json
 
 
 class AppJSONEncoder(json.JSONEncoder):
-    def default(self, o):
+    def default(self, o):  # pylint: disable=E0202
         if isinstance(o, ipaddress.IPv4Address):
             return str(o)
         elif isinstance(o, ipaddress.IPv6Address):
