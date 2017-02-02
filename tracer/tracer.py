@@ -17,10 +17,10 @@ from ptrace.func_call import FunctionCallOptions
 
 import tracer
 from tracer import fd
-from tracer.Report import Report
-from tracer.Report import UnknownFd
-from tracer.backtracing.Libunwind import Libunwind
-from tracer.backtracing.NullBacktracer import NullBacktracer
+from tracer.report import Report
+from tracer.report import UnknownFd
+from tracer.backtrace.impl.libunwind import Libunwind
+from tracer.backtrace.impl.null import NullBacktracer
 from tracer.syscalls.contents import read_or_write
 from tracer.syscalls.core import handler_execve
 from tracer.syscalls.handler import SyscallHandler

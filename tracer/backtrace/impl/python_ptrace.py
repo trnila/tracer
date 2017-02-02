@@ -1,5 +1,5 @@
-from .addr2line import Addr2line
-from .backtrace import Frame
+from tracer.backtrace.addr2line import Addr2line
+from tracer.backtrace.backtrace import Frame
 
 
 class PythonPtraceBacktracer:
