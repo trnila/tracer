@@ -44,6 +44,8 @@ class Descriptor:
 
 
 class Pipe(Descriptor):
+    last_pipe = -1
+
     def __init__(self, fd, pipe_id):
         super().__init__(fd)
         self.pipe_id = pipe_id
@@ -55,6 +57,15 @@ class Pipe(Descriptor):
         json = super().to_json()
         json['pipe_id'] = self.pipe_id
         return json
+
+    @staticmethod
+    def make_pair(fd1, fd2):
+        Pipe.last_pipe += 1
+
+        return (
+            Pipe(fd1, Pipe.last_pipe),
+            Pipe(fd2, Pipe.last_pipe)
+        )
 
 
 class File(Descriptor):
@@ -77,15 +88,18 @@ class File(Descriptor):
 
 
 class Socket(Descriptor):
-    def __init__(self, fd, socket_id):
+    last_id = -1
+
+    def __init__(self, fd):
         super().__init__(fd)
+        self.last_id += 1
         self.label = "socket"
         self.domain = None
         self.type = None
         self.local = None
         self.remote = None
         self.server = False
-        self.socket_id = socket_id
+        self.socket_id = self.last_id
         self.sockopts = []
 
     def get_label(self):

@@ -4,9 +4,6 @@ from struct import unpack
 from tracer import utils, fd
 from tracer.fd_resolve import resolve
 
-pipes = 0
-sockets = 0
-
 
 def handle(descriptor, syscall):
     descriptor.backtrace = syscall.process.get_backtrace()
@@ -29,25 +26,20 @@ def handler_open(syscall):
 
 
 def handler_socket(syscall):
-    global sockets
-
-    descriptor = fd.Socket(syscall.result, sockets)
+    descriptor = fd.Socket(syscall.result)
     handle(descriptor, syscall)
     descriptor.domain = syscall.arguments[0].value
     descriptor.type = syscall.arguments[1].value
     syscall.process.descriptors.open(descriptor)
 
-    sockets += 1
-
 
 def handler_pipe(syscall):
-    global pipes
-
     pipe_fd = syscall.process.handle.readBytes(syscall.arguments[0].value, 8)
     fd1, fd2 = unpack("ii", pipe_fd)
-    handle(syscall.process.descriptors.open(fd.Pipe(fd1, pipes)), syscall)
-    handle(syscall.process.descriptors.open(fd.Pipe(fd2, pipes)), syscall)
-    pipes += 1
+    pipe1, pipe2 = fd.Pipe.make_pair(fd1, fd2)
+
+    handle(syscall.process.descriptors.open(pipe1), syscall)
+    handle(syscall.process.descriptors.open(pipe2), syscall)
 
 
 def handler_bind(syscall):
@@ -68,8 +60,6 @@ def handler_bind(syscall):
 
 
 def handler_connect_like(syscall):  # elif syscall.name in ['connect', 'accept', 'syscall<288>']:
-    global sockets
-
     # struct sockaddr { unsigned short family; }
     if syscall.name == 'connect':
         bytes_content = syscall.process.handle.readBytes(syscall.arguments[1].value, syscall.arguments[2].value)
@@ -89,9 +79,8 @@ def handler_connect_like(syscall):  # elif syscall.name in ['connect', 'accept',
         descriptor.server = True
         descriptor.used = 8
 
-        remote_desc = syscall.process.descriptors.open(fd.Socket(fdnum, sockets))
+        remote_desc = syscall.process.descriptors.open(fd.Socket(fdnum))
         remote_desc.local = syscall.process.descriptors.get(syscall.arguments[0].value).local
-        sockets += 1
     else:
         raise Exception("Unexpected syscall")
 
