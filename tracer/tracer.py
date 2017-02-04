@@ -66,7 +66,7 @@ class Tracer(Application):
 
         if not self.options.output:
             self.options.output = '/tmp/tracer_%s_%s' % (
-                self.program[0],
+                self.program[0].split('/')[-1],
                 datetime.datetime.now().strftime("%d-%m-%Y_%H:%M:%S.%f")
             )
 
