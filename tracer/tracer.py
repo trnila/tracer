@@ -36,10 +36,6 @@ class Tracer(Application):
         self.debugger = PtraceDebugger()
         self.backtracer = NullBacktracer()
         self.handler = SyscallHandler()
-        self.register_extension(CoreExtension())
-        self.register_extension(ContentsExtension())
-        self.register_extension(MiscExtension())
-        self.register_extension(InfoExtension())
         self.parseOptions()
         self.data = Report(self.options.output)
 
@@ -59,6 +55,11 @@ class Tracer(Application):
         self.options, self.program = parser.parse_args()
         self._setupLog(sys.stdout)
 
+        self.register_extension(CoreExtension())
+        self.register_extension(ContentsExtension())
+        self.register_extension(MiscExtension())
+        self.register_extension(InfoExtension())
+
         if self.options.pid is None and not self.program:
             parser.print_help()
             sys.exit(1)
@@ -71,7 +72,7 @@ class Tracer(Application):
 
             self.options.output = os.path.join(os.getcwd(), directory_name)
 
-        self.load_extensions(self.options.extension)
+        self.load_extensions([os.path.abspath(path) for path in self.options.extension])
 
         if self.options.backtrace:
             self.register_extension(Backtrace())
@@ -255,6 +256,7 @@ class Tracer(Application):
         return decorated
 
     def register_extension(self, extension):
+        logging.info("Plugin %s registered", extension.__class__.__name__)
         self.extensions.append(extension)
 
         for method in dir(extension):
@@ -264,13 +266,23 @@ class Tracer(Application):
 
     def load_extensions(self, extensions):
         for extension in extensions:
-            with open(extension) as file:
-                globs = {
-                    "logging": logging
-                }
-                exec(file.read(), globs)
+            if os.path.isdir(extension):
+                logging.debug("Looking for extension in %s", extension)
+                for node in os.listdir(extension):
+                    self.load_extensions([os.path.join(extension, node)])
+            else:
+                logging.debug("Loading plugin from %s", extension)
+                try:
+                    with open(extension) as file:
+                        globs = {
+                            "logging": logging
+                        }
+                        exec(file.read(), globs)
 
-                for name, obj in globs.items():
-                    if isinstance(obj, type):
-                        if issubclass(obj, Extension):
-                            self.register_extension(obj())
+                        for name, obj in globs.items():
+                            if isinstance(obj, type):
+                                if issubclass(obj, Extension):
+                                    self.register_extension(obj())
+                except Exception as e:
+                    logging.fatal("Could not load plugin %s: %s", extension, e)
+                    sys.exit(1)
