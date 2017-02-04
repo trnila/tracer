@@ -56,10 +56,6 @@ class Tracer(Application):
         for extension in self.extensions:
             extension.create_options(parser)
 
-        # TODO: move me!
-        parser.add_argument('--trace-mmap', action="store_true", default=False)
-        parser.add_argument('--syscalls', '-s', help='print each syscall', action="store_true", default=False)
-
         # load full options
         self.options = parser.parse_args()
         self.options.fork = True
