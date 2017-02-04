@@ -1,6 +1,6 @@
 import logging
 
-from tracer.syscalls.handler import Extension, register_syscall
+from tracer.extensions.extension import register_syscall, Extension
 
 
 class HelloWorldExtension(Extension):

@@ -2,7 +2,7 @@ import platform
 import socket
 from datetime import datetime
 
-from tracer.syscalls.handler import Extension
+from tracer.extensions.extension import Extension
 
 
 class InfoExtension(Extension):

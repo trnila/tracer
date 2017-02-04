@@ -1,6 +1,6 @@
 import unittest
 
-from tracer.syscalls.handler import Extension, register_syscall
+from tracer.extensions.extension import register_syscall, Extension
 from tracer.tracer import Tracer
 
 

@@ -2,8 +2,8 @@ import socket
 from struct import unpack
 
 from tracer import fd, utils
+from tracer.extensions.extension import register_syscall, Extension
 from tracer.fd_resolve import resolve
-from tracer.syscalls.handler import Extension, register_syscall
 
 
 class ContentsExtension(Extension):

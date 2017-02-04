@@ -1,5 +1,5 @@
 from tracer.backtrace.impl.libunwind import Libunwind
-from tracer.syscalls.handler import Extension, register_syscall
+from tracer.extensions.extension import register_syscall, Extension
 
 
 class Backtrace(Extension):

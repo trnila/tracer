@@ -20,11 +20,12 @@ from tracer.backtrace.impl.null import NullBacktracer
 from tracer.extensions.backtrace import Backtrace
 from tracer.extensions.contents import ContentsExtension
 from tracer.extensions.core import CoreExtension
+from tracer.extensions.extension import Extension
 from tracer.extensions.info import InfoExtension
 from tracer.extensions.misc import MiscExtension
 from tracer.report import Report
 from tracer.report import UnknownFd
-from tracer.syscalls.handler import SyscallHandler, Event, Extension
+from tracer.syscalls.handler import SyscallHandler, Event
 
 
 class Tracer(Application):
