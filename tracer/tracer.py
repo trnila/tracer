@@ -1,4 +1,3 @@
-import datetime
 import logging
 import os
 import signal
@@ -71,15 +70,6 @@ class Tracer(Application):
         if self.options.pid is None and not self.program:
             parser.print_help()
             sys.exit(1)
-
-        if not self.options.output:
-            directory_name = 'tracer_{executable}_{date}'.format(
-                executable=self.program[0].split('/')[-1],
-                date=datetime.datetime.now().strftime("%d-%m-%Y_%H:%M:%S.%f")
-            )
-
-            self.options.output = os.path.join(os.getcwd(), directory_name)
-
 
         self.options.enter = True
 

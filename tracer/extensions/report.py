@@ -1,4 +1,6 @@
+import os
 import sys
+from datetime import datetime
 
 from tracer.extensions.extension import Extension
 from tracer.report import Report
@@ -11,7 +13,13 @@ class ReportExtension(Extension):
                             default=False)
 
     def on_start(self, tracer):
-        print(tracer.options)
+        if not tracer.options.output:
+            directory_name = 'tracer_{executable}_{date}'.format(
+                executable=tracer.program[0].split('/')[-1],
+                date=datetime.now().strftime("%d-%m-%Y_%H:%M:%S.%f")
+            )
+
+            tracer.options.output = os.path.join(os.getcwd(), directory_name)
         tracer.data = Report(tracer.options.output)
 
     def on_save(self, tracer):
