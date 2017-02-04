@@ -59,8 +59,6 @@ class Tracer(Application):
         # TODO: move me!
         parser.add_argument('--trace-mmap', action="store_true", default=False)
         parser.add_argument('--syscalls', '-s', help='print each syscall', action="store_true", default=False)
-        parser.add_argument('--print-data', '-d', help='print captured data to stdout', action="store_true",
-                            default=False)
         parser.add_argument('--backtrace', '-b', help='collect backtraces with libunwind', action="store_true",
                             default=False)
 

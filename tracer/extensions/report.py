@@ -7,6 +7,8 @@ from tracer.report import Report
 class ReportExtension(Extension):
     def create_options(self, parser):
         parser.add_argument('--output', '-o')
+        parser.add_argument('--print-data', '-d', help='print captured data to stdout', action="store_true",
+                            default=False)
 
     def on_start(self, tracer):
         print(tracer.options)
