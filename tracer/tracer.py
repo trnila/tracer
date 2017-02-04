@@ -19,10 +19,10 @@ import tracer
 from tracer import fd
 from tracer.backtrace.impl.null import NullBacktracer
 from tracer.extensions.backtrace import Backtrace
+from tracer.extensions.core import CoreExtension
 from tracer.report import Report
 from tracer.report import UnknownFd
 from tracer.syscalls.contents import read_or_write
-from tracer.syscalls.core import handler_execve
 from tracer.syscalls.handler import SyscallHandler, Event
 from tracer.syscalls.misc import mmap, kill, set_sock_opt
 
@@ -36,11 +36,11 @@ class Tracer(Application):
         self.debugger = PtraceDebugger()
         self.backtracer = NullBacktracer()
         self.handler = SyscallHandler()
-        self.handler.register(tracer.syscalls.core.HANDLERS)
         self.handler.register(tracer.syscalls.contents.HANDLERS)
         self.handler.register("mmap", mmap)
         self.handler.register("kill", kill)
         self.handler.register("setsockopt", set_sock_opt)
+        self.register_extension(CoreExtension())
         self.parseOptions()
         self.data = Report(self.options.output)
 
