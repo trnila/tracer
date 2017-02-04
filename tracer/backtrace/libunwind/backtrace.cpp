@@ -74,14 +74,16 @@ void destroy_pid(int pid) {
 }
 
 void destroy() {
+    if(!as) {
+        throw BacktraceException("Libunwind already destroyed");
+    }
+
     for(auto it: unwind_info) {
         destroy_pid(it.first);
     }
 
-    //if(as) {
-        unw_destroy_addr_space(as);
-        as = nullptr;
-    //}
+    unw_destroy_addr_space(as);
+    as = nullptr;
 }
 
 std::vector<long> get_backtrace(int pid) {
