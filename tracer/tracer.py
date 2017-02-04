@@ -3,7 +3,7 @@ import logging
 import os
 import signal
 import sys
-from optparse import OptionParser
+from argparse import ArgumentParser
 
 from ptrace.debugger import Application
 from ptrace.debugger import NewProcessEvent
@@ -40,26 +40,50 @@ class Tracer(Application):
         self.parseOptions()
 
     def parseOptions(self):  # pylint: disable=C0103
-        parser = OptionParser(usage="%prog [options] -- program [arg1 arg2 ...]")
-        self.createCommonOptions(parser)
-        parser.add_option('--output', '-o')
-        parser.add_option('--trace-mmap', action="store_true", default=False)
-        parser.add_option('--syscalls', '-s', help='print each syscall', action="store_true", default=False)
-        parser.add_option('--print-data', '-d', help='print captured data to stdout', action="store_true",
-                          default=False)
-        parser.add_option('--backtrace', '-b', help='collect backtraces with libunwind', action="store_true",
-                          default=False)
-        parser.add_option("--extension", "-e", help="extension to load", action="append", default=[])
+        class IgnoreUnknownOptionParser(ArgumentParser):
+            def error(self, msg):
+                pass
 
-        self.createLogOptions(parser)
-        self.options, self.program = parser.parse_args()
-        self._setupLog(sys.stdout)
+        core_parser = IgnoreUnknownOptionParser(prog="test")
+
+        def create_core_parser(parser):
+            parser.add_argument("--extension", "-e", help="path to extension file or directory to load",
+                                action="append", default=[])
+            parser.add_argument("-v", dest="logging_level", default=0, action="count")
+            parser.add_argument("program")
+            parser.add_argument("arguments", nargs='*')
+
+        create_core_parser(core_parser)
+        opts = core_parser.parse_args()
+        self.setup_logging(sys.stdout, opts.logging_level)
 
         self.register_extension(ReportExtension())
         self.register_extension(CoreExtension())
         self.register_extension(ContentsExtension())
         self.register_extension(MiscExtension())
         self.register_extension(InfoExtension())
+        self.load_extensions([os.path.abspath(path) for path in opts.extension])
+
+        parser = ArgumentParser()
+
+        for extension in self.extensions:
+            extension.create_options(parser)
+
+        create_core_parser(parser)
+        parser.add_argument('--trace-mmap', action="store_true", default=False)
+        parser.add_argument('--syscalls', '-s', help='print each syscall', action="store_true", default=False)
+        parser.add_argument('--print-data', '-d', help='print captured data to stdout', action="store_true",
+                          default=False)
+        parser.add_argument('--backtrace', '-b', help='collect backtraces with libunwind', action="store_true",
+                            default=False)
+
+        self.options = parser.parse_args()
+        self.options.fork = True
+        self.options.trace_exec = True
+        self.options.no_stdout = False
+        self.program = [self.options.program] + self.options.arguments
+        self.options.pid = None
+
 
         if self.options.pid is None and not self.program:
             parser.print_help()
@@ -73,7 +97,7 @@ class Tracer(Application):
 
             self.options.output = os.path.join(os.getcwd(), directory_name)
 
-        self.load_extensions([os.path.abspath(path) for path in self.options.extension])
+
 
         if self.options.backtrace:
             self.register_extension(Backtrace())
@@ -82,8 +106,10 @@ class Tracer(Application):
 
         self.processOptions()
 
-    def _setupLog(self, fd):  # pylint: disable=C0103
-        super()._setupLog(fd)
+    def setup_logging(self, fd, level):  # pylint: disable=C0103
+        logger = logging.getLogger()
+        logger.addHandler(logging.StreamHandler(fd))
+        logger.setLevel(max(logging.ERROR - (level * 10), 1))
         try:
             import colorlog
 

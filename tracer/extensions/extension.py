@@ -7,6 +7,9 @@ def register_syscall(a):
 
 
 class Extension:
+    def create_options(self, parser):
+        pass
+
     def on_start(self, tracer):
         pass
 

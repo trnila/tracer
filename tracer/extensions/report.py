@@ -5,7 +5,11 @@ from tracer.report import Report
 
 
 class ReportExtension(Extension):
+    def create_options(self, parser):
+        parser.add_argument('--output', '-o')
+
     def on_start(self, tracer):
+        print(tracer.options)
         tracer.data = Report(tracer.options.output)
 
     def on_save(self, tracer):
