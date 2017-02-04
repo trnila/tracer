@@ -65,10 +65,12 @@ class Tracer(Application):
             sys.exit(1)
 
         if not self.options.output:
-            self.options.output = '/tmp/tracer_%s_%s' % (
-                self.program[0].split('/')[-1],
-                datetime.datetime.now().strftime("%d-%m-%Y_%H:%M:%S.%f")
+            directory_name = 'tracer_{executable}_{date}'.format(
+                executable=self.program[0].split('/')[-1],
+                date=datetime.datetime.now().strftime("%d-%m-%Y_%H:%M:%S.%f")
             )
+
+            self.options.output = os.path.join(os.getcwd(), directory_name)
 
         if self.options.backtrace:
             self.backtracer = Libunwind()
