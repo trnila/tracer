@@ -85,7 +85,7 @@ class Tracer(Application):
         try:
             import colorlog
 
-            handler = colorlog.StreamHandler()
+            handler = logging.getLogger().handlers[0]
             handler.setFormatter(colorlog.ColoredFormatter('%(log_color)s%(levelname)s:%(name)s:%(message)s'))
             colorlog.getLogger().addHandler(handler)
         except ImportError:
