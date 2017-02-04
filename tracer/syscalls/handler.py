@@ -39,6 +39,6 @@ class SyscallHandler:
         if syscall.result >= 0 or syscall.result == -115:
             if syscall.name in self.handlers:
                 proc = tracer.data.get_process(syscall.process.pid)
-
+                syscall_obj = Syscall(proc, syscall)
                 for handler in self.handlers[syscall.name]:
-                    handler(Syscall(proc, syscall))
+                    handler(syscall_obj)
