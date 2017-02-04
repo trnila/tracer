@@ -12,7 +12,7 @@ setup(
         Extension(
             "tracer.backtrace.libunwind",
             ["tracer/backtrace/libunwind/python.cpp", "tracer/backtrace/libunwind/backtrace.cpp"],
-            libraries=['unwind', 'unwind-x86_64', 'unwind-ptrace'],
+            libraries=['unwind', 'unwind-generic', 'unwind-ptrace'],
             extra_compile_args=['-std=c++11']
         )
     ]
