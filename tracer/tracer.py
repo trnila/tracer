@@ -24,7 +24,7 @@ from tracer.extensions.info import InfoExtension
 from tracer.extensions.misc import MiscExtension
 from tracer.report import Report
 from tracer.report import UnknownFd
-from tracer.syscalls.handler import SyscallHandler, Event
+from tracer.syscalls.handler import SyscallHandler, Event, Extension
 
 
 class Tracer(Application):
@@ -53,6 +53,7 @@ class Tracer(Application):
                           default=False)
         parser.add_option('--backtrace', '-b', help='collect backtraces with libunwind', action="store_true",
                           default=False)
+        parser.add_option("--extension", "-e", help="extension to load", action="append", default=[])
 
         self.createLogOptions(parser)
         self.options, self.program = parser.parse_args()
@@ -69,6 +70,8 @@ class Tracer(Application):
             )
 
             self.options.output = os.path.join(os.getcwd(), directory_name)
+
+        self.load_extensions(self.options.extension)
 
         if self.options.backtrace:
             self.register_extension(Backtrace())
@@ -258,3 +261,16 @@ class Tracer(Application):
             syscalls = getattr(getattr(extension, method), "_syscalls", None)
             if syscalls:
                 self.handler.register(syscalls, getattr(extension, method))
+
+    def load_extensions(self, extensions):
+        for extension in extensions:
+            with open(extension) as file:
+                globs = {
+                    "logging": logging
+                }
+                exec(file.read(), globs)
+
+                for name, obj in globs.items():
+                    if isinstance(obj, type):
+                        if issubclass(obj, Extension):
+                            self.register_extension(obj())
