@@ -50,6 +50,7 @@ class Tracer(Application):
         self.register_extension(ContentsExtension())
         self.register_extension(MiscExtension())
         self.register_extension(InfoExtension())
+        self.register_extension(Backtrace())
         self.load_extensions([os.path.abspath(path) for path in opts.extension])
 
         # create options from all parsers
@@ -59,8 +60,6 @@ class Tracer(Application):
         # TODO: move me!
         parser.add_argument('--trace-mmap', action="store_true", default=False)
         parser.add_argument('--syscalls', '-s', help='print each syscall', action="store_true", default=False)
-        parser.add_argument('--backtrace', '-b', help='collect backtraces with libunwind', action="store_true",
-                            default=False)
 
         # load full options
         self.options = parser.parse_args()
@@ -81,8 +80,6 @@ class Tracer(Application):
 
             self.options.output = os.path.join(os.getcwd(), directory_name)
 
-        if self.options.backtrace:
-            self.register_extension(Backtrace())
 
         self.options.enter = True
 

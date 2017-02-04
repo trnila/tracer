@@ -3,8 +3,13 @@ from tracer.extensions.extension import register_syscall, Extension
 
 
 class Backtrace(Extension):
+    def create_options(self, parser):
+        parser.add_argument('--backtrace', '-b', help='collect backtraces with libunwind', action="store_true",
+                            default=False)
+
     def on_start(self, tracer):
-        tracer.backtracer = Libunwind()
+        if tracer.options.backtrace:
+            tracer.backtracer = Libunwind()
 
     def on_process_exit(self, event):
         event.tracer.backtracer.process_exited(event.process['pid'])
