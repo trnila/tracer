@@ -17,8 +17,8 @@ from ptrace.func_call import FunctionCallOptions
 
 import tracer
 from tracer import fd
-from tracer.backtrace.impl.libunwind import Libunwind
 from tracer.backtrace.impl.null import NullBacktracer
+from tracer.extensions.backtrace import Backtrace
 from tracer.report import Report
 from tracer.report import UnknownFd
 from tracer.syscalls.contents import read_or_write
@@ -35,14 +35,14 @@ class Tracer(Application):
         self.syscall_options = FunctionCallOptions()
         self.debugger = PtraceDebugger()
         self.backtracer = NullBacktracer()
-        self.parseOptions()
-        self.data = Report(self.options.output)
         self.handler = SyscallHandler()
         self.handler.register(tracer.syscalls.core.HANDLERS)
         self.handler.register(tracer.syscalls.contents.HANDLERS)
         self.handler.register("mmap", mmap)
         self.handler.register("kill", kill)
         self.handler.register("setsockopt", set_sock_opt)
+        self.parseOptions()
+        self.data = Report(self.options.output)
 
     def parseOptions(self):  # pylint: disable=C0103
         parser = OptionParser(usage="%prog [options] -- program [arg1 arg2 ...]")
@@ -72,8 +72,7 @@ class Tracer(Application):
             self.options.output = os.path.join(os.getcwd(), directory_name)
 
         if self.options.backtrace:
-            self.backtracer = Libunwind()
-            # self.backtracer = PythonPtraceBacktracer(self.debugger)
+            self.register_extension(Backtrace())
 
         self.options.enter = True
 

@@ -5,11 +5,6 @@ from tracer import utils, fd
 from tracer.fd_resolve import resolve
 
 
-def handle(descriptor, syscall):
-    descriptor.backtrace = syscall.process.get_backtrace()
-    descriptor.opened_pid = syscall.process.pid
-
-
 def handler_execve(syscall):
     syscall.process['executable'] = syscall.arguments[0].text.strip("'")
     syscall.process['arguments'] = utils.parse_args(syscall.arguments[1].text)
@@ -20,14 +15,12 @@ def handler_execve(syscall):
 
 def handler_open(syscall):
     res = fd.File(syscall.result, syscall.arguments[0].text.strip('\''))
-    handle(res, syscall)
     res.mode = syscall.arguments[2].value
     syscall.process.descriptors.open(res)
 
 
 def handler_socket(syscall):
     descriptor = fd.Socket(syscall.result)
-    handle(descriptor, syscall)
     descriptor.domain = syscall.arguments[0].value
     descriptor.type = syscall.arguments[1].value
     syscall.process.descriptors.open(descriptor)
@@ -38,8 +31,11 @@ def handler_pipe(syscall):
     fd1, fd2 = unpack("ii", pipe_fd)
     pipe1, pipe2 = fd.Pipe.make_pair(fd1, fd2)
 
-    handle(syscall.process.descriptors.open(pipe1), syscall)
-    handle(syscall.process.descriptors.open(pipe2), syscall)
+    syscall['fd1'] = fd1
+    syscall['fd2'] = fd2
+
+    syscall.process.descriptors.open(pipe1)
+    syscall.process.descriptors.open(pipe2)
 
 
 def handler_bind(syscall):

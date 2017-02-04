@@ -3,8 +3,20 @@ import os
 import socket
 
 
-class Syscall:
+class WithAttribute:
+    def __init__(self):
+        self._atributes = {}
+
+    def __getitem__(self, item):
+        return self._atributes[item]
+
+    def __setitem__(self, key, value):
+        self._atributes[key] = value
+
+
+class Syscall(WithAttribute):
     def __init__(self, process, syscall):
+        super().__init__()
         self.process = process
         self.syscall = syscall
 
