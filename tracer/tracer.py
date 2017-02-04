@@ -61,13 +61,12 @@ class Tracer(Application):
         self.options.fork = True
         self.options.trace_exec = True
         self.options.no_stdout = False
+        self.options.enter = True
         self.program = [self.options.program] + self.options.arguments
 
         if self.options.pid is None and not self.program:
             parser.print_help()
             sys.exit(1)
-
-        self.options.enter = True
 
         self.processOptions()
 
