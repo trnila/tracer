@@ -245,12 +245,6 @@ class Tracer(Application):
     def handle_sigterm(self, signum, frame):
         self.debugger.quit()
 
-    def register_handler(self, syscall):
-        def decorated(handler):
-            self.handler.register(syscall, handler() if isinstance(handler, type) else handler)
-
-        return decorated
-
     def register_extension(self, extension):
         logging.info("Plugin %s registered", extension.__class__.__name__)
         self.extensions.append(extension)
