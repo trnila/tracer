@@ -74,7 +74,10 @@ void destroy() {
         destroy_pid(it.first);
     }
 
-    unw_destroy_addr_space(as);
+    //if(as) {
+        unw_destroy_addr_space(as);
+        as = nullptr;
+    //}
 }
 
 std::vector<long> get_backtrace(int pid) {

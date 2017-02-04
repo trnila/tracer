@@ -6,8 +6,8 @@ from tracer.backtrace.backtrace import Frame
 
 class Libunwind:
     def __init__(self):
-        import backtrace
-        self.lib = backtrace
+        import tracer.backtrace.libunwind
+        self.lib = tracer.backtrace.libunwind
         self.symbols = {}
 
     def __del__(self):
@@ -18,7 +18,7 @@ class Libunwind:
 
     def create_backtrace(self, process):
         mappings = process.readMappings()
-        import backtrace
+        import tracer.backtrace.libunwind
 
         try:
             backtrace_list = []
@@ -34,5 +34,5 @@ class Libunwind:
                         backtrace_list.append(Frame(addr, resolved if resolved else ""))
                         break
             return backtrace_list
-        except backtrace.error as err:
+        except tracer.backtrace.libunwind.error as err:
             logging.error("backtrace failed for pid %d: %s", process.pid, err)

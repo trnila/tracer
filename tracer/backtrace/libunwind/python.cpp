@@ -10,15 +10,15 @@ PyMethodDef methods[] = {
     {"get_backtrace", module_get_backtrace, METH_VARARGS, "Execute a shell command."},
     {NULL, NULL, 0, NULL}
 };
-struct PyModuleDef module = {PyModuleDef_HEAD_INIT, "backtrace", NULL, -1, methods};
+struct PyModuleDef module = {PyModuleDef_HEAD_INIT, "tracer.backtrace.libunwind", NULL, -1, methods};
 
-PyMODINIT_FUNC PyInit_backtrace() {
+PyMODINIT_FUNC PyInit_libunwind() {
     PyObject *m;
     m = PyModule_Create(&module);
     if (m == NULL)
         return nullptr;
 
-    exceptionObj = PyErr_NewException("backtrace.error", NULL, NULL);
+    exceptionObj = PyErr_NewException("libunwind.error", NULL, NULL);
     Py_INCREF(exceptionObj);
 
     PyModule_AddObject(m, "error", exceptionObj);
