@@ -20,6 +20,7 @@ from tracer.backtrace.impl.null import NullBacktracer
 from tracer.extensions.backtrace import Backtrace
 from tracer.extensions.contents import ContentsExtension
 from tracer.extensions.core import CoreExtension
+from tracer.extensions.info import InfoExtension
 from tracer.extensions.misc import MiscExtension
 from tracer.report import Report
 from tracer.report import UnknownFd
@@ -38,6 +39,7 @@ class Tracer(Application):
         self.register_extension(CoreExtension())
         self.register_extension(ContentsExtension())
         self.register_extension(MiscExtension())
+        self.register_extension(InfoExtension())
         self.parseOptions()
         self.data = Report(self.options.output)
 
