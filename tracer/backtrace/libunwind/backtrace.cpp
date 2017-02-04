@@ -7,6 +7,10 @@ unw_addr_space_t as;
 std::unordered_map<int, struct UPT_info*> unwind_info;
 
 void init() {
+    if(as) {
+        throw BacktraceException("Module already initialized");
+    }
+
     as = unw_create_addr_space(&_UPT_accessors, 0);
     if(!as) {
         throw BacktraceException("unw_create_addr_space() failed");
@@ -81,6 +85,10 @@ void destroy() {
 }
 
 std::vector<long> get_backtrace(int pid) {
+    if(!as) {
+        throw BacktraceException("Module not initialized yet, call init");
+    }
+
     auto it = unwind_info.find(pid);
     if(it == unwind_info.end()) {
         struct UPT_info *ui = (UPT_info*) _UPT_create(pid);

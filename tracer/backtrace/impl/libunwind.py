@@ -1,13 +1,14 @@
 import logging
 
+import tracer.backtrace.libunwind
 from tracer.backtrace.addr2line import Addr2line
 from tracer.backtrace.backtrace import Frame
 
 
 class Libunwind:
     def __init__(self):
-        import tracer.backtrace.libunwind
         self.lib = tracer.backtrace.libunwind
+        self.lib.init()
         self.symbols = {}
 
     def __del__(self):

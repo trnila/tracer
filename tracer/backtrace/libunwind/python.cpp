@@ -3,11 +3,13 @@
 
 PyObject* module_get_backtrace(PyObject *self, PyObject *args);
 PyObject* module_destroy(PyObject *self, PyObject *args);
+PyObject* module_init(PyObject *self, PyObject *args);
 
 PyObject* exceptionObj;
 PyMethodDef methods[] = {
-    {"destroy", module_destroy, METH_VARARGS, "Execute a shell command."},
-    {"get_backtrace", module_get_backtrace, METH_VARARGS, "Execute a shell command."},
+    {"init", module_init, METH_VARARGS, "initialize module, call only once"},
+    {"destroy", module_destroy, METH_VARARGS, "destroy pid if provided in argument, otherwise destroy all pids and initialized module"},
+    {"get_backtrace", module_get_backtrace, METH_VARARGS, "get list of backtrace frames for process"},
     {NULL, NULL, 0, NULL}
 };
 struct PyModuleDef module = {PyModuleDef_HEAD_INIT, "tracer.backtrace.libunwind", NULL, -1, methods};
@@ -22,7 +24,10 @@ PyMODINIT_FUNC PyInit_libunwind() {
     Py_INCREF(exceptionObj);
 
     PyModule_AddObject(m, "error", exceptionObj);
+    return m;
+}
 
+PyObject* module_init(PyObject *self, PyObject *args) {
     try {
         init();
     } catch(BacktraceException& e) {
@@ -30,7 +35,7 @@ PyMODINIT_FUNC PyInit_libunwind() {
         return nullptr;
     }
 
-    return m;
+    return Py_BuildValue("");
 }
 
 PyObject* module_destroy(PyObject *self, PyObject *args) {
