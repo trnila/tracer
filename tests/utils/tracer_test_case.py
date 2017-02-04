@@ -22,7 +22,7 @@ class TracingResult:
         print(stdout.decode('utf-8'), stderr.decode('utf-8'))
 
         with open(self.output_dir + "/data.json") as file:
-            self.system = System(self.output_dir, json.load(file))
+            self.system = System(self.output_dir, json.load(file)['processes'])
 
 
 class Tracing:

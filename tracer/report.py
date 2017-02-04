@@ -4,6 +4,7 @@ import os
 
 from tracer import utils
 from tracer.json_encode import AppJSONEncoder
+from tracer.utils import AttributeTrait
 
 
 class UnknownFd(BaseException):
@@ -122,11 +123,13 @@ class Process:
             self.data['descriptors'].append(self.captures[fd])
 
 
-class Report:
+class Report(AttributeTrait):
     def __init__(self, path):
+        super().__init__()
         self.data = {}
         self.path = path
         self.descriptor_groups = {}
+        self['processes'] = {}
 
         os.makedirs(path, exist_ok=True)
 
@@ -143,22 +146,26 @@ class Report:
         else:
             group = self._get_group(pid)
 
-        self.data[pid] = Process(self, {
+        self.processes[pid] = Process(self, {
             "pid": pid,
             "parent": parent,
             "exitCode": None,
-            "executable": self.data[parent]['executable'] if parent else None,
-            "arguments": self.data[parent]['arguments'] if parent else None,
+            "executable": self.processes[parent]['executable'] if parent else None,
+            "arguments": self.processes[parent]['arguments'] if parent else None,
             "thread": is_thread,
-            "env": self.data[parent]['env'] if parent else None,
+            "env": self.processes[parent]['env'] if parent else None,
             "descriptors": [],
             "kills": []
         }, self.descriptor_groups[group], handle, tracer)
 
-        return self.data[pid]
+        return self.processes[pid]
 
     def get_process(self, pid):
-        return self.data[pid]
+        return self.processes[pid]
+
+    @property
+    def processes(self):
+        return self['processes']
 
     def append_file(self, file_id, content):
         with open(os.path.join(self.path, file_id), 'ab') as file:
@@ -169,7 +176,7 @@ class Report:
             with open(os.path.join(self.path, 'data.json'), 'w') as file:
                 self.save(file)
         else:
-            json.dump(self.data, out, sort_keys=True, indent=4, cls=AppJSONEncoder)
+            json.dump(self._attributes, out, sort_keys=True, indent=4, cls=AppJSONEncoder)
 
     def _get_group(self, pid):
         with open('/proc/%d/status' % pid) as f:
