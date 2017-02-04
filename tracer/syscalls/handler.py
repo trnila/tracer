@@ -9,6 +9,16 @@ def register_syscall(a):
     return h
 
 
+class Event:
+    def __init__(self, process):
+        self.process = process
+
+    @property
+    def tracer(self):
+        return self.process.tracer
+
+
+
 class Extension:
     def on_start(self, tracer):
         pass
@@ -16,7 +26,7 @@ class Extension:
     def on_save(self, tracer):
         pass
 
-    def on_process_created(self, process):
+    def on_process_created(self, event):
         pass
 
     def on_process_exit(self, process):

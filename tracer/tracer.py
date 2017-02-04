@@ -23,7 +23,7 @@ from tracer.report import Report
 from tracer.report import UnknownFd
 from tracer.syscalls.contents import read_or_write
 from tracer.syscalls.core import handler_execve
-from tracer.syscalls.handler import SyscallHandler
+from tracer.syscalls.handler import SyscallHandler, Event
 from tracer.syscalls.misc import mmap, kill, set_sock_opt
 
 
@@ -156,6 +156,10 @@ class Tracer(Application):
         logging.info("*** %s ***", event)
         self.data.get_process(event.process.pid)['exitCode'] = event.exitcode
 
+        evt = Event(self.data.get_process(event.process.pid))
+        for extension in self.extensions:
+            extension.on_process_exit(evt)
+
         self.backtracer.process_exited(event.process.pid)
 
     def prepareProcess(self, process):  # pylint: disable=C0103
@@ -169,6 +173,9 @@ class Tracer(Application):
 
         self.prepareProcess(process)
         process.parent.syscall()
+
+        for extension in self.extensions:
+            extension.on_process_created(self.data.get_process(process.pid))
 
     def processExecution(self, event):  # pylint: disable=C0103
         process = event.process
