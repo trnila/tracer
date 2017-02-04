@@ -29,6 +29,8 @@ from tracer.syscalls.handler import SyscallHandler, Event
 
 
 class Tracer(Application):
+    LOGGING_FORMAT = "==TRACER== %(levelname)s:%(name)s:%(message)s"
+
     def __init__(self):
         Application.__init__(self)
         self.extensions = []
@@ -86,11 +88,11 @@ class Tracer(Application):
             import colorlog
 
             handler = logging.getLogger().handlers[0]
-            handler.setFormatter(colorlog.ColoredFormatter('%(log_color)s%(levelname)s:%(name)s:%(message)s'))
+            handler.setFormatter(colorlog.ColoredFormatter('%(log_color)s' + self.LOGGING_FORMAT))
             colorlog.getLogger().addHandler(handler)
         except ImportError:
             # color log is just optional feature
-            pass
+            logging.getLogger().handlers[0].setFormatter(logging.Formatter(self.LOGGING_FORMAT))
 
     def displaySyscall(self, syscall):  # pylint: disable=C0103
         text = syscall.format()
