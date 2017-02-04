@@ -30,14 +30,13 @@ from tracer.syscalls.misc import mmap, kill, set_sock_opt
 class Tracer(Application):
     def __init__(self):
         Application.__init__(self)
+        self.extensions = []
         self.pids = {}
         self.syscall_options = FunctionCallOptions()
         self.debugger = PtraceDebugger()
         self.backtracer = NullBacktracer()
         self.parseOptions()
         self.data = Report(self.options.output)
-        self.pipes = 0
-        self.sockets = 0
         self.handler = SyscallHandler()
         self.handler.register(tracer.syscalls.core.HANDLERS)
         self.handler.register(tracer.syscalls.contents.HANDLERS)
@@ -193,6 +192,10 @@ class Tracer(Application):
         self.debugger.traceClone()
         self.debugger.traceExec()
         self.debugger.traceFork()
+
+        for extension in self.extensions:
+            extension.on_start(self)
+
         self.runDebugger()
 
         try:
@@ -206,6 +209,9 @@ class Tracer(Application):
         except PTRACE_ERRORS as err:
             writeError(logging.getLogger(), err, "Debugger error")
         self.debugger.quit()
+
+        for extension in self.extensions:
+            extension.on_save(self)
 
         self.data.save()
         if self.options.print_data:
@@ -239,3 +245,11 @@ class Tracer(Application):
             self.handler.register(syscall, handler() if isinstance(handler, type) else handler)
 
         return decorated
+
+    def register_extension(self, extension):
+        self.extensions.append(extension)
+
+        for method in dir(extension):
+            syscalls = getattr(getattr(extension, method), "_syscalls", None)
+            if syscalls:
+                self.handler.register(syscalls, getattr(extension, method))
