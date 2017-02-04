@@ -164,8 +164,6 @@ class Tracer(Application):
         for extension in self.extensions:
             extension.on_process_exit(evt)
 
-        self.backtracer.process_exited(event.process.pid)
-
     def prepareProcess(self, process):  # pylint: disable=C0103
         process.syscall()
 
