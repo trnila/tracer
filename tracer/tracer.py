@@ -23,7 +23,7 @@ from tracer.extensions.core import CoreExtension
 from tracer.extensions.extension import Extension
 from tracer.extensions.info import InfoExtension
 from tracer.extensions.misc import MiscExtension
-from tracer.report import Report
+from tracer.extensions.report import ReportExtension
 from tracer.report import UnknownFd
 from tracer.syscalls.handler import SyscallHandler, Event
 
@@ -38,7 +38,6 @@ class Tracer(Application):
         self.backtracer = NullBacktracer()
         self.handler = SyscallHandler()
         self.parseOptions()
-        self.data = Report(self.options.output)
 
     def parseOptions(self):  # pylint: disable=C0103
         parser = OptionParser(usage="%prog [options] -- program [arg1 arg2 ...]")
@@ -56,6 +55,7 @@ class Tracer(Application):
         self.options, self.program = parser.parse_args()
         self._setupLog(sys.stdout)
 
+        self.register_extension(ReportExtension())
         self.register_extension(CoreExtension())
         self.register_extension(ContentsExtension())
         self.register_extension(MiscExtension())
@@ -223,12 +223,6 @@ class Tracer(Application):
         for extension in self.extensions:
             extension.on_save(self)
 
-        self.data.save()
-        if self.options.print_data:
-            self.data.save(sys.stdout)
-
-        print("Report saved in %s" % self.options.output)
-
     def createChild(self, arguments, env=None):  # pylint: disable=C0103
         try:
             pid = Application.createChild(self, arguments, env)
@@ -241,6 +235,9 @@ class Tracer(Application):
         proc['executable'] = arguments[0]
         proc['arguments'] = arguments
         proc['env'] = dict(os.environ)
+
+        for extension in self.extensions:
+            extension.on_process_created(proc)
 
         proc.descriptors.open(fd.File(0, "stdin"))
         proc.descriptors.open(fd.File(1, "stdout"))
