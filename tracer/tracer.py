@@ -32,8 +32,6 @@ class Tracer(Application):
     def __init__(self):
         Application.__init__(self)
         self.extensions = []
-        self.pids = {}
-        self.syscall_options = FunctionCallOptions()
         self.debugger = PtraceDebugger()
         self.backtracer = NullBacktracer()
         self.handler = SyscallHandler()
@@ -139,7 +137,7 @@ class Tracer(Application):
 
     def syscall(self, process):
         state = process.syscall_state
-        syscall = state.event(self.syscall_options)
+        syscall = state.event(FunctionCallOptions())
 
         if syscall and (syscall.result is not None):
             try:
