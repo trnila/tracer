@@ -3,7 +3,6 @@ import logging
 import os
 import signal
 import sys
-from argparse import ArgumentParser
 
 from ptrace.debugger import Application
 from ptrace.debugger import NewProcessEvent
@@ -16,6 +15,7 @@ from ptrace.error import writeError
 from ptrace.func_call import FunctionCallOptions
 
 from tracer import fd
+from tracer.arguments import create_core_parser
 from tracer.backtrace.impl.null import NullBacktracer
 from tracer.extensions.backtrace import Backtrace
 from tracer.extensions.contents import ContentsExtension
@@ -40,23 +40,11 @@ class Tracer(Application):
         self.parseOptions()
 
     def parseOptions(self):  # pylint: disable=C0103
-        class IgnoreUnknownOptionParser(ArgumentParser):
-            def error(self, msg):
-                pass
-
-        core_parser = IgnoreUnknownOptionParser(prog="test")
-
-        def create_core_parser(parser):
-            parser.add_argument("--extension", "-e", help="path to extension file or directory to load",
-                                action="append", default=[])
-            parser.add_argument("-v", dest="logging_level", default=0, action="count")
-            parser.add_argument("program")
-            parser.add_argument("arguments", nargs='*')
-
-        create_core_parser(core_parser)
-        opts = core_parser.parse_args()
+        parser = create_core_parser()
+        opts = parser.parse_known_args()[0]
         self.setup_logging(sys.stdout, opts.logging_level)
 
+        # load extensions
         self.register_extension(ReportExtension())
         self.register_extension(CoreExtension())
         self.register_extension(ContentsExtension())
@@ -64,26 +52,24 @@ class Tracer(Application):
         self.register_extension(InfoExtension())
         self.load_extensions([os.path.abspath(path) for path in opts.extension])
 
-        parser = ArgumentParser()
-
+        # create options from all parsers
         for extension in self.extensions:
             extension.create_options(parser)
 
-        create_core_parser(parser)
+        # TODO: move me!
         parser.add_argument('--trace-mmap', action="store_true", default=False)
         parser.add_argument('--syscalls', '-s', help='print each syscall', action="store_true", default=False)
         parser.add_argument('--print-data', '-d', help='print captured data to stdout', action="store_true",
-                          default=False)
+                            default=False)
         parser.add_argument('--backtrace', '-b', help='collect backtraces with libunwind', action="store_true",
                             default=False)
 
+        # load full options
         self.options = parser.parse_args()
         self.options.fork = True
         self.options.trace_exec = True
         self.options.no_stdout = False
         self.program = [self.options.program] + self.options.arguments
-        self.options.pid = None
-
 
         if self.options.pid is None and not self.program:
             parser.print_help()
@@ -96,8 +82,6 @@ class Tracer(Application):
             )
 
             self.options.output = os.path.join(os.getcwd(), directory_name)
-
-
 
         if self.options.backtrace:
             self.register_extension(Backtrace())
