@@ -83,3 +83,14 @@ def merge_dicts(*dicts):
     for dictionary in dicts:
         res.update(dictionary)
     return res
+
+
+class AttributeTrait:
+    def __init__(self):
+        self._attributes = {}
+
+    def __getitem__(self, item):
+        return self._attributes[item]
+
+    def __setitem__(self, key, value):
+        self._attributes[key] = value

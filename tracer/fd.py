@@ -2,19 +2,10 @@ import ipaddress
 import os
 import socket
 
-
-class WithAttribute:
-    def __init__(self):
-        self._atributes = {}
-
-    def __getitem__(self, item):
-        return self._atributes[item]
-
-    def __setitem__(self, key, value):
-        self._atributes[key] = value
+from tracer.utils import AttributeTrait
 
 
-class Syscall(WithAttribute):
+class Syscall(AttributeTrait):
     def __init__(self, process, syscall):
         super().__init__()
         self.process = process
@@ -33,11 +24,12 @@ class Syscall(WithAttribute):
         return self.syscall.name
 
 
-class Descriptor:
+class Descriptor(AttributeTrait):
     READ = 1
     WRITE = 2
 
     def __init__(self, fd):
+        super().__init__()
         self.fd = fd
         self.used = 0
         self.backtrace = None
@@ -55,11 +47,6 @@ class Descriptor:
 
         return json
 
-    def __setitem__(self, key, value):
-        self.data[key] = value
-
-    def __getitem__(self, item):
-        return self.data[key]
 
 class Pipe(Descriptor):
     last_pipe = -1
