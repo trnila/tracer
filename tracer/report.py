@@ -176,7 +176,7 @@ class Report(AttributeTrait):
             with open(os.path.join(self.path, 'data.json'), 'w') as file:
                 self.save(file)
         else:
-            json.dump(self._attributes, out, sort_keys=True, indent=4, cls=AppJSONEncoder)
+            json.dump(self.attributes, out, sort_keys=True, indent=4, cls=AppJSONEncoder)
 
     def _get_group(self, pid):
         with open('/proc/%d/status' % pid) as f:

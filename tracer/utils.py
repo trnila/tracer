@@ -87,10 +87,10 @@ def merge_dicts(*dicts):
 
 class AttributeTrait:
     def __init__(self):
-        self._attributes = {}
+        self.attributes = {}
 
     def __getitem__(self, item):
-        return self._attributes[item]
+        return self.attributes[item]
 
     def __setitem__(self, key, value):
-        self._attributes[key] = value
+        self.attributes[key] = value

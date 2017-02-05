@@ -34,13 +34,12 @@ class Descriptor(AttributeTrait):
         self.used = 0
         self.backtrace = None
         self.opened_pid = None
-        self.data = {}
 
     def get_label(self):
         return ""
 
     def to_json(self):
-        json = self.data
+        json = self.attributes
         json["type"] = type(self).__name__.lower()
         json["backtrace"] = self.backtrace
         json["opened_pid"] = self.opened_pid
