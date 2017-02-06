@@ -19,7 +19,6 @@ class Libunwind:
 
     def create_backtrace(self, process):
         mappings = process.readMappings()
-        import tracer.backtrace.libunwind
 
         try:
             backtrace_list = []
