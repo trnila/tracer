@@ -62,3 +62,7 @@ class Extension:
                         method_obj,
                         method_obj._success_only
                     )
+
+    def on_tick(self, tracer):
+        pass
+

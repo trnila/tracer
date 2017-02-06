@@ -13,6 +13,7 @@ from tracer.extensions.core import CoreExtension
 from tracer.extensions.extension import Extension
 from tracer.extensions.info import InfoExtension
 from tracer.extensions.misc import MiscExtension
+from tracer.extensions.mmap import MmapExtension
 from tracer.extensions.report import ReportExtension
 from tracer.extensions.shell import ShellExtension
 from tracer.fd import Descriptor, Syscall
@@ -35,7 +36,6 @@ class Tracer:
                             action="append", default=[])
         parser.add_argument("-v", dest="logging_level", default=0, action="count")
         parser.add_argument('-p', dest="pid")
-        parser.add_argument('--trace-mmap', action="store_true", default=False)
         parser.add_argument("program", nargs='?')
         parser.add_argument("arguments", nargs='*')
 
@@ -53,6 +53,7 @@ class Tracer:
         self.register_extension(MiscExtension())
         self.register_extension(InfoExtension())
         self.register_extension(Backtrace())
+        self.register_extension(MmapExtension())
         self.load_extensions([os.path.abspath(path) for path in opts.extension])
         self.register_extension(ShellExtension())
 
@@ -155,12 +156,8 @@ class Tracer:
                     except BaseException as e:
                         logging.exception("extension %s failed", extension)
 
-                if self.options.trace_mmap:
-                    proc = self.data.get_process(event.pid)
-                    for capture in proc['descriptors']:
-                        if capture.descriptor.is_file and capture.descriptor['mmap']:
-                            for mmap_area in capture.descriptor['mmap']:
-                                mmap_area.check()
+            for extension in self.extensions:
+                extension.on_tick(self)
 
         self.backend.quit()
 

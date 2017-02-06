@@ -2,6 +2,8 @@ import mmap
 import os
 import struct
 
+import logging
+
 PAGE_SIZE = os.sysconf("SC_PAGE_SIZE")
 PAGEMAP_ENTRY = 8
 
@@ -52,13 +54,18 @@ class MmapTracer:
         if not self.flags & mmap.MAP_PRIVATE:
             return
 
-        with open("/proc/%d/pagemap" % self.pid, 'rb') as file:
-            for page in self.accessed.not_used(self.start, self.start + self.size):
-                file.seek(int(page / PAGE_SIZE) * PAGEMAP_ENTRY, 0)
-                num = struct.unpack('Q', file.read(8))[0]
-                occupied = (num & (1 << 63)) > 0
-                if occupied:
-                    self.accessed.add(page)
+        try:
+            with open("/proc/%d/pagemap" % self.pid, 'rb') as file:
+                for page in self.accessed.not_used(self.start, self.start + self.size):
+                    file.seek(int(page / PAGE_SIZE) * PAGEMAP_ENTRY, 0)
+                    val = file.read(8)
+                    num = struct.unpack('Q', val)[0]
+                    occupied = (num & (1 << 63)) > 0
+                    if occupied:
+                        self.accessed.add(page)
+        except Exception as e: #TODO: fix
+            logging.error("failed reading pagemap %s", e.args)
+
 
     def to_json(self):
         return {
