@@ -23,6 +23,7 @@ from tracer.extensions.extension import Extension
 from tracer.extensions.info import InfoExtension
 from tracer.extensions.misc import MiscExtension
 from tracer.extensions.report import ReportExtension
+from tracer.extensions.shell import ShellExtension
 from tracer.fd import Descriptor, Syscall
 
 
@@ -49,6 +50,7 @@ class Tracer(Application):
         self.register_extension(InfoExtension())
         self.register_extension(Backtrace())
         self.load_extensions([os.path.abspath(path) for path in opts.extension])
+        self.register_extension(ShellExtension())
 
         # create options from all parsers
         for extension in self.extensions:
