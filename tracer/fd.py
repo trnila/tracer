@@ -23,97 +23,69 @@ class Syscall(AttributeTrait):
 
 
 class Descriptor(AttributeTrait):
+    FILE = 'file'
+    PIPE = 'pipe'
+    SOCKET = 'socket'
+
     READ = 1
     WRITE = 2
 
-    def __init__(self, fd):
+    last_pipe = -1
+
+    def __init__(self, descriptor_type, fd):
         super().__init__()
-        self.fd = fd
+        self['type'] = descriptor_type
+        self['fd'] = fd
         self.used = 0
-        self.backtrace = None
-        self.opened_pid = None
 
     def get_label(self):
-        return ""
+        return "{}-{}".format(self['type'], self['fd'])
 
     def to_json(self):
         json = self.attributes
-        json["type"] = type(self).__name__.lower()
-        json["backtrace"] = self.backtrace
-        json["opened_pid"] = self.opened_pid
-
         return json
 
+    @property
+    def fd(self):
+        return self['fd']
 
-class Pipe(Descriptor):
-    last_pipe = -1
+    @property
+    def is_file(self):
+        return self['type'] == Descriptor.FILE
 
-    def __init__(self, fd, pipe_id):
-        super().__init__(fd)
-        self.pipe_id = pipe_id
+    @property
+    def is_socket(self):
+        return self['type'] == Descriptor.SOCKET
 
-    def get_label(self):
-        return "pipe: %d" % self.pipe_id
-
-    def to_json(self):
-        json = super().to_json()
-        json['pipe_id'] = self.pipe_id
-        return json
+    @property
+    def is_pipe(self):
+        return self['type'] == Descriptor.PIPE
 
     @staticmethod
-    def make_pair(fd1, fd2):
-        Pipe.last_pipe += 1
+    def create_file(fd, path):
+        if path not in ['stdout', 'stdin', 'stderr']:  # TODO: what if file is called stdin?
+            path = os.path.realpath(path)
+
+        return Descriptor.create(Descriptor.FILE, fd, path=path)
+
+    @staticmethod
+    def create_pipes(fd1, fd2):
+        Descriptor.last_pipe += 1
 
         return (
-            Pipe(fd1, Pipe.last_pipe),
-            Pipe(fd2, Pipe.last_pipe)
+            Descriptor.create(Descriptor.PIPE, fd1, pipe_id=Descriptor.last_pipe),
+            Descriptor.create(Descriptor.PIPE, fd2, pipe_id=Descriptor.last_pipe),
         )
 
+    @staticmethod
+    def create_socket(fd):
+        return Descriptor.create(Descriptor.SOCKET, fd)
 
-class File(Descriptor):
-    def __init__(self, fd, path):
-        super().__init__(fd)
-        self.path = os.path.realpath(path) if path not in ['stdout', 'stdin', 'stderr'] else path  # TODO: fix
-        self.seeks = []
-        self.mmaps = []
-        self.mode = None
+    @staticmethod
+    def create(descriptor_type, fd, **kwargs):
+        descriptor = Descriptor(descriptor_type, fd)
 
-    def get_label(self):
-        return self.path.replace('/', '_')
+        for key, value in kwargs.items():
+            descriptor[key] = value
 
-    def to_json(self):
-        json = super().to_json()
-        json["path"] = self.path
-        json['mmap'] = self.mmaps
-        json["mode"] = self.mode
-        return json
-
-
-class Socket(Descriptor):
-    last_id = -1
-
-    def __init__(self, fd):
-        super().__init__(fd)
-        self.last_id += 1
-        self.label = "socket"
-        self.domain = None
-        self.type = None
-        self.local = None
-        self.remote = None
-        self.server = False
-        self.socket_id = self.last_id
-        self.sockopts = []
-
-    def get_label(self):
-        return 'socket_%d' % self.socket_id
-
-    def to_json(self):
-        json = super().to_json()
-        json['domain'] = self.domain
-        json['socket_type'] = self.type
-        json['local'] = self.local
-        json['remote'] = self.remote
-        json['server'] = self.server
-        json['socket_id'] = self.socket_id
-        json['sockopts'] = self.sockopts
-        return json
+        return descriptor

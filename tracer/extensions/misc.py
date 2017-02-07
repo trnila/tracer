@@ -29,7 +29,7 @@ class MiscExtension(Extension):
         struct.unpack("i", syscall.process.handle.readBytes(syscall.arguments[3].value, syscall.arguments[4].value))[0]
 
         descriptor = syscall.process.descriptors.get(syscall.arguments[0].value)
-        descriptor.sockopts.append({
+        descriptor['sockopts'].append({
             "optname": maps.SOCKET_OPTS.get(option_name),
             "level": maps.SOCKET_LEVEL.get(level),
             "value": value,

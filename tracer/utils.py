@@ -85,12 +85,54 @@ def merge_dicts(*dicts):
     return res
 
 
+class FakeObject:
+    def __init__(self):
+        self.type = 'scalar'
+        self.data = None
+
+    def __contains__(self, item):
+        return item in self.data
+
+    def append(self, item):
+        if not self.data:
+            self.data = []
+
+        self.data.append(item)
+
+        return self
+
+    def __setitem__(self, key, value):
+        if not self.data:
+            self.data = {}
+
+        self.data[key] = value
+
+    def __getitem__(self, item):
+        return self.data[item]
+
+    def __bool__(self):
+        return self.data is not None
+
+    def to_json(self):
+        return self.data
+
+
+
 class AttributeTrait:
     def __init__(self):
         self.attributes = {}
 
     def __getitem__(self, item):
+        if item not in self.attributes:
+            self.attributes[item] = FakeObject()
+
         return self.attributes[item]
 
     def __setitem__(self, key, value):
         self.attributes[key] = value
+
+        # def __setattr__(self, key, value):
+        #     import logging
+        #     logging.error('accessing ' + key)
+        #
+        #     super().__setattr__(key, value)

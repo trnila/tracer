@@ -22,7 +22,7 @@ from tracer.extensions.extension import Extension
 from tracer.extensions.info import InfoExtension
 from tracer.extensions.misc import MiscExtension
 from tracer.extensions.report import ReportExtension
-from tracer.fd import File
+from tracer.fd import Descriptor
 from tracer.report import UnknownFd
 from tracer.syscalls.handler import SyscallHandler, Event
 
@@ -112,8 +112,8 @@ class Tracer(Application):
                 if self.options.trace_mmap:
                     proc = self.data.get_process(event.process.pid)
                     for capture in proc['descriptors']:
-                        if isinstance(capture.descriptor, File):
-                            for mmap_area in capture.descriptor.mmaps:
+                        if capture.descriptor.is_file and capture.descriptor['mmap']:
+                            for mmap_area in capture.descriptor['mmap']:
                                 mmap_area.check()
 
                 self.syscall(event.process)
@@ -227,9 +227,9 @@ class Tracer(Application):
         for extension in self.extensions:
             extension.on_process_created(proc)
 
-        proc.descriptors.open(File(0, "stdin"))
-        proc.descriptors.open(File(1, "stdout"))
-        proc.descriptors.open(File(2, "stderr"))
+        proc.descriptors.open(Descriptor.create_file(0, "stdin"))
+        proc.descriptors.open(Descriptor.create_file(1, "stdout"))
+        proc.descriptors.open(Descriptor.create_file(2, "stderr"))
         return pid
 
     def handle_sigterm(self, signum, frame):

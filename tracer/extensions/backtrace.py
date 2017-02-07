@@ -33,5 +33,5 @@ class Backtrace(Extension):
         )
 
     def _save_backtrace(self, descriptor, syscall):
-        descriptor.backtrace = syscall.process.get_backtrace()
-        descriptor.opened_pid = syscall.process.pid
+        descriptor['backtrace'] = syscall.process.get_backtrace()
+        descriptor['opened_pid'] = syscall.process.pid

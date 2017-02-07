@@ -77,6 +77,8 @@ class TracingTest(TracerTestCase):
             curl = data.get_process_by(executable=shutil.which('curl'))
             sock = curl.get_resource_by(type='socket')
 
+            self.assertIsNotNone(sock)
+            self.assertIsNotNone(sock['remote'])
             self.assertEqual('93.184.216.34', sock['remote']['address'])
             self.assertEqual(80, sock['remote']['port'])
 
@@ -101,7 +103,6 @@ class TracingTest(TracerTestCase):
                 proc = client.get_process_by(executable=shutil.which('nc'))
                 sock = proc.get_resource_by(type='socket', domain=1)
                 self.assertEqual("/tmp/reverse.sock", sock['remote'])
-                self.assertEqual(False, sock['server'])
 
                 srv.wait()
                 srv = srv.system

@@ -1,7 +1,7 @@
 import socket
 from struct import unpack
 
-from tracer import fd, utils
+from tracer import utils
 from tracer.extensions.extension import register_syscall, Extension
 from tracer.fd_resolve import resolve
 
@@ -10,11 +10,11 @@ class ContentsExtension(Extension):
     @register_syscall(["read", "write", "sendmsg", "recvmsg", "sendto", "recvfrom"])
     def read_or_write(self, syscall):
         descriptor = syscall.process.descriptors.get(syscall.arguments[0].value)
-        if isinstance(descriptor, fd.Socket) and descriptor.domain in [socket.AF_INET, socket.AF_INET6]:
+        if descriptor.is_socket and descriptor['domain'] in [socket.AF_INET, socket.AF_INET6]:
             try:
-                if descriptor.local.address.__str__() == '0.0.0.0':
+                if descriptor['local'].address.__str__() == '0.0.0.0':
                     resolved = resolve(syscall.process.pid, syscall.arguments[0].value, 1)
-                    descriptor.local = resolved['dst']
+                    descriptor['local'] = resolved['dst']
             except:
                 pass
 
@@ -44,19 +44,19 @@ class ContentsExtension(Extension):
         data = {
             "backtrace": syscall.process.get_backtrace()
         }
-        if syscall.name in ['recvfrom', 'sendto'] and descriptor.type in [socket.SOCK_DGRAM]:
+        if syscall.name in ['recvfrom', 'sendto'] and descriptor['socket_type'] == socket.SOCK_DGRAM:
             # TODO: read addr, IPV6 support!
             # sock_size = syscall.process.readWord(syscall.arguments[5].value)
 
             des = syscall.process.descriptors.get(syscall.arguments[0].value)
-            if not des.local:
+            if not des['local']:
                 addr = resolve(syscall.process.pid, syscall.arguments[0].value, 1)['dst']
                 if addr['address'].__str__() == "0.0.0.0":
                     addr = {
                         'address': utils.get_all_interfaces(),
                         'port': addr['port']
                     }
-                des.local = addr
+                des['local'] = addr
 
             addr = utils.parse_addr(syscall.process.handle.readBytes(syscall.arguments[4].value, 8))
             data['address'] = addr
