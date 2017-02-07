@@ -1,5 +1,6 @@
 import os
 
+from tracer.event import Argument
 from tracer.utils import AttributeTrait, build_repr
 
 
@@ -8,14 +9,11 @@ class Syscall(AttributeTrait):
         super().__init__()
         self.process = process
         self.syscall = syscall
+        self.arguments = [Argument(arg) for arg in syscall.arguments]
 
     @property
     def result(self):
         return self.syscall.result
-
-    @property
-    def arguments(self):
-        return self.syscall.arguments
 
     @property
     def name(self):
