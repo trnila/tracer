@@ -53,9 +53,8 @@ class ShellExtension(Extension):
     def on_start(self, tracer):
         try:
             self.shell = IPythonShell()
-        except ModuleNotFoundError:
+        except ImportError:
             self.shell = CodeShell()
-
 
     def on_syscall(self, syscall):
         tracer = syscall.process.tracer
