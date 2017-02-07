@@ -62,12 +62,31 @@ class Tracer(Application):
         self.options.no_stdout = False
         self.options.enter = True
         self.program = [self.options.program] + self.options.arguments
+        
+        # override from settings file
+        self.load_config()
 
-        if self.options.pid is None and not self.program:
+        logging.debug("Current configuration: %s", self.options)
+
+        if self.options.pid is None and not self.options.program:
             parser.print_help()
             sys.exit(1)
 
         self.processOptions()
+
+    def load_config(self):
+        options = {}
+        for config_file in [os.path.expanduser('~/.tracerrc'), 'tracer.conf.py']:
+            try:
+                with open(config_file) as file:
+                    loc = {}
+                    exec(file.read(), {}, loc)
+                    options.update(loc)
+                    logging.info("Configuration file %s loaded", config_file)
+
+            except FileNotFoundError:
+                logging.warning("Configuration file %s not found", config_file)
+        return options
 
     def setup_logging(self, fd, level):  # pylint: disable=C0103
         logger = logging.getLogger()
