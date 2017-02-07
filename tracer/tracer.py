@@ -24,7 +24,6 @@ from tracer.extensions.info import InfoExtension
 from tracer.extensions.misc import MiscExtension
 from tracer.extensions.report import ReportExtension
 from tracer.fd import Descriptor, Syscall
-from tracer.report import UnknownFd
 
 
 class Tracer(Application):
@@ -61,10 +60,11 @@ class Tracer(Application):
         self.options.trace_exec = True
         self.options.no_stdout = False
         self.options.enter = True
-        self.program = [self.options.program] + self.options.arguments
         
         # override from settings file
         self.options.__dict__.update(self.load_config())
+
+        self.program = [self.options.program] + self.options.arguments
 
         logging.debug("Current configuration: %s", self.options)
 
