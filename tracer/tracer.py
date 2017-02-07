@@ -22,9 +22,9 @@ from tracer.extensions.extension import Extension
 from tracer.extensions.info import InfoExtension
 from tracer.extensions.misc import MiscExtension
 from tracer.extensions.report import ReportExtension
-from tracer.fd import Descriptor
+from tracer.fd import Descriptor, Syscall
 from tracer.report import UnknownFd
-from tracer.syscalls.handler import SyscallHandler, Event
+from tracer.syscalls.handler import Event
 
 
 class Tracer(Application):
@@ -35,7 +35,6 @@ class Tracer(Application):
         self.extensions = []
         self.debugger = PtraceDebugger()
         self.backtracer = NullBacktracer()
-        self.handler = SyscallHandler()
         self.parseOptions()
 
     def parseOptions(self):  # pylint: disable=C0103
@@ -94,8 +93,6 @@ class Tracer(Application):
                 text = ''.join(prefix) + ' ' + text
             logging.debug(text)
 
-        self.handler.handle(self, syscall)
-
     def syscallTrace(self, process):  # pylint: disable=C0103
         # First query to break at next syscall
         self.prepareProcess(process)
@@ -131,11 +128,20 @@ class Tracer(Application):
         state = process.syscall_state
         syscall = state.event(FunctionCallOptions())
 
-        if syscall and (syscall.result is not None):
-            try:
-                self.displaySyscall(syscall)
-            except UnknownFd:
-                logging.fatal("Unknown FD!")
+        if syscall:
+            proc = self.data.get_process(syscall.process.pid)
+            syscall_obj = Syscall(proc, syscall)
+
+            if syscall.result is not None:
+                try:
+                    self.displaySyscall(syscall)
+                except UnknownFd:
+                    logging.fatal("Unknown FD!")
+
+            logging.debug("syscall %s", syscall_obj.name)
+            for extension in self.extensions:
+                logging.debug("extension %s", extension)
+                extension.on_syscall(syscall_obj)
 
         # Break at next syscall
         process.syscall()
@@ -238,11 +244,6 @@ class Tracer(Application):
     def register_extension(self, extension):
         logging.info("Plugin %s registered", extension.__class__.__name__)
         self.extensions.append(extension)
-
-        for method in dir(extension):
-            syscalls = getattr(getattr(extension, method), "_syscalls", None)
-            if syscalls:
-                self.handler.register(syscalls, getattr(extension, method))
 
     def load_extensions(self, extensions):
         for extension in extensions:

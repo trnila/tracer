@@ -72,7 +72,7 @@ class Descriptors:
 
     def get(self, fd):
         if fd not in self.descriptors:
-            raise UnknownFd
+            raise UnknownFd(fd)
         return self.descriptors[fd]
 
 

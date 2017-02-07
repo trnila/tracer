@@ -21,6 +21,14 @@ class Syscall(AttributeTrait):
     def name(self):
         return self.syscall.name
 
+    @property
+    def finished(self):
+        return self.result is not None
+
+    @property
+    def success(self):
+        return self.finished and (self.result >= 0 or self.result == -115)  # Operation now in progress
+
 
 class Descriptor(AttributeTrait):
     FILE = 'file'

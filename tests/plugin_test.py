@@ -6,6 +6,7 @@ from tracer.tracer import Tracer
 
 class FakeExtensions(Extension):
     def __init__(self):
+        super().__init__()
         self.start_called = 0
         self.save_called = 0
 
@@ -18,6 +19,7 @@ class FakeExtensions(Extension):
 
 class CounterExtension(Extension):
     def __init__(self):
+        super().__init__()
         self.called = 0
 
     @register_syscall("open")
