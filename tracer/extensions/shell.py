@@ -15,10 +15,39 @@ class ExitCommand:
         return "Call to disable shell"
 
 
+class CodeShell:
+    def __init__(self):
+        import code
+        self.shell = code
+
+    def run(self, banner, arguments):
+        code.interact(banner=banner, local=arguments)
+
+
+class IPythonShell:
+    def __init__(self):
+        from IPython import embed
+        from traitlets.config import Config
+
+        conf = Config()
+        conf.TerminalInteractiveShell.confirm_exit = False
+
+        self.config = conf
+        self.shell = embed
+
+    def run(self, banner, arguments):
+        self.shell(config=self.config, banner1=banner, user_ns=arguments)
+
+
 class ShellExtension(Extension):
     def __init__(self):
         super().__init__()
         self.enabled = True
+
+        try:
+            self.shell = IPythonShell()
+        except ModuleNotFoundError:
+            self.shell = CodeShell()
 
     def on_syscall(self, syscall):
         tracer = syscall.process.tracer
@@ -41,7 +70,7 @@ class ShellExtension(Extension):
         [banner.append("{} = {}".format(name, str(value))) for name, value in local.items()]
 
         try:
-            code.interact(banner="\n".join(banner), local=local)
+            self.shell.run("\n".join(banner), local)
         except SystemExit:
             # exit only this shell
             pass
