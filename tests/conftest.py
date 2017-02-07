@@ -11,10 +11,14 @@ def pytest_runtest_makereport(item, call):
 
     # we only look at actual failing test calls, not setup/teardown
     if rep.when == "call" and rep.failed:
-        executes = getattr(item.obj.__self__, 'executed')
+        executes = getattr(item.obj.__self__, 'executed', None)
         if executes:
             for executed in executes:
                 result = []
+                result.append('tracer {} {}'.format(
+                    " ".join(executed.options),
+                    executed.command
+                ))
                 result.append('OPTIONS: {}'.format(
                     executed.options
                 ))
