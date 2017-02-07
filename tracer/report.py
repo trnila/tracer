@@ -4,7 +4,7 @@ import os
 
 from tracer import utils
 from tracer.json_encode import AppJSONEncoder
-from tracer.utils import AttributeTrait
+from tracer.utils import AttributeTrait, build_repr
 
 
 class UnknownFd(BaseException):
@@ -90,6 +90,14 @@ class Process:
     def pid(self):
         return self['pid']
 
+    @property
+    def executable(self):
+        return self['executable']
+
+    @property
+    def arguments(self):
+        return self['arguments']
+
     def get_backtrace(self):
         return self.tracer.backtracer.create_backtrace(self.handle)
 
@@ -121,6 +129,11 @@ class Process:
         if fd not in self.captures or self.captures[fd] is None:
             self.captures[fd] = Capture(self.report, self, self.descriptors.get(fd), len(self.data['descriptors']))
             self.data['descriptors'].append(self.captures[fd])
+
+    def __str__(self):
+        return "<Process {}>".format(
+            build_repr(self, ['pid', 'executable', 'arguments'])
+        )
 
 
 class Report(AttributeTrait):

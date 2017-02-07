@@ -77,6 +77,13 @@ def get_all_interfaces():
             netifaces.AF_INET in netifaces.ifaddresses(iface)]
 
 
+def build_repr(obj, items):
+    return " ".join([
+        "{}='{}'".format(attr, getattr(obj, attr))
+        for attr in items
+    ])
+
+
 # replace with ** when python3.5 used
 def merge_dicts(*dicts):
     res = {}

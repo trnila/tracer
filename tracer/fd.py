@@ -1,6 +1,6 @@
 import os
 
-from tracer.utils import AttributeTrait
+from tracer.utils import AttributeTrait, build_repr
 
 
 class Syscall(AttributeTrait):
@@ -28,6 +28,11 @@ class Syscall(AttributeTrait):
     @property
     def success(self):
         return self.finished and (self.result >= 0 or self.result == -115)  # Operation now in progress
+
+    def __repr__(self):
+        return "<Syscall {}>".format(
+            build_repr(self, ['name', 'arguments', 'result'])
+        )
 
 
 class Descriptor(AttributeTrait):
