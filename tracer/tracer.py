@@ -15,6 +15,7 @@ from ptrace.func_call import FunctionCallOptions
 
 from tracer.arguments import create_core_parser
 from tracer.backtrace.impl.null import NullBacktracer
+from tracer.event import Event
 from tracer.extensions.backtrace import Backtrace
 from tracer.extensions.contents import ContentsExtension
 from tracer.extensions.core import CoreExtension
@@ -24,7 +25,6 @@ from tracer.extensions.misc import MiscExtension
 from tracer.extensions.report import ReportExtension
 from tracer.fd import Descriptor, Syscall
 from tracer.report import UnknownFd
-from tracer.syscalls.handler import Event
 
 
 class Tracer(Application):
