@@ -49,10 +49,14 @@ class ShellExtension(Extension):
         except ModuleNotFoundError:
             self.shell = CodeShell()
 
+    def create_options(self, parser):
+        parser.add_argument('--shell-syscalls', type=lambda x: x.split(','))
+
     def on_syscall(self, syscall):
         tracer = syscall.process.tracer
+        whitelisted = tracer.options.shell_syscalls
 
-        if not self.enabled:
+        if not self.enabled or (whitelisted and syscall.name not in whitelisted):
             return
 
         local = {
