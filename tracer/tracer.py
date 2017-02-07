@@ -134,8 +134,12 @@ class Tracer(Application):
 
             logging.debug("syscall %s", syscall_obj)
             for extension in self.extensions:
-                logging.debug("extension %s", extension)
-                extension.on_syscall(syscall_obj)
+                try:
+                    logging.debug("extension %s", extension)
+                    extension.on_syscall(syscall_obj)
+                except BaseException as e:
+                    logging.error("extension %s failed: %s", extension, e.args)
+
 
         # Break at next syscall
         process.syscall()
