@@ -32,6 +32,7 @@ class Tracing:
         self.args = args if args else []
         self.options = (options if options else []) + ['-o', self.output_dir]
         self.background = background
+        self.data = ""
 
         _env = os.environ.copy()
         if env:
@@ -50,7 +51,22 @@ class Tracing:
             return res
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        self.data = self.read_data()
         shutil.rmtree(self.output_dir)
+
+    @property
+    def command(self):
+        return "{} {}".format(
+            self.program,
+            " ".join(self.args)
+        )
+
+    def read_data(self):
+        try:
+            with open(self.output_dir + "/data.json") as f:
+                return f.read()
+        except FileNotFoundError:
+            return ""
 
 
 class TracerTestCase(unittest.TestCase):
@@ -64,4 +80,11 @@ class TracerTestCase(unittest.TestCase):
 
     def execute(self, program, arguments=[], **kwargs):
         resolved = shutil.which(program)
-        return Tracing(resolved if resolved else program, arguments, **kwargs)
+        tracing = Tracing(resolved if resolved else program, arguments, **kwargs)
+
+        if not getattr(self, 'executed', None):
+            self.executed = []
+
+        self.executed.append(tracing)
+
+        return tracing
