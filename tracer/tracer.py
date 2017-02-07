@@ -157,7 +157,7 @@ class Tracer(Application):
                     logging.debug("extension %s", extension)
                     extension.on_syscall(syscall_obj)
                 except BaseException as e:
-                    logging.error("extension %s failed: %s", extension, e.args)
+                    logging.exception("extension %s failed", extension)
 
 
         # Break at next syscall
@@ -280,5 +280,5 @@ class Tracer(Application):
                                 if issubclass(obj, Extension):
                                     self.register_extension(obj())
                 except Exception as e:
-                    logging.fatal("Could not load plugin %s: %s", extension, e)
+                    logging.exception("Could not load plugin %s", extension)
                     sys.exit(1)
