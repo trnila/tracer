@@ -3,7 +3,7 @@ import os
 import socket
 from struct import unpack
 
-from tracer import fd
+from tracer.addresses import UnixAddress, NetworkAddress, Address
 
 
 def parse_args(string):
@@ -53,7 +53,7 @@ def parse_ipv6(raw_bytes):
 def parse_addr(address_bytes):
     family = unpack("H", address_bytes[0:2])[0]
     if family == socket.AF_UNIX:
-        return fd.UnixAddress(address_bytes[2:].decode('utf-8'))
+        return UnixAddress(address_bytes[2:].decode('utf-8'))
     elif family in [socket.AF_INET6, socket.AF_INET]:
         port = unpack(">H", address_bytes[2:4])[0]
 
@@ -62,9 +62,9 @@ def parse_addr(address_bytes):
         else:
             addr = ipaddress.ip_address(address_bytes[4:8])
 
-        return fd.NetworkAddress(addr, port)
+        return NetworkAddress(addr, port)
     else:
-        return fd.Address(family)
+        return Address(family)
 
 
 def get_root():
