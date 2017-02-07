@@ -59,6 +59,9 @@ class ShellExtension(Extension):
         if not self.enabled or (whitelisted and syscall.name not in whitelisted):
             return
 
+        if 'shell_filter' in tracer.options and not tracer.options.shell_filter(syscall):
+            return False
+
         local = {
             'syscall': syscall,
             'process': syscall.process,
