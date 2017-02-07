@@ -128,9 +128,11 @@ class TracingTest(TracerTestCase):
 
             file = process.get_resource_by(type="file", path="/tmp/file")
             self.assertEqual("process", data.read_file(file['write_content']).decode('utf-8'))
+            self.assertEqual(process['pid'], file['opened_pid'])
 
             file = thread.get_resource_by(type="file", path="/tmp/file")
             self.assertEqual("thread", data.read_file(file['write_content']).decode('utf-8'))
+            self.assertEqual(process['pid'], file['opened_pid'])
 
     def test_process_change_fd_in_thread(self):
         with self.execute('python', ['examples/threads/thread_fail.py']) as data:
@@ -209,7 +211,6 @@ class TracingTest(TracerTestCase):
             self.assertEqual(child['pid'], parent['kills'][0]['pid'])
             self.assertEqual(signal.SIGKILL, parent['kills'][0]['signal'])
             # TODO: add that this process has been killed?
-
 
 if __name__ == '__main__':
     sys.argv.append('-b')
