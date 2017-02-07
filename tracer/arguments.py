@@ -8,7 +8,6 @@ def create_core_parser():
     parser.add_argument("-v", dest="logging_level", default=0, action="count")
     parser.add_argument('-p', dest="pid")
     parser.add_argument('--trace-mmap', action="store_true", default=False)
-    parser.add_argument('--syscalls', '-s', help='print each syscall', action="store_true", default=False)
     parser.add_argument("program")
     parser.add_argument("arguments", nargs='*')
 

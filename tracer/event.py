@@ -17,6 +17,7 @@ class Argument:
 
     @property
     def text(self):
+        self.argument.format()  # underlying library fetches data from process memory
         return self.argument.text
 
     def __repr__(self):

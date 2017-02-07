@@ -132,13 +132,7 @@ class Tracer(Application):
             proc = self.data.get_process(syscall.process.pid)
             syscall_obj = Syscall(proc, syscall)
 
-            if syscall.result is not None:
-                try:
-                    self.displaySyscall(syscall)
-                except UnknownFd:
-                    logging.fatal("Unknown FD!")
-
-            logging.debug("syscall %s", syscall_obj.name)
+            logging.debug("syscall %s", syscall_obj)
             for extension in self.extensions:
                 logging.debug("extension %s", extension)
                 extension.on_syscall(syscall_obj)
