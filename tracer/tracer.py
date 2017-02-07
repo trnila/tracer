@@ -64,7 +64,7 @@ class Tracer(Application):
         self.program = [self.options.program] + self.options.arguments
         
         # override from settings file
-        self.load_config()
+        self.options.__dict__.update(self.load_config())
 
         logging.debug("Current configuration: %s", self.options)
 
@@ -272,9 +272,7 @@ class Tracer(Application):
                 logging.debug("Loading plugin from %s", extension)
                 try:
                     with open(extension) as file:
-                        globs = {
-                            "logging": logging
-                        }
+                        globs = {}
                         exec(file.read(), globs)
 
                         for name, obj in globs.items():
