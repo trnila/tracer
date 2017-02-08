@@ -4,9 +4,15 @@ before_install:
     - "make"
 language: python
 python:
+    - "nightly"
+    - "3.6"
     - "3.5"
+    - "3.4"
+    - "3.3"
+    - "3.2"
+
 
 install: "pip install -r requirements.txt"
 script: 
-    - "python tracer.py ls;" 
+    - "python tracer.py ls" 
     - "pytest -q tests/"
