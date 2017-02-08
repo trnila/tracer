@@ -1,4 +1,4 @@
-# tracer
+# tracer [![Build Status](https://travis-ci.org/trnila/tracer.svg?branch=master)](https://travis-ci.org/trnila/tracer)
 
 ## Installation
 To install development version from branch master run:
