@@ -54,8 +54,7 @@ class Descriptors:
 
     def close(self, descriptor):
         if descriptor not in self.descriptors:
-            print("no descriptor")
-            return
+            raise UnknownFd(descriptor)
 
         def remove_key(descriptors, key):
             r = dict(descriptors)
