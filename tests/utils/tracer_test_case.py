@@ -30,7 +30,7 @@ class Tracing:
         self.output_dir = tempfile.mkdtemp("tracer_report")
         self.program = program
         self.args = args if args else []
-        self.options = (options if options else []) + ['-o', self.output_dir]
+        self.options = (options if options else []) + ['-vvvvv', '-o', self.output_dir]
         self.background = background
         self.data = ""
 
