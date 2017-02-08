@@ -9,11 +9,6 @@ from time import sleep
 from .utils.tracer_test_case import TracerTestCase
 
 
-def read(file_name):
-    with open(file_name) as f:
-        return f.read()
-
-
 class TracingTest(TracerTestCase):
     def test_simple(self):
         path = shutil.which("uname")
