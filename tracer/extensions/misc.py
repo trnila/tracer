@@ -8,7 +8,7 @@ from tracer.mmap_tracer import MmapTracer
 class MiscExtension(Extension):
     @register_syscall("mmap")
     def mmap(self, syscall):
-        if syscall.arguments[4].value != 18446744073709551615:
+        if syscall.arguments[4].value < 4294967295:
             syscall.process.mmap(syscall.arguments[4].value,
                                  MmapTracer(syscall.process['pid'], syscall.result, syscall.arguments[1].value,
                                             syscall.arguments[2].value,
