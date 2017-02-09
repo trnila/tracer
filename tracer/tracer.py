@@ -102,16 +102,6 @@ class Tracer:
             # color log is just optional feature
             logging.getLogger().handlers[0].setFormatter(logging.Formatter(self.LOGGING_FORMAT))
 
-    def displaySyscall(self, syscall):  # pylint: disable=C0103
-        text = syscall.format()
-        if self.options.syscalls:
-            if syscall.result is not None:
-                text = "%-40s = %s" % (text, syscall.result_text)
-            prefix = ["[%s]" % syscall.process.pid]
-            if prefix:
-                text = ''.join(prefix) + ' ' + text
-            logging.debug(text)
-
     def syscallTrace(self, process):  # pylint: disable=C0103
         # First query to break at next syscall
         self.prepareProcess(process)
@@ -167,7 +157,7 @@ class Tracer:
         # Display syscall which has not exited
         state = event.process.syscall_state
         if (state.next_event == "exit") and (not self.options.enter) and state.syscall:
-            self.displaySyscall(state.syscall)
+            self.syscall(state.process)
 
         # Display exit message
         logging.info("*** %s ***", event)
