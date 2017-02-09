@@ -1,4 +1,9 @@
 # tracer [![Build Status](https://travis-ci.org/trnila/tracer.svg?branch=master)](https://travis-ci.org/trnila/tracer)
+## Dependencies
+- at least Python 3.2
+- libunwind
+- addr2line
+
 
 ## Installation
 To install development version from branch master run:
@@ -9,6 +14,15 @@ pip install git+https://github.com/trnila/tracer.git
 Optional dependencies are *colorlog* and *ipython* so if you want to have better interface install them:
 ```sh
 pip install colorlog ipython
+```
+
+### Installation with virtualenv on Ubuntu 16.10
+```
+sudo apt-get install python-virtualenv python3-dev git libunwind8-dev
+virtualenv -p python3 venv3
+source venv3/bin/activate
+pip install git+https://github.com/trnila/tracer.git
+pip install colorlog ipython # optional
 ```
 
 ## Usage
