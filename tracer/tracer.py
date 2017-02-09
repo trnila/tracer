@@ -2,6 +2,7 @@ import logging
 import os
 import signal
 import sys
+from errno import EPERM
 
 from ptrace.debugger import Application
 from ptrace.debugger import NewProcessEvent
@@ -9,7 +10,7 @@ from ptrace.debugger import ProcessExecution
 from ptrace.debugger import ProcessExit
 from ptrace.debugger import ProcessSignal
 from ptrace.debugger import PtraceDebugger
-from ptrace.error import PTRACE_ERRORS
+from ptrace.error import PTRACE_ERRORS, PtraceError
 from ptrace.error import writeError
 from ptrace.func_call import FunctionCallOptions
 
@@ -27,11 +28,10 @@ from tracer.extensions.shell import ShellExtension
 from tracer.fd import Descriptor, Syscall
 
 
-class Tracer(Application):
+class Tracer:
     LOGGING_FORMAT = "==TRACER== %(levelname)s:%(name)s:%(message)s"
 
     def __init__(self):
-        Application.__init__(self)
         self.extensions = []
         self.debugger = PtraceDebugger()
         self.backtracer = NullBacktracer()
@@ -73,8 +73,6 @@ class Tracer(Application):
         if self.options.pid is None and not self.options.program:
             parser.print_help()
             sys.exit(1)
-
-        self.processOptions()
 
     def load_config(self):
         options = {}
@@ -201,7 +199,6 @@ class Tracer(Application):
 
     def runDebugger(self):  # pylint: disable=C0103
         # Create debugger and traced process
-        self.setupDebugger()
         process = self.createProcess()
         if not process:
             return
@@ -256,6 +253,25 @@ class Tracer(Application):
         proc.descriptors.open(Descriptor.create_file(1, "stdout"))
         proc.descriptors.open(Descriptor.create_file(2, "stderr"))
         return pid
+
+    def createProcess(self):
+        if self.options.pid:
+            pid = self.options.pid
+            is_attached = False
+            logging.info("Attach process %s" % pid)
+        else:
+            pid = self.createChild(self.program)
+            is_attached = True
+        try:
+            return self.debugger.addProcess(pid, is_attached=is_attached)
+        except (ProcessExit, PtraceError) as err:
+            if isinstance(err, PtraceError) \
+                    and err.errno == EPERM:
+                logging.error(
+                    "ERROR: You are not allowed to trace process %s (permission denied or process already traced)" % pid)
+            else:
+                logging.error("ERROR: Process can no be attached! %s" % err)
+        return None
 
     def handle_sigterm(self, signum, frame):
         self.debugger.quit()
