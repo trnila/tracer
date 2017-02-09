@@ -104,7 +104,7 @@ class Tracer:
 
     def syscallTrace(self, process):  # pylint: disable=C0103
         # First query to break at next syscall
-        self.prepareProcess(process)
+        process.syscall()
 
         while True:
             # No more process? Exit
@@ -131,7 +131,9 @@ class Tracer:
             except NewProcessEvent as event:
                 self.newProcess(event)
             except ProcessExecution as event:
-                self.processExecution(event)
+                process = event.process
+                logging.info("*** Process %s execution ***", process.pid)
+                process.syscall()
 
     def syscall(self, process):
         state = process.syscall_state
@@ -167,25 +169,17 @@ class Tracer:
         for extension in self.extensions:
             extension.on_process_exit(evt)
 
-    def prepareProcess(self, process):  # pylint: disable=C0103
-        process.syscall()
-
     def newProcess(self, event):  # pylint: disable=C0103
         process = event.process
         logging.info("*** New process %s ***", process.pid)
 
         self.data.new_process(process.pid, process.parent.pid, process.is_thread, process, self)
 
-        self.prepareProcess(process)
+        process.syscall()
         process.parent.syscall()
 
         for extension in self.extensions:
             extension.on_process_created(self.data.get_process(process.pid))
-
-    def processExecution(self, event):  # pylint: disable=C0103
-        process = event.process
-        logging.info("*** Process %s execution ***", process.pid)
-        process.syscall()
 
     def runDebugger(self):  # pylint: disable=C0103
         # Create debugger and traced process
