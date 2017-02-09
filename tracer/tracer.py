@@ -105,84 +105,6 @@ class Tracer:
             # color log is just optional feature
             logging.getLogger().handlers[0].setFormatter(logging.Formatter(self.LOGGING_FORMAT))
 
-    def syscallTrace(self, process):  # pylint: disable=C0103
-        # First query to break at next syscall
-        process.syscall()
-
-        while True:
-            # No more process? Exit
-            if not self.debugger:
-                break
-
-            # Wait until next syscall enter
-            try:
-                event = self.debugger.waitSyscall()
-
-                if self.options.trace_mmap:
-                    proc = self.data.get_process(event.process.pid)
-                    for capture in proc['descriptors']:
-                        if capture.descriptor.is_file and capture.descriptor['mmap']:
-                            for mmap_area in capture.descriptor['mmap']:
-                                mmap_area.check()
-
-                self.syscall(event.process)
-            except ProcessExit as event:
-                self.processExited(event)
-            except ProcessSignal as event:
-                event.display()
-                event.process.syscall(event.signum)
-            except NewProcessEvent as event:
-                self.newProcess(event)
-            except ProcessExecution as event:
-                process = event.process
-                logging.info("*** Process %s execution ***", process.pid)
-                process.syscall()
-
-    def syscall(self, process):
-        state = process.syscall_state
-        syscall = state.event(FunctionCallOptions())
-
-        if syscall:
-            proc = self.data.get_process(syscall.process.pid)
-            syscall_obj = Syscall(proc, syscall)
-
-            logging.debug("syscall %s", syscall_obj)
-            for extension in self.extensions:
-                try:
-                    logging.debug("extension %s", extension)
-                    extension.on_syscall(syscall_obj)
-                except BaseException as e:
-                    logging.exception("extension %s failed", extension)
-
-
-        # Break at next syscall
-        process.syscall()
-
-    def processExited(self, event):  # pylint: disable=C0103
-        # Display syscall which has not exited
-        state = event.process.syscall_state
-        if (state.next_event == "exit") and (not self.options.enter) and state.syscall:
-            self.syscall(state.process)
-
-        # Display exit message
-        logging.info("*** %s ***", event)
-        self.data.get_process(event.process.pid)['exitCode'] = event.exitcode
-
-        evt = Event(self.data.get_process(event.process.pid))
-        for extension in self.extensions:
-            extension.on_process_exit(evt)
-
-    def newProcess(self, event):  # pylint: disable=C0103
-        process = event.process
-        logging.info("*** New process %s ***", process.pid)
-
-        self.data.new_process(process.pid, process.parent.pid, process.is_thread, process, self)
-
-        process.syscall()
-        process.parent.syscall()
-
-        for extension in self.extensions:
-            extension.on_process_created(self.data.get_process(process.pid))
 
     def main(self):
         signal.signal(signal.SIGTERM, self.handle_sigterm)
@@ -192,7 +114,15 @@ class Tracer:
             extension.on_start(self)
 
         self.debugger = self.backend.debugger
+        self.backend.data = self.data
+        self.backend.extensions = self.extensions
+        self.backend.options = self.options
+        self.backend.backtracer = self.backtracer
         self.createChild()
+
+        for event in self.backend.start():
+            print(event)
+
         self.debugger.quit()
 
         for extension in self.extensions:
@@ -211,8 +141,6 @@ class Tracer:
         proc.descriptors.open(Descriptor.create_file(0, "stdin"))
         proc.descriptors.open(Descriptor.create_file(1, "stdout"))
         proc.descriptors.open(Descriptor.create_file(2, "stderr"))
-
-        self.syscallTrace(handle)
 
     def handle_sigterm(self, signum, frame):
         self.debugger.quit()
