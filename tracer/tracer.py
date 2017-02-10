@@ -6,7 +6,6 @@ import sys
 
 from tracer.arguments import create_core_parser
 from tracer.backend.python_ptrace import PythonPtraceBackend, ProcessCreated, ProcessExited, SyscallEvent
-from tracer.backtrace.impl.null import NullBacktracer
 from tracer.event import Event
 from tracer.extensions.backtrace import Backtrace
 from tracer.extensions.contents import ContentsExtension
@@ -25,7 +24,6 @@ class Tracer:
     def __init__(self):
         self.extensions = []
         self.backend = PythonPtraceBackend()
-        self.backtracer = NullBacktracer()
         self.parseOptions()
 
     def parseOptions(self):  # pylint: disable=C0103
@@ -103,7 +101,6 @@ class Tracer:
             extension.on_start(self)
 
         self.backend.data = self.data
-        self.backend.backtracer = self.backtracer
         self.createChild()
 
         for event in self.backend.start():

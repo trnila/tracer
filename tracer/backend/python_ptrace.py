@@ -9,6 +9,8 @@ from ptrace.debugger import PtraceDebugger
 from ptrace.debugger.child import createChild
 from ptrace.func_call import FunctionCallOptions
 
+from tracer.backtrace.impl.null import NullBacktracer
+
 
 class Evt:
     PROCESS_CREATED = 'create'
@@ -38,6 +40,7 @@ class PythonPtraceBackend:
         self.debugger = PtraceDebugger()
         self.root = None
         self.syscalls = {}
+        self.backtracer = NullBacktracer()
 
         self.debugger.traceClone()
         self.debugger.traceExec()
