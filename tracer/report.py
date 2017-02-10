@@ -100,6 +100,9 @@ class Process:
     def get_backtrace(self):
         return self.tracer.backtracer.create_backtrace(self.handle)
 
+    def read_cstring(self, address):
+        return self.tracer.backend.read_cstring(self.pid, address)
+
     def __getitem__(self, item):
         return self.data[item]
 

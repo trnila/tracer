@@ -1,22 +1,11 @@
 import logging
 import os
+import shutil
 import signal
 import sys
-from errno import EPERM
-
-import shutil
-from ptrace.debugger import Application
-from ptrace.debugger import NewProcessEvent
-from ptrace.debugger import ProcessExecution
-from ptrace.debugger import ProcessExit
-from ptrace.debugger import ProcessSignal
-from ptrace.debugger import PtraceDebugger
-from ptrace.error import PTRACE_ERRORS, PtraceError
-from ptrace.error import writeError
-from ptrace.func_call import FunctionCallOptions
 
 from tracer.arguments import create_core_parser
-from tracer.backend.python_ptrace import PythonPtraceBackend
+from tracer.backend.python_ptrace import PythonPtraceBackend, ProcessCreated, ProcessExited, SyscallEvent
 from tracer.backtrace.impl.null import NullBacktracer
 from tracer.event import Event
 from tracer.extensions.backtrace import Backtrace
@@ -93,6 +82,7 @@ class Tracer:
 
     def setup_logging(self, fd, level):  # pylint: disable=C0103
         logger = logging.getLogger()
+        logger.handlers.clear()
         logger.addHandler(logging.StreamHandler(fd))
         logger.setLevel(max(logging.ERROR - (level * 10), 1))
         try:
@@ -121,7 +111,37 @@ class Tracer:
         self.createChild()
 
         for event in self.backend.start():
-            print(event)
+            if isinstance(event, ProcessCreated):
+                self.data.new_process(
+                    event.process.pid,
+                    event.process.parent.pid,
+                    event.process.is_thread,
+                    event.process,
+                    self
+                )
+
+                for extension in self.extensions:
+                    extension.on_process_created(self.data.get_process(event.process.pid))
+
+            elif isinstance(event, ProcessExited):
+                # Display exit message
+                logging.info("*** %s ***", event)
+                self.data.get_process(event.pid)['exitCode'] = event.exit_code
+
+                evt = Event(self.data.get_process(event.pid))
+                for extension in self.extensions:
+                    extension.on_process_exit(evt)
+            elif isinstance(event, SyscallEvent):
+                proc = self.data.get_process(event.pid)
+                syscall_obj = Syscall(proc, event.syscall_name, self.backend)
+
+                logging.debug("syscall %s", syscall_obj)
+                for extension in self.extensions:
+                    try:
+                        extension.on_syscall(syscall_obj)
+                    except BaseException as e:
+                        logging.exception("extension %s failed", extension)
+                        sys.exit()
 
         self.debugger.quit()
 

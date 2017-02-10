@@ -4,20 +4,25 @@ from tracer.event import Argument
 from tracer.utils import AttributeTrait, build_repr
 
 
+class ArgumentList:
+    def __init__(self, syscall):
+        self.syscall = syscall
+
+    def __getitem__(self, item):
+        return Argument(self.syscall, item)
+
+
 class Syscall(AttributeTrait):
-    def __init__(self, process, syscall):
+    def __init__(self, process, name, backend):
         super().__init__()
         self.process = process
-        self.syscall = syscall
-        self.arguments = [Argument(arg) for arg in syscall.arguments]
+        self.name = name
+        self.backend = backend
+        self.arguments = ArgumentList(self)
 
     @property
     def result(self):
-        return self.syscall.result
-
-    @property
-    def name(self):
-        return self.syscall.name
+        return self.backend.get_syscall_result(self.process.pid)
 
     @property
     def finished(self):
