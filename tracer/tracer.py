@@ -53,7 +53,7 @@ class Tracer:
         self.options.trace_exec = True
         self.options.no_stdout = False
         self.options.enter = True
-        
+
         # override from settings file
         self.options.__dict__.update(self.load_config())
 
@@ -95,7 +95,6 @@ class Tracer:
             # color log is just optional feature
             logging.getLogger().handlers[0].setFormatter(logging.Formatter(self.LOGGING_FORMAT))
 
-
     def main(self):
         signal.signal(signal.SIGTERM, self.handle_sigterm)
         signal.signal(signal.SIGINT, self.handle_sigterm)
@@ -103,10 +102,7 @@ class Tracer:
         for extension in self.extensions:
             extension.on_start(self)
 
-        self.debugger = self.backend.debugger
         self.backend.data = self.data
-        self.backend.extensions = self.extensions
-        self.backend.options = self.options
         self.backend.backtracer = self.backtracer
         self.createChild()
 
@@ -143,7 +139,14 @@ class Tracer:
                         logging.exception("extension %s failed", extension)
                         sys.exit()
 
-        self.debugger.quit()
+                if self.options.trace_mmap:
+                    proc = self.data.get_process(event.pid)
+                    for capture in proc['descriptors']:
+                        if capture.descriptor.is_file and capture.descriptor['mmap']:
+                            for mmap_area in capture.descriptor['mmap']:
+                                mmap_area.check()
+
+        self.backend.quit()
 
         for extension in self.extensions:
             extension.on_save(self)
@@ -163,7 +166,7 @@ class Tracer:
         proc.descriptors.open(Descriptor.create_file(2, "stderr"))
 
     def handle_sigterm(self, signum, frame):
-        self.debugger.quit()
+        self.backend.quit()
 
     def register_extension(self, extension):
         logging.info("Plugin %s registered", extension.__class__.__name__)

@@ -33,8 +33,6 @@ class SyscallEvent(Evt):
         self.syscall_name = syscall_name
 
 
-
-
 class PythonPtraceBackend:
     def __init__(self):
         self.debugger = PtraceDebugger()
@@ -91,13 +89,6 @@ class PythonPtraceBackend:
 
                 yield SyscallEvent(event.process.pid, syscall.name)
 
-                if self.options.trace_mmap:
-                    proc = self.data.get_process(event.process.pid)
-                    for capture in proc['descriptors']:
-                        if capture.descriptor.is_file and capture.descriptor['mmap']:
-                            for mmap_area in capture.descriptor['mmap']:
-                                mmap_area.check()
-
                 # Break at next syscall
                 event.process.syscall()
             except ProcessExit as event:
@@ -122,3 +113,6 @@ class PythonPtraceBackend:
             except ProcessExecution as event:
                 logging.info("*** Process %s execution ***", event.process.pid)
                 event.process.syscall()
+
+    def quit(self):
+        self.debugger.quit()
