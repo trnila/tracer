@@ -47,7 +47,7 @@ class CoreExtension(Extension):
         bytes_content = syscall.process.read_bytes(syscall.arguments[1].value, syscall.arguments[2].value)
         addr = utils.parse_addr(bytes_content)
 
-        if descriptor['socket_type'] == socket.AF_INET and addr['address'].__str__() == "0.0.0.0":
+        if descriptor['socket_type'] == socket.AF_INET and addr.address.__str__() == "0.0.0.0":
             addr = {
                 'address': utils.get_all_interfaces(),
                 'port': addr.port
