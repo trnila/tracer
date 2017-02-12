@@ -106,15 +106,14 @@ class Tracer:
         for event in self.backend.start():
             if isinstance(event, ProcessCreated):
                 self.data.new_process(
-                    event.process.pid,
-                    event.process.parent.pid,
-                    event.process.is_thread,
-                    event.process,
+                    event.pid,
+                    event.parent_pid,
+                    event.is_thread,
                     self
                 )
 
                 for extension in self.extensions:
-                    extension.on_process_created(self.data.get_process(event.process.pid))
+                    extension.on_process_created(self.data.get_process(event.pid))
 
             elif isinstance(event, ProcessExited):
                 # Display exit message
@@ -150,7 +149,7 @@ class Tracer:
 
     def createChild(self):
         handle = self.backend.create_process(self.program)
-        proc = self.data.new_process(handle.pid, 0, False, handle, self)
+        proc = self.data.new_process(handle.pid, 0, False, self)
         proc['executable'] = self.program[0]
         proc['arguments'] = self.program
         proc['env'] = dict(os.environ)

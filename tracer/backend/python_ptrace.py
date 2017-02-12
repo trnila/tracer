@@ -19,8 +19,10 @@ class Evt:
 
 
 class ProcessCreated(Evt):
-    def __init__(self, process):
-        self.process = process
+    def __init__(self, pid, parent_pid, is_thread):
+        self.pid = pid
+        self.parent_pid = parent_pid
+        self.is_thread = is_thread
 
 
 class ProcessExited(Evt):
@@ -73,6 +75,12 @@ class PythonPtraceBackend:
                     return arg.text
             raise e
 
+    def read_bytes(self, pid, address, size):
+        return self.debugger[pid].readBytes(address, size)
+
+    def create_backtrace(self, pid):
+        return self.backtracer.create_backtrace(self.debugger[pid])
+
     def start(self):
         # First query to break at next syscall
         self.root.syscall()
@@ -109,7 +117,11 @@ class PythonPtraceBackend:
                 process = event.process
                 logging.info("*** New process %s ***", process.pid)
 
-                yield ProcessCreated(event.process)
+                yield ProcessCreated(
+                    pid=process.pid,
+                    parent_pid=process.parent.pid,
+                    is_thread=process.is_thread
+                )
 
                 process.syscall()
                 process.parent.syscall()

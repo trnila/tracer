@@ -76,13 +76,12 @@ class Descriptors:
 
 
 class Process:
-    def __init__(self, report, data, descriptors, handle, tracer):
+    def __init__(self, report, data, descriptors, tracer):
         self.report = report
         self.data = data
         self.descriptors = descriptors
         self.captures = {}
         self.descriptors.processes.append(self)
-        self.handle = handle
         self.tracer = tracer
 
     @property
@@ -98,10 +97,13 @@ class Process:
         return self['arguments']
 
     def get_backtrace(self):
-        return self.tracer.backend.backtracer.create_backtrace(self.handle)
+        return self.tracer.backend.create_backtrace(self.pid)
 
     def read_cstring(self, address):
         return self.tracer.backend.read_cstring(self.pid, address)
+
+    def read_bytes(self, address, size):
+        return self.tracer.backend.read_bytes(self.pid, address, size)
 
     def __getitem__(self, item):
         return self.data[item]
@@ -148,7 +150,7 @@ class Report(AttributeTrait):
 
         os.makedirs(path, exist_ok=True)
 
-    def new_process(self, pid, parent, is_thread, handle, tracer):
+    def new_process(self, pid, parent, is_thread, tracer):
         if not is_thread:
             if parent:
                 self.descriptor_groups[pid] = Descriptors()
@@ -171,7 +173,7 @@ class Report(AttributeTrait):
             "env": self.processes[parent]['env'] if parent else None,
             "descriptors": [],
             "kills": []
-        }, self.descriptor_groups[group], handle, tracer)
+        }, self.descriptor_groups[group], tracer)
 
         return self.processes[pid]
 

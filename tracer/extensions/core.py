@@ -31,7 +31,7 @@ class CoreExtension(Extension):
 
     @register_syscall("pipe")
     def handler_pipe(self, syscall):
-        pipe_fd = syscall.process.handle.readBytes(syscall.arguments[0].value, 8)
+        pipe_fd = syscall.process.read_bytes(syscall.arguments[0].value, 8)
         fd1, fd2 = unpack("ii", pipe_fd)
         pipe1, pipe2 = Descriptor.create_pipes(fd1, fd2)
 
@@ -44,7 +44,7 @@ class CoreExtension(Extension):
     @register_syscall("bind")
     def handler_bind(self, syscall):
         descriptor = syscall.process.descriptors.get(syscall.arguments[0].value)
-        bytes_content = syscall.process.handle.readBytes(syscall.arguments[1].value, syscall.arguments[2].value)
+        bytes_content = syscall.process.read_bytes(syscall.arguments[1].value, syscall.arguments[2].value)
         addr = utils.parse_addr(bytes_content)
 
         if descriptor['socket_type'] == socket.AF_INET and addr['address'].__str__() == "0.0.0.0":
@@ -62,16 +62,16 @@ class CoreExtension(Extension):
     def handler_connect_like(self, syscall):  # elif syscall.name in ['connect', 'accept', 'syscall<288>']:
         # struct sockaddr { unsigned short family; }
         if syscall.name == 'connect':
-            bytes_content = syscall.process.handle.readBytes(syscall.arguments[1].value, syscall.arguments[2].value)
+            bytes_content = syscall.process.read_bytes(syscall.arguments[1].value, syscall.arguments[2].value)
             fdnum = syscall.arguments[0].value
 
             resolved = resolve(syscall.process.pid, fdnum, 1)
             if 'dst' in resolved:
                 syscall.process.descriptors.get(fdnum)['local'] = resolved['dst']  # TODO: rewrite
         elif syscall.name in ['accept', 'syscall<288>']:
-            bytes_content = syscall.process.handle.readBytes(syscall.arguments[2].value, 4)
+            bytes_content = syscall.process.read_bytes(syscall.arguments[2].value, 4)
             socket_size = unpack("I", bytes_content)[0]
-            bytes_content = syscall.process.handle.readBytes(syscall.arguments[1].value, socket_size)
+            bytes_content = syscall.process.read_bytes(syscall.arguments[1].value, socket_size)
             fdnum = syscall.result
 
             # mark accepting socket as server

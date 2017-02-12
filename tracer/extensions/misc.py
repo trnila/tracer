@@ -26,7 +26,7 @@ class MiscExtension(Extension):
         level = syscall.arguments[1].value
         option_name = syscall.arguments[2].value
         value = \
-        struct.unpack("i", syscall.process.handle.readBytes(syscall.arguments[3].value, syscall.arguments[4].value))[0]
+            struct.unpack("i", syscall.process.read_bytes(syscall.arguments[3].value, syscall.arguments[4].value))[0]
 
         descriptor = syscall.process.descriptors.get(syscall.arguments[0].value)
         descriptor['sockopts'].append({
