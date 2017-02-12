@@ -9,35 +9,12 @@ from ptrace.debugger import PtraceDebugger
 from ptrace.debugger.child import createChild
 from ptrace.func_call import FunctionCallOptions
 
+from tracer.backend.backend import Backend
+from tracer.backend.events import SyscallEvent, ProcessExited, ProcessCreated
 from tracer.backtrace.impl.null import NullBacktracer
 
 
-class Evt:
-    PROCESS_CREATED = 'create'
-    PROCESS_EXITED = 'exit'
-    SYSCALL = 'syscall'
-
-
-class ProcessCreated(Evt):
-    def __init__(self, pid, parent_pid, is_thread):
-        self.pid = pid
-        self.parent_pid = parent_pid
-        self.is_thread = is_thread
-
-
-class ProcessExited(Evt):
-    def __init__(self, pid, exit_code):
-        self.pid = pid
-        self.exit_code = exit_code
-
-
-class SyscallEvent(Evt):
-    def __init__(self, pid, syscall_name):
-        self.pid = pid
-        self.syscall_name = syscall_name
-
-
-class PythonPtraceBackend:
+class PythonPtraceBackend(Backend):
     def __init__(self):
         self.debugger = PtraceDebugger()
         self.root = None
