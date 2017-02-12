@@ -133,7 +133,6 @@ class Tracer:
                         extension.on_syscall(syscall_obj)
                     except BaseException as e:
                         logging.exception("extension %s failed", extension)
-                        sys.exit()
 
                 if self.options.trace_mmap:
                     proc = self.data.get_process(event.pid)
