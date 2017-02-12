@@ -3,9 +3,8 @@ import os
 import shutil
 import signal
 import sys
-from argparse import Namespace
+from argparse import Namespace, ArgumentParser
 
-from tracer.arguments import create_core_parser
 from tracer.backend.python_ptrace import PythonPtraceBackend, ProcessCreated, ProcessExited, SyscallEvent
 from tracer.event import Event
 from tracer.extensions.backtrace import Backtrace
@@ -29,8 +28,21 @@ class Tracer:
         self.parse_options()
         self.data = None
 
+    @staticmethod
+    def create_core_parser():
+        parser = ArgumentParser()
+        parser.add_argument("--extension", "-e", help="path to extension file or directory to load",
+                            action="append", default=[])
+        parser.add_argument("-v", dest="logging_level", default=0, action="count")
+        parser.add_argument('-p', dest="pid")
+        parser.add_argument('--trace-mmap', action="store_true", default=False)
+        parser.add_argument("program", nargs='?')
+        parser.add_argument("arguments", nargs='*')
+
+        return parser
+
     def parse_options(self):
-        parser = create_core_parser()
+        parser = self.create_core_parser()
         opts = parser.parse_known_args()[0]
         self.setup_logging(sys.stdout, opts.logging_level)
 
