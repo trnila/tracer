@@ -3,6 +3,7 @@ import os
 import shutil
 import signal
 import sys
+from argparse import Namespace
 
 from tracer.arguments import create_core_parser
 from tracer.backend.python_ptrace import PythonPtraceBackend, ProcessCreated, ProcessExited, SyscallEvent
@@ -24,9 +25,11 @@ class Tracer:
     def __init__(self):
         self.extensions = []
         self.backend = PythonPtraceBackend()
-        self.parseOptions()
+        self.options = Namespace()
+        self.parse_options()
+        self.data = None
 
-    def parseOptions(self):  # pylint: disable=C0103
+    def parse_options(self):
         parser = create_core_parser()
         opts = parser.parse_known_args()[0]
         self.setup_logging(sys.stdout, opts.logging_level)
@@ -56,7 +59,7 @@ class Tracer:
         self.options.__dict__.update(self.load_config())
 
         self.options.program = shutil.which(self.options.program)
-        self.program = [self.options.program] + self.options.arguments
+        self.options.cmdline = [self.options.program] + self.options.arguments
 
         logging.debug("Current configuration: %s", self.options)
 
@@ -64,7 +67,8 @@ class Tracer:
             parser.print_help()
             sys.exit(1)
 
-    def load_config(self):
+    @staticmethod
+    def load_config():
         options = {}
         for config_file in [os.path.expanduser('~/.tracerrc'), 'tracer.conf.py']:
             try:
@@ -101,7 +105,7 @@ class Tracer:
             extension.on_start(self)
 
         self.backend.data = self.data
-        self.createChild()
+        self.create_child()
 
         for event in self.backend.start():
             if isinstance(event, ProcessCreated):
@@ -146,11 +150,11 @@ class Tracer:
         for extension in self.extensions:
             extension.on_save(self)
 
-    def createChild(self):
-        handle = self.backend.create_process(self.program)
+    def create_child(self):
+        handle = self.backend.create_process(self.options.cmdline)
         proc = self.data.new_process(handle.pid, 0, False, self)
-        proc['executable'] = self.program[0]
-        proc['arguments'] = self.program
+        proc['executable'] = self.options.cmdline[0]
+        proc['arguments'] = self.options.cmdline
         proc['env'] = dict(os.environ)
 
         for extension in self.extensions:
