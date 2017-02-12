@@ -18,11 +18,4 @@ class Argument:
 
     @property
     def text(self):
-        print(self.value)
         return self.syscall.process.read_cstring(self.value)
-
-        # def __repr__(self):
-        # return "{}={}".format(
-        # self.argument.name,
-        # self.argument.text
-        #   )
