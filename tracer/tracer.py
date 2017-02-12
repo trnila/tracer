@@ -1,20 +1,11 @@
 import logging
 import os
+import shutil
 import signal
 import sys
 
-from ptrace.debugger import Application
-from ptrace.debugger import NewProcessEvent
-from ptrace.debugger import ProcessExecution
-from ptrace.debugger import ProcessExit
-from ptrace.debugger import ProcessSignal
-from ptrace.debugger import PtraceDebugger
-from ptrace.error import PTRACE_ERRORS
-from ptrace.error import writeError
-from ptrace.func_call import FunctionCallOptions
-
 from tracer.arguments import create_core_parser
-from tracer.backtrace.impl.null import NullBacktracer
+from tracer.backend.python_ptrace import PythonPtraceBackend, ProcessCreated, ProcessExited, SyscallEvent
 from tracer.event import Event
 from tracer.extensions.backtrace import Backtrace
 from tracer.extensions.contents import ContentsExtension
@@ -27,14 +18,12 @@ from tracer.extensions.shell import ShellExtension
 from tracer.fd import Descriptor, Syscall
 
 
-class Tracer(Application):
+class Tracer:
     LOGGING_FORMAT = "==TRACER== %(levelname)s:%(name)s:%(message)s"
 
     def __init__(self):
-        Application.__init__(self)
         self.extensions = []
-        self.debugger = PtraceDebugger()
-        self.backtracer = NullBacktracer()
+        self.backend = PythonPtraceBackend()
         self.parseOptions()
 
     def parseOptions(self):  # pylint: disable=C0103
@@ -62,10 +51,11 @@ class Tracer(Application):
         self.options.trace_exec = True
         self.options.no_stdout = False
         self.options.enter = True
-        
+
         # override from settings file
         self.options.__dict__.update(self.load_config())
 
+        self.options.program = shutil.which(self.options.program)
         self.program = [self.options.program] + self.options.arguments
 
         logging.debug("Current configuration: %s", self.options)
@@ -73,8 +63,6 @@ class Tracer(Application):
         if self.options.pid is None and not self.options.program:
             parser.print_help()
             sys.exit(1)
-
-        self.processOptions()
 
     def load_config(self):
         options = {}
@@ -92,6 +80,7 @@ class Tracer(Application):
 
     def setup_logging(self, fd, level):  # pylint: disable=C0103
         logger = logging.getLogger()
+        logger.handlers.clear()
         logger.addHandler(logging.StreamHandler(fd))
         logger.setLevel(max(logging.ERROR - (level * 10), 1))
         try:
@@ -104,149 +93,64 @@ class Tracer(Application):
             # color log is just optional feature
             logging.getLogger().handlers[0].setFormatter(logging.Formatter(self.LOGGING_FORMAT))
 
-    def displaySyscall(self, syscall):  # pylint: disable=C0103
-        text = syscall.format()
-        if self.options.syscalls:
-            if syscall.result is not None:
-                text = "%-40s = %s" % (text, syscall.result_text)
-            prefix = ["[%s]" % syscall.process.pid]
-            if prefix:
-                text = ''.join(prefix) + ' ' + text
-            logging.debug(text)
+    def main(self):
+        signal.signal(signal.SIGTERM, self.handle_sigterm)
+        signal.signal(signal.SIGINT, self.handle_sigterm)
 
-    def syscallTrace(self, process):  # pylint: disable=C0103
-        # First query to break at next syscall
-        self.prepareProcess(process)
+        for extension in self.extensions:
+            extension.on_start(self)
 
-        while True:
-            # No more process? Exit
-            if not self.debugger:
-                break
+        self.backend.data = self.data
+        self.createChild()
 
-            # Wait until next syscall enter
-            try:
-                event = self.debugger.waitSyscall()
+        for event in self.backend.start():
+            if isinstance(event, ProcessCreated):
+                self.data.new_process(
+                    event.pid,
+                    event.parent_pid,
+                    event.is_thread,
+                    self
+                )
+
+                for extension in self.extensions:
+                    extension.on_process_created(self.data.get_process(event.pid))
+
+            elif isinstance(event, ProcessExited):
+                # Display exit message
+                logging.info("*** %s ***", event)
+                self.data.get_process(event.pid)['exitCode'] = event.exit_code
+
+                evt = Event(self.data.get_process(event.pid))
+                for extension in self.extensions:
+                    extension.on_process_exit(evt)
+            elif isinstance(event, SyscallEvent):
+                proc = self.data.get_process(event.pid)
+                syscall_obj = Syscall(proc, event.syscall_name, self.backend)
+
+                logging.debug("syscall %s", syscall_obj)
+                for extension in self.extensions:
+                    try:
+                        extension.on_syscall(syscall_obj)
+                    except BaseException as e:
+                        logging.exception("extension %s failed", extension)
 
                 if self.options.trace_mmap:
-                    proc = self.data.get_process(event.process.pid)
+                    proc = self.data.get_process(event.pid)
                     for capture in proc['descriptors']:
                         if capture.descriptor.is_file and capture.descriptor['mmap']:
                             for mmap_area in capture.descriptor['mmap']:
                                 mmap_area.check()
 
-                self.syscall(event.process)
-            except ProcessExit as event:
-                self.processExited(event)
-            except ProcessSignal as event:
-                event.display()
-                event.process.syscall(event.signum)
-            except NewProcessEvent as event:
-                self.newProcess(event)
-            except ProcessExecution as event:
-                self.processExecution(event)
-
-    def syscall(self, process):
-        state = process.syscall_state
-        syscall = state.event(FunctionCallOptions())
-
-        if syscall:
-            proc = self.data.get_process(syscall.process.pid)
-            syscall_obj = Syscall(proc, syscall)
-
-            logging.debug("syscall %s", syscall_obj)
-            for extension in self.extensions:
-                try:
-                    logging.debug("extension %s", extension)
-                    extension.on_syscall(syscall_obj)
-                except BaseException as e:
-                    logging.exception("extension %s failed", extension)
-
-
-        # Break at next syscall
-        process.syscall()
-
-    def processExited(self, event):  # pylint: disable=C0103
-        # Display syscall which has not exited
-        state = event.process.syscall_state
-        if (state.next_event == "exit") and (not self.options.enter) and state.syscall:
-            self.displaySyscall(state.syscall)
-
-        # Display exit message
-        logging.info("*** %s ***", event)
-        self.data.get_process(event.process.pid)['exitCode'] = event.exitcode
-
-        evt = Event(self.data.get_process(event.process.pid))
-        for extension in self.extensions:
-            extension.on_process_exit(evt)
-
-    def prepareProcess(self, process):  # pylint: disable=C0103
-        process.syscall()
-
-    def newProcess(self, event):  # pylint: disable=C0103
-        process = event.process
-        logging.info("*** New process %s ***", process.pid)
-
-        self.data.new_process(process.pid, process.parent.pid, process.is_thread, process, self)
-
-        self.prepareProcess(process)
-        process.parent.syscall()
-
-        for extension in self.extensions:
-            extension.on_process_created(self.data.get_process(process.pid))
-
-    def processExecution(self, event):  # pylint: disable=C0103
-        process = event.process
-        logging.info("*** Process %s execution ***", process.pid)
-        process.syscall()
-
-    def runDebugger(self):  # pylint: disable=C0103
-        # Create debugger and traced process
-        self.setupDebugger()
-        process = self.createProcess()
-        if not process:
-            return
-        self.data.get_process(process.pid).handle = process
-        self.syscallTrace(process)
-
-    def main(self):
-        signal.signal(signal.SIGTERM, self.handle_sigterm)
-        signal.signal(signal.SIGINT, self.handle_sigterm)
-
-        self.debugger.traceClone()
-        self.debugger.traceExec()
-        self.debugger.traceFork()
-
-        for extension in self.extensions:
-            extension.on_start(self)
-
-        self.runDebugger()
-
-        try:
-            pass
-            # self.runDebugger()
-        except ProcessExit as event:
-            self.processExited(event)
-        except KeyboardInterrupt:
-            logging.error("Interrupted.")
-            self.debugger.quit()
-        except PTRACE_ERRORS as err:
-            writeError(logging.getLogger(), err, "Debugger error")
-        self.debugger.quit()
+        self.backend.quit()
 
         for extension in self.extensions:
             extension.on_save(self)
 
-    def createChild(self, arguments, env=None):  # pylint: disable=C0103
-        try:
-            pid = Application.createChild(self, arguments, env)
-        except Exception as e:
-            print("Could not execute %s: %s" % (arguments, e))
-            sys.exit(1)
-        logging.debug("execve(%s, %s, [/* 40 vars */]) = %s", arguments[0], arguments, pid)
-
-        proc = self.data.new_process(pid, 0, False, None, self)
-        proc['executable'] = arguments[0]
-        proc['arguments'] = arguments
+    def createChild(self):
+        handle = self.backend.create_process(self.program)
+        proc = self.data.new_process(handle.pid, 0, False, self)
+        proc['executable'] = self.program[0]
+        proc['arguments'] = self.program
         proc['env'] = dict(os.environ)
 
         for extension in self.extensions:
@@ -255,10 +159,9 @@ class Tracer(Application):
         proc.descriptors.open(Descriptor.create_file(0, "stdin"))
         proc.descriptors.open(Descriptor.create_file(1, "stdout"))
         proc.descriptors.open(Descriptor.create_file(2, "stderr"))
-        return pid
 
     def handle_sigterm(self, signum, frame):
-        self.debugger.quit()
+        self.backend.quit()
 
     def register_extension(self, extension):
         logging.info("Plugin %s registered", extension.__class__.__name__)

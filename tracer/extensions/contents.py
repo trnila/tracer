@@ -30,16 +30,16 @@ class ContentsExtension(Extension):
         content = b""
 
         if syscall.name in ['sendmsg', 'recvmsg']:
-            bytes_content = syscall.process.handle.readBytes(syscall.arguments[1].value, 32)
+            bytes_content = syscall.process.read_bytes(syscall.arguments[1].value, 32)
             items = unpack("PIPL", bytes_content)
 
             for i in range(0, items[3]):
-                bytes_content = syscall.process.handle.readBytes(items[2] + 16 * i, 16)
+                bytes_content = syscall.process.read_bytes(items[2] + 16 * i, 16)
                 i = unpack("PL", bytes_content)
-                content += syscall.process.handle.readBytes(i[0], i[1])
+                content += syscall.process.read_bytes(i[0], i[1])
         else:
             wrote = syscall.result if family == 'read' else syscall.arguments[2].value
-            content = syscall.process.handle.readBytes(syscall.arguments[1].value, wrote)
+            content = syscall.process.read_bytes(syscall.arguments[1].value, wrote)
 
         data = {
             "backtrace": syscall.process.get_backtrace()
@@ -58,7 +58,7 @@ class ContentsExtension(Extension):
                     }
                 des['local'] = addr
 
-            addr = utils.parse_addr(syscall.process.handle.readBytes(syscall.arguments[4].value, 8))
+            addr = utils.parse_addr(syscall.process.read_bytes(syscall.arguments[4].value, 8))
             data['address'] = addr
             import base64
             data['_'] = base64.b64encode(content).decode('utf-8')

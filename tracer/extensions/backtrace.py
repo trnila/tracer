@@ -9,10 +9,10 @@ class Backtrace(Extension):
 
     def on_start(self, tracer):
         if tracer.options.backtrace:
-            tracer.backtracer = Libunwind()
+            tracer.backend.backtracer = Libunwind()
 
     def on_process_exit(self, event):
-        event.tracer.backtracer.process_exited(event.process['pid'])
+        event.tracer.backend.backtracer.process_exited(event.process['pid'])
 
     @register_syscall(["open", "socket"])
     def open_handler(self, syscall):

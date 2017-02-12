@@ -8,20 +8,14 @@ class Event:
 
 
 class Argument:
-    def __init__(self, argument):
-        self.argument = argument
+    def __init__(self, syscall, nth):
+        self.syscall = syscall
+        self.nth = nth
 
     @property
     def value(self):
-        return self.argument.value
+        return self.syscall.backend.get_argument(self.syscall.process.pid, self.nth)
 
     @property
     def text(self):
-        self.argument.format()  # underlying library fetches data from process memory
-        return self.argument.text
-
-    def __repr__(self):
-        return "{}={}".format(
-            self.argument.name,
-            self.argument.text
-        )
+        return self.syscall.process.read_cstring(self.value)

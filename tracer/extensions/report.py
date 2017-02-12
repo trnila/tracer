@@ -1,3 +1,4 @@
+import logging
 import os
 import sys
 from datetime import datetime
@@ -27,4 +28,4 @@ class ReportExtension(Extension):
         if tracer.options.print_data:
             tracer.data.save(sys.stdout)
 
-        print("Report saved in %s" % tracer.options.output)
+        logging.info("Report saved in %s", tracer.options.output)
