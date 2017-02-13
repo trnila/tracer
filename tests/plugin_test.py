@@ -27,8 +27,18 @@ class CounterExtension(Extension):
         self.called += 1
 
 
-class MmapTest(unittest.TestCase):
-    def _execute(self, extension):
+class NonSuccessCalled(Extension):
+    def __init__(self):
+        super().__init__()
+        self.called = 0
+
+    @register_syscall("open", success_only=False)
+    def somefn(self, syscall):
+        self.called += 1
+
+
+class PluginTest(unittest.TestCase):
+    def _execute(self, extension):  # TODO: mock, do not execute tracing!
         # TODO: fix this
         import sys
         sys.argv = ['app', '-o', '/tmp/report_', 'ls']
@@ -49,3 +59,19 @@ class MmapTest(unittest.TestCase):
         self._execute(ext)
 
         self.assertNotEqual(0, ext.called)
+
+    def test_success_only_false(self):
+        extension = NonSuccessCalled()
+
+        error_syscall = type('FakeSyscall', (object,), {})
+        error_syscall.name = 'open'
+        error_syscall.result = -5
+
+        success_syscall = type('FakeSyscall', (object,), {})
+        success_syscall.name = 'open'
+        success_syscall.result = 5
+
+        extension.on_syscall(error_syscall)
+        self.assertEqual(1, extension.called)
+        extension.on_syscall(success_syscall)
+        self.assertEqual(2, extension.called)
