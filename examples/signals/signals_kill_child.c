@@ -5,17 +5,26 @@
 #include <wait.h>
 
 int main() {
+    int pipes[2];
+    pipe(pipes);
+
 	int child = fork();
 	if(child == 0) {
+	    close(pipes[0]);
+
 		printf("Waiting to be killed\n");
+		write(pipes[1], "R", 1);
+
 		pause();
 
 		exit(0);
 	}
 
-	sleep(1);
+    // wait until child is ready to die
+    close(pipes[1]);
+	char c;
+	read(pipes[0], &c, 1);
 
 	kill(child, SIGKILL);
-
 	while(wait(NULL) > 0);
 }
