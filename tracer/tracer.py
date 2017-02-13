@@ -70,12 +70,17 @@ class Tracer:
         # override from settings file
         self.options.__dict__.update(self.load_config())
 
-        self.options.program = shutil.which(self.options.program)
-        self.options.cmdline = [self.options.program] + self.options.arguments
+        resolved = shutil.which(self.options.program)
+        self.options.cmdline = [resolved] + self.options.arguments
 
         logging.debug("Current configuration: %s", self.options)
 
+        if self.options.program and not resolved:
+            logging.error("Could not resolve executable file %s", self.options.program)
+            sys.exit(1)
+
         if self.options.pid is None and not self.options.program:
+            print(self.options)
             parser.print_help()
             sys.exit(1)
 
