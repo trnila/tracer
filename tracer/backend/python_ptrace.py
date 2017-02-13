@@ -77,8 +77,26 @@ class PythonPtraceBackend(Backend):
 
                 yield SyscallEvent(event.process.pid, syscall.name)
 
-                # Break at next syscall
-                event.process.syscall()
+                # FIXME:
+                # when exit_group is called, it seems that thread is still monitored
+                # in next event we area accessing pid that is not running anymore
+                # so when exit_group occurs, remove all processes with same Tgid and detach from them
+                if syscall.name == 'exit_group':  # result is None, never return!
+                    def read_group(pid):
+                        with open('/proc/%d/status' % pid) as f:
+                            return int(
+                                dict([(i, j.strip()) for i, j in [i.split(':', 1) for i in f.read().splitlines()]])[
+                                    'Tgid'])
+
+                    me = read_group(syscall.process.pid)
+                    for process in self.debugger:
+                        if read_group(process.pid) == me:
+                            process.detach()
+                            self.debugger.deleteProcess(pid=process.pid)
+                            yield ProcessExited(process.pid, syscall.arguments[0].value)
+
+                else:
+                    event.process.syscall()
             except ProcessExit as event:
                 # Display syscall which has not exited
                 state = event.process.syscall_state
