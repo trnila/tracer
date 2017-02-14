@@ -78,10 +78,46 @@ class ShellExtension(Extension):
             ""
         ]
 
+        if tracer.options.backtrace:
+            backtrace = self._format_backtrace(syscall.process.get_backtrace())
+            banner.append("Backtrace")
+            banner.append(backtrace)
+            banner.append("")
+
         [banner.append("{} = {}".format(name, str(value))) for name, value in local.items()]
 
         try:
             self.shell.run("\n".join(banner), local)
         except SystemExit:
             # exit only this shell
+            pass
+
+    def _format_backtrace(self, backtrace):
+        out = []
+
+        for frame in backtrace:
+            if frame.location:
+                out.append(frame.location)
+                out.append(self._format_codeblock(frame.location))
+
+        return "\n".join(out)
+
+    @staticmethod
+    def _format_codeblock(location):
+        file, num = location.split(':')
+        num = int(num)
+
+        out = []
+        try:
+            with open(file) as f:
+                for i, line in enumerate(f):
+                    if num - 5 < i < num + 5:
+                        out.append("{prefix}{lineno:>5} {content}\033[0m".format(
+                            prefix="\033[1m" if num == i else "",
+                            lineno=i,
+                            content=line.strip(),
+                        ))
+
+            return "\n".join(out)
+        except FileNotFoundError:
             pass
