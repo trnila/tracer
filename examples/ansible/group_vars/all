@@ -1,0 +1,7 @@
+---
+
+tracer_options: ""
+tracer_output: "/tmp/tracer_report"
+virtualenv_dir: "/tmp/tracerenv"
+
+delay: 0

@@ -1,0 +1,19 @@
+- hosts: all
+  tasks:
+  - name: install tracer
+    pip:
+      name: git+https://github.com/trnila/tracer.git
+      editable: false
+      virtualenv: "{{ virtualenv_dir }}"
+      virtualenv_python: python3
+
+  - name: run
+    shell: "sleep {{ delay }}; {{ virtualenv_dir }}/bin/python -m tracer -o '{{ tracer_output  }}' -- {{ tracer_command }}"
+
+  - name: copy back
+    synchronize:
+      mode: pull
+      src: "{{ tracer_output }}/"
+      dest: report/{{ inventory_hostname }}
+
+
