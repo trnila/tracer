@@ -208,6 +208,15 @@ class TracingTest(TracerTestCase):
             self.assertEqual(signal.SIGKILL, parent['kills'][0]['signal'])
             # TODO: add that this process has been killed?
 
+    def test_quit(self):
+        with self.execute('cat', background=True) as data:
+            sleep(1)
+            data.process.terminate()
+            data.wait()
+            self.assertEqual(0, data.process.returncode);
+            self.assertIsNotNone(data.system.get_process_by(executable=shutil.which("cat")))
+
+
 if __name__ == '__main__':
     sys.argv.append('-b')
     unittest.main()
