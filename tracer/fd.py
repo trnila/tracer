@@ -1,7 +1,7 @@
 import os
 
 from tracer.event import Argument
-from tracer.utils import AttributeTrait, build_repr
+from tracer.utils import AttributeTrait
 
 
 class ArgumentList:
@@ -36,8 +36,10 @@ class Syscall(AttributeTrait):
         return self.finished and (self.result >= 0 or self.result == -115)  # Operation now in progress
 
     def __str__(self):
-        return "<Syscall {}>".format(
-            build_repr(self, ['name', 'arguments', 'result'])
+        return "{name}({arguments}) = {result}".format(
+            name=self.name,
+            result=self.result,
+            arguments=str(self.arguments)
         )
 
 
