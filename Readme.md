@@ -35,6 +35,11 @@ For more information about options run
 tracer -h
 ```
 
+## Examples
+If you clone this repository somewhere, you can run interesting examples though helper script `./examples/run`,
+but it requires `tracer` and [`tracergui`](https://github.com/trnila/tracer-gui) in your *PATH*. 
+It can be achieved by installing both applications with *pip*.  
+
 ## Configuration
 Configuration options from command line arguments are merged with configuration file *~/.tracerrc* and with
 file *tracer.conf.py* in current working directory.
