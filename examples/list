@@ -17,3 +17,6 @@ python3 ./examples/files/multiple_read_write.py
 ./examples/mmap/mmap_track2
 python ./examples/threads/thread_fail.py
 ./examples/threads/thread_fd_share
+./examples/bash/graphviz_syntax_err.sh
+./examples/bash/ipv6_list.sh
+./examples/bash/passwd_typo.sh
