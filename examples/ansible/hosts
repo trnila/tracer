@@ -1,4 +1,4 @@
 [all]
-srv tracer_command="sh -c 'cat /etc/issue | nc -l 12345'"
+srv tracer_command="sh -c 'cat /etc/issue | timeout 10 nc -k -l 12345'"
 ubuntu1610 tracer_command="curl {{ hostvars['srv']['ansible_default_ipv4']['address'] }}:12345" delay=5
-
+ubuntu1604 tracer_command="curl {{ hostvars['srv']['ansible_default_ipv4']['address'] }}:12345" delay=5
