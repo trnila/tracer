@@ -11,6 +11,9 @@ class ArgumentList:
     def __getitem__(self, item):
         return Argument(self.syscall, item)
 
+    def __str__(self):
+        return self.syscall.backend.get_arguments_str(self.syscall.process.pid)
+
 
 class Syscall(AttributeTrait):
     def __init__(self, process, name, backend):
@@ -32,7 +35,7 @@ class Syscall(AttributeTrait):
     def success(self):
         return self.finished and (self.result >= 0 or self.result == -115)  # Operation now in progress
 
-    def __repr__(self):
+    def __str__(self):
         return "<Syscall {}>".format(
             build_repr(self, ['name', 'arguments', 'result'])
         )

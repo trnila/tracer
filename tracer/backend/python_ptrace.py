@@ -44,6 +44,10 @@ class PythonPtraceBackend(Backend):
 
         return None
 
+    def get_arguments_str(self, pid):
+        self.syscalls[pid].format()
+        return ", ".join(["{}={}".format(i.name, i.text) for i in self.syscalls[pid].arguments])
+
     def read_cstring(self, pid, address):
         try:
             return self.debugger[pid].readCString(address, 255)[0].decode('utf-8')

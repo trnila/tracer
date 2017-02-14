@@ -13,6 +13,10 @@ class Backend:
         """ return value of last syscall in process """
         raise NotImplementedError
 
+    def get_arguments_str(self, pid):
+        """ return human readable description of arguments """
+        return ""
+
     def read_cstring(self, pid, address):
         raise NotImplementedError
 
