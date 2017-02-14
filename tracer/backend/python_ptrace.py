@@ -138,7 +138,11 @@ class PythonPtraceBackend(Backend):
                 if self.stop_requested:
                     return
                 raise
-
+            except PtraceError as e:
+                if e.errno == 3:  # FIXME: same problem as exit_group above ?
+                    logging.warning("Process dead?")
+                else:
+                    raise
 
     def quit(self):
         self.stop_requested = True
