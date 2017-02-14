@@ -77,7 +77,7 @@ class PythonPtraceBackend(Backend):
                     # actually debugger receives SIGTERM, terminates all remaining process
                     # then this method is unblocked and fails with KeyError
                     event = self.debugger.waitSyscall()
-                except KeyError:
+                except:
                     if self.stop_requested:
                         return
                     raise
