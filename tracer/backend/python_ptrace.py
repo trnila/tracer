@@ -1,6 +1,7 @@
 import logging
 
 from ptrace import PtraceError
+from ptrace.debugger import DebuggerError
 from ptrace.debugger import NewProcessEvent
 from ptrace.debugger import ProcessExecution
 from ptrace.debugger import ProcessExit
@@ -18,6 +19,7 @@ class PythonPtraceBackend(Backend):
     def __init__(self):
         self.debugger = PtraceDebugger()
         self.root = None
+        self.stop_requested = False
         self.syscalls = {}
         self.backtracer = NullBacktracer()
 
@@ -62,14 +64,23 @@ class PythonPtraceBackend(Backend):
         # First query to break at next syscall
         self.root.syscall()
 
-        while True:
+        while not self.stop_requested:
             # No more process? Exit
             if not self.debugger:
                 break
 
             # Wait until next syscall enter
             try:
-                event = self.debugger.waitSyscall()
+                try:
+                    # FIXME: better mechanism to stop debugger
+                    # debugger._waitPid(..., blocking=False) may help
+                    # actually debugger receives SIGTERM, terminates all remaining process
+                    # then this method is unblocked and fails with KeyError
+                    event = self.debugger.waitSyscall()
+                except KeyError:
+                    if self.stop_requested:
+                        return
+                    raise
                 state = event.process.syscall_state
                 syscall = state.event(FunctionCallOptions())
 
@@ -123,6 +134,12 @@ class PythonPtraceBackend(Backend):
             except ProcessExecution as event:
                 logging.info("*** Process %s execution ***", event.process.pid)
                 event.process.syscall()
+            except DebuggerError:
+                if self.stop_requested:
+                    return
+                raise
+
 
     def quit(self):
+        self.stop_requested = True
         self.debugger.quit()
