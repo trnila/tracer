@@ -2,8 +2,18 @@ ls
 cat /etc/passwd | grep root | wc -l
 curl example.org
 echo 1 > /dev/udp/example.org/12345
-ping example.org -c 3
 LD_LIBRARY_PATH=./examples/backtrace/dynamic_lib ./examples/backtrace/dynamic_lib/main
-./examples/signals_child_to_parent
+./examples/backtrace/more_sources/main
+./examples/backtrace/read_write_backtrace
+./examples/signals/signals_child_to_parent
+./examples/signals/signals_kill_child
 dig ANY example.org
 netstat -lt
+sh -c 'task sync; task' # task warrior
+df -h
+systemctl status
+python3 ./examples/files/multiple_read_write.py
+./examples/mmap/mmap
+./examples/mmap/mmap_track2
+python ./examples/threads/thread_fail.py
+./examples/threads/thread_fd_share

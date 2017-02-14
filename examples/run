@@ -19,5 +19,5 @@ clear
 cmd=$(sed "${res}q;d" "$LIST")
 
 rm -rf $REPORT_DIR
-eval python3 "$DIR/../tracer.py" -b -o /tmp/report1 -- sh -c \""$cmd"\"
-python "$DIR/../../gui/app.py" "$REPORT_DIR"
+eval tracer -b -o "$REPORT_DIR" -- sh -c \""$cmd"\"
+tracergui "$REPORT_DIR"
