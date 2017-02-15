@@ -8,12 +8,12 @@
 ## Installation
 To install development version from branch master run:
 ```sh
-pip install git+https://github.com/trnila/tracer.git
+pip3 install git+https://github.com/trnila/tracer.git
 ```
 
 Optional dependencies are *colorlog* and *ipython* so if you want to have better interface install them:
 ```sh
-pip install colorlog ipython
+pip3 install colorlog ipython
 ```
 
 ### Installation with virtualenv on Ubuntu 16.10
@@ -21,8 +21,8 @@ pip install colorlog ipython
 sudo apt-get install python-virtualenv python3-dev git libunwind8-dev python3-pip
 virtualenv -p python3 venv3
 source venv3/bin/activate
-pip install git+https://github.com/trnila/tracer.git
-pip install colorlog ipython # optional
+pip3 install git+https://github.com/trnila/tracer.git
+pip3 install colorlog ipython # optional
 ```
 
 ## Usage
@@ -38,7 +38,8 @@ tracer -h
 ## Examples
 If you clone this repository somewhere, you can run interesting examples though helper script `./examples/run`,
 but it requires `tracer` and [`tracergui`](https://github.com/trnila/tracer-gui) in your *PATH*. 
-It can be achieved by installing both applications with *pip*.  
+It can be achieved by installing both applications with *
+*.  
 
 ## Configuration
 Configuration options from command line arguments are merged with configuration file *~/.tracerrc* and with
