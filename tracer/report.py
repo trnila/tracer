@@ -75,14 +75,15 @@ class Descriptors:
         return self.descriptors[fd]
 
 
-class Process:
+class Process(AttributeTrait):
     def __init__(self, report, data, descriptors, tracer):
+        super().__init__()
         self.report = report
-        self.data = data
         self.descriptors = descriptors
         self.captures = {}
         self.descriptors.processes.append(self)
         self.tracer = tracer
+        self.attributes.update(data)
 
     @property
     def pid(self):
@@ -105,12 +106,6 @@ class Process:
     def read_bytes(self, address, size):
         return self.tracer.backend.read_bytes(self.pid, address, size)
 
-    def __getitem__(self, item):
-        return self.data[item]
-
-    def __setitem__(self, key, value):
-        self.data[key] = value
-
     def read(self, fd, content, **kwargs):
         self.__prepare_capture(fd)
         self.captures[fd].read(content, **kwargs)
@@ -127,12 +122,12 @@ class Process:
         self.captures[fd] = None
 
     def to_json(self):
-        return self.data
+        return self.attributes
 
     def __prepare_capture(self, fd):
         if fd not in self.captures or self.captures[fd] is None:
-            self.captures[fd] = Capture(self.report, self, self.descriptors.get(fd), len(self.data['descriptors']))
-            self.data['descriptors'].append(self.captures[fd])
+            self.captures[fd] = Capture(self.report, self, self.descriptors.get(fd), len(self['descriptors']))
+            self['descriptors'].append(self.captures[fd])
 
     def __str__(self):
         return "<Process {}>".format(
