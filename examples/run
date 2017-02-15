@@ -19,5 +19,5 @@ clear
 cmd=$(sed "${res}q;d" "$LIST")
 
 rm -rf $REPORT_DIR
-eval tracer -b -o "$REPORT_DIR" -- sh -c \""$cmd"\"
+eval tracer -b -o "$REPORT_DIR" -- bash -c \""$cmd"\"
 tracergui "$REPORT_DIR"
