@@ -141,7 +141,6 @@ class Report(AttributeTrait):
         self.data = {}
         self.path = path
         self.descriptor_groups = {}
-        self['processes'] = {}
 
         os.makedirs(path, exist_ok=True)
 

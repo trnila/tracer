@@ -79,9 +79,9 @@ def get_all_interfaces():
 
 def build_repr(obj, items):
     return " ".join([
-        "{}='{}'".format(attr, getattr(obj, attr))
-        for attr in items
-    ])
+                        "{}='{}'".format(attr, getattr(obj, attr))
+                        for attr in items
+                        ])
 
 
 # replace with ** when python3.5 used
@@ -124,10 +124,20 @@ class FakeObject:
         return self.data
 
 
-
 class AttributeTrait:
+    """
+     Adds ability to object for storing user-specific data via obj['item'] access
+     Set attribute frozen in end of your constructor to prevent user of assigning to non-existent property
+
+     Non-existent items returns FakeObject that can act as dictionary or list, it depends on first usage
+     obj['something'].append('item') ... from now 'something' is list
+     obj['something']['other'] ... from now 'something' is dictionary
+     so you don't need to create object if not exists yet
+    """
+
     def __init__(self):
         self.attributes = {}
+        self.frozen = False
 
     def __getitem__(self, item):
         if item not in self.attributes:
@@ -137,9 +147,3 @@ class AttributeTrait:
 
     def __setitem__(self, key, value):
         self.attributes[key] = value
-
-        # def __setattr__(self, key, value):
-        #     import logging
-        #     logging.error('accessing ' + key)
-        #
-        #     super().__setattr__(key, value)
