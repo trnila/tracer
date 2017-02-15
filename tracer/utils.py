@@ -123,6 +123,9 @@ class FakeObject:
     def __bool__(self):
         return self.data is not None
 
+    def items(self):
+        return self.data.items()
+
     def to_json(self):
         return self.data
 

@@ -1,8 +1,7 @@
+import logging
 import mmap
 import os
 import struct
-
-import logging
 
 PAGE_SIZE = os.sysconf("SC_PAGE_SIZE")
 PAGEMAP_ENTRY = 8
@@ -49,6 +48,7 @@ class MmapTracer:
         self.prot = prot
         self.flags = flags
         self.accessed = PageRange(PAGE_SIZE)
+        self.region_id = None
 
     def check(self):
         if not self.flags & mmap.MAP_PRIVATE:
@@ -73,5 +73,6 @@ class MmapTracer:
             'length': self.size,
             'prot': self.prot,
             'flags': self.flags,
-            'regions': self.accessed.get_ranges()
+            'regions': self.accessed.get_ranges(),
+            'region_id': self.region_id
         }
