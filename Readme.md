@@ -18,7 +18,7 @@ pip install colorlog ipython
 
 ### Installation with virtualenv on Ubuntu 16.10
 ```
-sudo apt-get install python-virtualenv python3-dev git libunwind8-dev
+sudo apt-get install python-virtualenv python3-dev git libunwind8-dev python3-pip
 virtualenv -p python3 venv3
 source venv3/bin/activate
 pip install git+https://github.com/trnila/tracer.git
