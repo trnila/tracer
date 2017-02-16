@@ -117,6 +117,9 @@ class FakeObject:
     def __getitem__(self, item):
         return self.data[item]
 
+    def items(self):
+        return self.data.items()
+
     def __bool__(self):
         return self.data is not None
 
