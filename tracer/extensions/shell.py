@@ -115,7 +115,7 @@ class ShellExtension(Extension):
                         out.append("{prefix}{lineno:>5} {content}\033[0m".format(
                             prefix="\033[1m" if num == i else "",
                             lineno=i,
-                            content=line.strip(),
+                            content=line.rstrip(),
                         ))
 
             return "\n".join(out)
