@@ -1,5 +1,6 @@
 import socket
 from struct import unpack
+import fcntl
 
 from tracer import utils
 from tracer.extensions.extension import register_syscall, Extension
@@ -103,6 +104,9 @@ class CoreExtension(Extension):
 
     @register_syscall(["dup", "fcntl"])
     def handler_dup_like(self, syscall):
+        if syscall.name == 'fcntl' and syscall.arguments[1] != fcntl.F_DUPFD:
+            return
+
         new = syscall.result
         old = syscall.arguments[0].value
         syscall.process.descriptors.clone(new, old)
