@@ -1,7 +1,7 @@
 STANDALONE=$(shell find . ! -path ./Makefile ! -path ./ansible/Makefile -type f -name "Makefile" -exec dirname {} \;)
 SOURCES=$(shell find -name "*.c" ! -path './backtrace/dynamic_lib*' ! -path './backtrace/more_sources*') #TODO: use STANDALONE
 LDFLAGS=-pthread
-CFLAGS=-g -std=c99
+CFLAGS=-g -std=gnu99
 CC=gcc
 
 all: bins standalone 100mb 10mb
