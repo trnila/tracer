@@ -22,7 +22,7 @@ standalone:
 100mb: 
 	dd if=/dev/urandom of=$@ bs=1024 count=102400
 	echo -n Hello World | dd of=$@ conv=notrunc
-	echo -n END OF FILE | dd of=100mb conv=notrunc seek=$(($(wc -c < 100mb)-11)) bs=1
+	echo -n END OF FILE | dd of=100mb conv=notrunc seek=104857589 bs=1 # $(($(wc -c < 100mb)-11))
 
 10mb: 
 	dd if=/dev/urandom of=$@ bs=1024 count=10240
