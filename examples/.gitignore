@@ -18,4 +18,5 @@ signals/signals_kill_child
 sockets/tcp/client
 sockets/tcp/server
 threads/thread_fd_share
+files/openat
 
