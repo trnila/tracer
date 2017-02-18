@@ -97,6 +97,10 @@ class Process(AttributeTrait):
     def arguments(self):
         return self['arguments']
 
+    @property
+    def parent(self):
+        return self.report['processes'][self['parent']]
+
     def get_backtrace(self):
         return self.tracer.backend.create_backtrace(self.pid)
 
@@ -133,6 +137,8 @@ class Process(AttributeTrait):
         return "<Process {}>".format(
             build_repr(self, ['pid', 'executable', 'arguments'])
         )
+    def __repr__(self):
+        return self.__str__()
 
 
 class Report(AttributeTrait):
