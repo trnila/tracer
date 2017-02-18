@@ -170,6 +170,7 @@ class Tracer:
         proc['executable'] = self.options.cmdline[0]
         proc['arguments'] = self.options.cmdline
         proc['env'] = dict(os.environ)
+        proc['cwd'] = [os.getcwd()]
 
         for extension in self.extensions:
             extension.on_process_created(proc)

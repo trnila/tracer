@@ -8,6 +8,8 @@ from time import sleep
 
 from .utils.tracer_test_case import TracerTestCase
 
+project_dir = os.path.realpath(os.path.join(os.path.dirname(os.path.realpath(__file__)), ".."))
+
 
 class TracingTest(TracerTestCase):
     def test_simple(self):
@@ -207,6 +209,15 @@ class TracingTest(TracerTestCase):
             self.assertEqual(child['pid'], parent['kills'][0]['pid'])
             self.assertEqual(signal.SIGKILL, parent['kills'][0]['signal'])
             # TODO: add that this process has been killed?
+
+    def test_open(self):
+        with self.execute('./examples/files/openat') as data:
+            proc = data.get_first_process()
+            self.assertIsNotNone(proc.get_resource_by(path="{}/requirements.txt".format(project_dir)))
+            self.assertIsNotNone(proc.get_resource_by(path="{}/examples/files/openat.c".format(project_dir)))
+            self.assertIsNotNone(proc.get_resource_by(path="/etc/passwd"))
+            self.assertIsNotNone(proc.get_resource_by(path="/proc/meminfo"))
+            self.assertIsNotNone(proc.get_resource_by(path="{}/examples/Makefile".format(project_dir)))
 
     def test_quit(self):
         with self.execute('cat', background=True) as data:

@@ -1,6 +1,6 @@
+import fcntl
 import socket
 from struct import unpack
-import fcntl
 
 from tracer import utils
 from tracer.extensions.extension import register_syscall, Extension
@@ -17,13 +17,22 @@ class CoreExtension(Extension):
         env = dict([i.split("=", 1) for i in utils.parse_args(syscall.arguments[2].text)])
         syscall.process['env'] = env
 
+    @register_syscall("chdir")
+    def handler_chdir(self, syscall):
+        syscall.process['cwd'].append(syscall.arguments[0].text)
+
     @register_syscall(["open", "openat"])
     def handler_open(self, syscall):
-        # TODO: read manual and fix paths
         if syscall.name == "openat":
             path = syscall.arguments[1].text
+            if path[0] != '/' and syscall.arguments[0].value not in [-100, 18446744073709551516]:  # AT_FDCWD = -100
+                dir = syscall.process.descriptors.get(syscall.arguments[0].value)
+                path = dir['path'] + "/" + path
         else:
             path = syscall.arguments[0].text
+
+        if path[0] != '/':
+            path = syscall.process['cwd'][-1] + "/" + path
 
         res = Descriptor.create_file(syscall.result, path)
         res['mode'] = syscall.arguments[2].value
