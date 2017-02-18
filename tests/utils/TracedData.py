@@ -16,8 +16,14 @@ class Process:
         return self.data.items()
 
     def get_resource_by(self, **kwargs):
+        def query(item, items):
+            if item[0].endswith('__endswith'):
+                return items[item[0].replace('__endswith', '')].endswith(item[1])
+
+            return item in items.items()
+
         for descriptor in self.data['descriptors']:
-            if kwargs and all(item in descriptor.items() for item in kwargs.items()):
+            if kwargs and all(query(item, descriptor) for item in kwargs.items()):
                 return descriptor
         return None
 
