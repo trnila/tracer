@@ -8,7 +8,7 @@
       virtualenv_python: python3
 
   - name: run
-    shell: "sleep {{ delay }}; {{ virtualenv_dir }}/bin/python -m tracer -o '{{ tracer_output  }}' -- {{ tracer_command }}"
+    shell: "sleep {{ delay }}; {{ virtualenv_dir }}/bin/python -m tracer -o '{{ tracer_output  }}' -- {{ tracer_command }}" # delay shall not be used seriously
 
   - name: copy back
     synchronize:

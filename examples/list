@@ -20,3 +20,5 @@ python ./examples/threads/thread_fail.py
 ./examples/bash/graphviz_syntax_err.sh
 ./examples/bash/ipv6_list.sh
 ./examples/bash/passwd_typo.sh
+ssh localhost
+git status
