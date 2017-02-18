@@ -17,11 +17,23 @@ class CoreExtension(Extension):
         env = dict([i.split("=", 1) for i in utils.parse_args(syscall.arguments[2].text)])
         syscall.process['env'] = env
 
-    @register_syscall("open")
+    @register_syscall(["open", "openat"])
     def handler_open(self, syscall):
-        res = Descriptor.create_file(syscall.result, syscall.arguments[0].text.strip('\''))
+        # TODO: read manual and fix paths
+        if syscall.name == "openat":
+            path = syscall.arguments[1].text
+        else:
+            path = syscall.arguments[0].text
+
+        res = Descriptor.create_file(syscall.result, path)
         res['mode'] = syscall.arguments[2].value
         syscall.process.descriptors.open(res)
+
+    @register_syscall("creat")
+    def handler_creat(self, syscall):
+        res = Descriptor.create_file(syscall.result, syscall.arguments[0].text)
+        syscall.process.descriptors.open(res)
+        
 
     @register_syscall("socket")
     def handler_socket(self, syscall):
