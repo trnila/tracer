@@ -10,6 +10,9 @@ class ContentsExtension(Extension):
     @register_syscall(["read", "write", "sendmsg", "recvmsg", "sendto", "recvfrom"])
     def read_or_write(self, syscall):
         descriptor = syscall.process.descriptors.get(syscall.arguments[0].value)
+        if descriptor.ignored:
+            return
+
         if descriptor.is_socket and descriptor['domain'] in [socket.AF_INET, socket.AF_INET6]:
             try:
                 if descriptor['local'].address.__str__() == '0.0.0.0':

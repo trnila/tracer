@@ -44,12 +44,17 @@ class Capture:
 
 
 class Descriptors:
-    def __init__(self):
+    def __init__(self, filterer):
         self.descriptors = {}
         self.processes = []
+        self.filter = filterer
 
     def open(self, descriptor):
         self.descriptors[descriptor.fd] = descriptor
+
+        if self.filter.is_filtered(descriptor):
+            descriptor.ignored = True
+
         return descriptor
 
     def close(self, descriptor):
@@ -126,6 +131,8 @@ class Process(AttributeTrait):
         self.captures[fd] = None
 
     def to_json(self):
+        self.attributes['descriptors'] = [desc for desc in self.attributes['descriptors'] if
+                                          not desc.descriptor.ignored]
         return self.attributes
 
     def __prepare_capture(self, fd):
@@ -137,6 +144,7 @@ class Process(AttributeTrait):
         return "<Process {}>".format(
             build_repr(self, ['pid', 'executable', 'arguments'])
         )
+
     def __repr__(self):
         return self.__str__()
 
@@ -153,11 +161,11 @@ class Report(AttributeTrait):
     def new_process(self, pid, parent, is_thread, tracer):
         if not is_thread:
             if parent:
-                self.descriptor_groups[pid] = Descriptors()
+                self.descriptor_groups[pid] = Descriptors(tracer.filter)
                 self.descriptor_groups[pid].descriptors = copy.deepcopy(self.descriptor_groups[parent].descriptors)
                 self.descriptor_groups[pid].processes = self.descriptor_groups[parent].processes
             else:
-                self.descriptor_groups[pid] = Descriptors()
+                self.descriptor_groups[pid] = Descriptors(tracer.filter)
 
             group = pid
         else:
