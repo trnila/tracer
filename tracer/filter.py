@@ -6,7 +6,7 @@ class Filter:
         self.tracer = tracer
     
     def is_filtered(self, obj):
-        filter_fn = getattr(self.tracer.options, 'pass_self', None)
+        filter_fn = getattr(self.tracer.options, 'filter_out_descriptor', None)
         ignore_files = getattr(self.tracer.options, 'ignore_files', [])
 
         if obj.is_file:
@@ -15,7 +15,7 @@ class Filter:
                     return True
 
         if filter_fn:
-            if not filter_fn(obj):
+            if filter_fn(obj):
                 return True
 
         return False
