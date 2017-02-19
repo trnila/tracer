@@ -32,33 +32,23 @@ class Tracer:
         self.data = None
 
     @staticmethod
-    def create_core_parser():
-        parser = ArgumentParser()
+    def create_core_parser(**kwargs):
+        parser = ArgumentParser(**kwargs)
         parser.add_argument("--extension", "-e", help="path to extension file or directory to load",
                             action="append", default=[])
         parser.add_argument("-v", dest="logging_level", default=0, action="count")
         parser.add_argument('-p', dest="pid")
+        parser.add_argument('-c', '--config', help="Load configuration from this file instead from tracer.conf.py in "
+                                                   "current working directory", default='tracer.conf.py')
         parser.add_argument("program", nargs='?')
         parser.add_argument("arguments", nargs='*')
 
         return parser
 
     def parse_options(self):
+        self.parse_core_options()
+
         parser = self.create_core_parser()
-        opts = parser.parse_known_args()[0]
-        self.setup_logging(sys.stdout, opts.logging_level)
-
-        # load extensions
-        self.register_extension(ReportExtension())
-        self.register_extension(CoreExtension())
-        self.register_extension(ContentsExtension())
-        self.register_extension(MiscExtension())
-        self.register_extension(InfoExtension())
-        self.register_extension(Backtrace())
-        self.register_extension(MmapExtension())
-        self.load_extensions([os.path.abspath(path) for path in opts.extension])
-        self.register_extension(ShellExtension())
-
         # create options from all parsers
         for extension in self.extensions:
             extension.create_options(parser)
@@ -72,6 +62,10 @@ class Tracer:
 
         # override from settings file
         self.options.__dict__.update(self.load_config())
+
+        if not self.options.program:
+            logging.error("Provide executable file for monitoring")
+            sys.exit(1)
 
         resolved = shutil.which(self.options.program)
         self.options.cmdline = [resolved] + self.options.arguments
@@ -87,10 +81,25 @@ class Tracer:
             parser.print_help()
             sys.exit(1)
 
-    @staticmethod
-    def load_config():
+    def parse_core_options(self):
+        parser = self.create_core_parser(add_help=False)
+        parser.add_argument('-h', action='store_true')
+        opts = parser.parse_known_args()[0]
+        self.setup_logging(sys.stdout, opts.logging_level)
+        # load extensions
+        self.register_extension(ReportExtension())
+        self.register_extension(CoreExtension())
+        self.register_extension(ContentsExtension())
+        self.register_extension(MiscExtension())
+        self.register_extension(InfoExtension())
+        self.register_extension(Backtrace())
+        self.register_extension(MmapExtension())
+        self.load_extensions([os.path.abspath(path) for path in opts.extension])
+        self.register_extension(ShellExtension())
+
+    def load_config(self):
         options = {}
-        for config_file in [os.path.expanduser('~/.tracerrc'), 'tracer.conf.py']:
+        for config_file in [os.path.expanduser('~/.tracerrc'), self.options.config]:
             try:
                 with open(config_file) as file:
                     loc = {}
