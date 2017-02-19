@@ -58,6 +58,22 @@ def shell_filter(syscall):
 ```
 So from now, you can just run `tracer` to trace program `ls`.
 
+### Filter unwanted descriptors
+Filtering currently happens at the time of socket creation.
+Place regexps of paths to configuration file, eg:
+```python
+ignore_files = [
+    r'\/lib[^\/]+.so(\.[\d\-_]+)*$',  # ignore .so shared libraries
+    r'cache'
+]
+```
+
+There is also support for user-defined filter function in configuration file:
+```python
+# pass everything except pipes
+def filter_out_descriptor(descriptor):
+    return descriptor.is_pipe
+```
 
 ## User defined extensions
 Create somewhere python file with this class:
