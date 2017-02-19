@@ -59,7 +59,7 @@ def shell_filter(syscall):
 So from now, you can just run `tracer` to trace program `ls`.
 
 ### Filter unwanted descriptors
-Filtering currently happens at the time of socket creation.
+Filtering currently happens at the time of descriptor creation.
 Place regexps of paths to configuration file, eg:
 ```python
 ignore_files = [
