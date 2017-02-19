@@ -17,6 +17,7 @@ from tracer.extensions.mmap import MmapExtension
 from tracer.extensions.report import ReportExtension
 from tracer.extensions.shell import ShellExtension
 from tracer.fd import Descriptor, Syscall
+from tracer.filter import Filter
 
 
 class Tracer:
@@ -26,6 +27,7 @@ class Tracer:
         self.extensions = []
         self.backend = PythonPtraceBackend()
         self.options = Namespace()
+        self.filter = Filter(self)
         self.parse_options()
         self.data = None
 
