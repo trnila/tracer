@@ -1,4 +1,5 @@
 import code
+import os
 
 from tracer.extensions.extension import Extension
 
@@ -13,6 +14,20 @@ class ExitCommand:
 
     def __str__(self):
         return "Call to disable shell"
+
+
+class ProcFsShellCommand:
+    def __init__(self, process):
+        self.process = process
+
+    def __call__(self, *args, **kwargs):
+        cwd = os.getcwd()
+        os.chdir("/proc/{}".format(self.process.pid))
+        os.system(os.environ.get("SHELL", "/bin/bash"))
+        os.chdir(cwd)
+
+    def __str__(self):
+        return "Call to drop into /proc/pid directory with $SHELL"
 
 
 class CodeShell:
@@ -70,7 +85,8 @@ class ShellExtension(Extension):
             'syscall': syscall,
             'process': syscall.process,
             'tracer': tracer,
-            'exit': ExitCommand(self)
+            'exit': ExitCommand(self),
+            'procfs': ProcFsShellCommand(syscall.process)
         }
 
         banner = [
