@@ -90,10 +90,12 @@ class CoreExtension(Extension):
             resolved = resolve(syscall.process.pid, fdnum, 1)
             if 'dst' in resolved:
                 syscall.process.descriptors.get(fdnum)['local'] = resolved['dst']  # TODO: rewrite
-        elif syscall.name in ['accept', 'syscall<288>']:
-            bytes_content = syscall.process.read_bytes(syscall.arguments[2].value, 4)
-            socket_size = unpack("I", bytes_content)[0]
-            bytes_content = syscall.process.read_bytes(syscall.arguments[1].value, socket_size)
+        elif syscall.name in ['accept', 'accept4', 'syscall<288>']:
+            addr = syscall.arguments[2].value
+            if addr:
+                bytes_content = syscall.process.read_bytes(addr, 4)
+                socket_size = unpack("I", bytes_content)[0]
+                bytes_content = syscall.process.read_bytes(syscall.arguments[1].value, socket_size)
             fdnum = syscall.result
 
             # mark accepting socket as server
@@ -103,6 +105,13 @@ class CoreExtension(Extension):
 
             remote_desc = syscall.process.descriptors.open(Descriptor.create_socket(fdnum))
             remote_desc['local'] = syscall.process.descriptors.get(syscall.arguments[0].value)['local']
+            remote_desc['socket_type'] = descriptor['socket_type']
+            remote_desc['domain'] = descriptor['domain']
+
+            if not addr:
+                resolved = resolve(syscall.process.pid, syscall.arguments[0].value, 1)
+                if resolved and 'path' in resolved:
+                    remote_desc['remote'] = resolved['path']
         else:
             raise Exception("Unexpected syscall")
 
