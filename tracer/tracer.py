@@ -18,6 +18,7 @@ from tracer.extensions.report import ReportExtension
 from tracer.extensions.shell import ShellExtension
 from tracer.fd import Descriptor, Syscall
 from tracer.filter import Filter
+from tracer.report import UnknownFd
 
 
 class Tracer:
@@ -164,6 +165,8 @@ class Tracer:
                 for extension in self.extensions:
                     try:
                         extension.on_syscall(syscall_obj)
+                    except UnknownFd as e:
+                        logging.warning("Operating on unknown descriptor %s", e.args[0])
                     except BaseException as e:
                         logging.exception("extension %s failed", extension)
 
