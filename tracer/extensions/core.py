@@ -125,7 +125,8 @@ class CoreExtension(Extension):
         fildes = syscall.arguments[0].value
         fildes2 = syscall.arguments[1].value
 
-        syscall.process.descriptors.close(fildes2)
+        if fildes2 in syscall.process.descriptors.descriptors:
+            syscall.process.descriptors.close(fildes2)
         syscall.process.descriptors.clone(fildes2, fildes)
 
     @register_syscall("close")
