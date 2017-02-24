@@ -53,7 +53,8 @@ def parse_ipv6(raw_bytes):
 def parse_addr(address_bytes):
     family = unpack("H", address_bytes[0:2])[0]
     if family == socket.AF_UNIX:
-        return UnixAddress(address_bytes[2:].decode('utf-8'))
+        path = address_bytes[2:].split(b'\0', 1)[0]
+        return UnixAddress(path.decode('utf-8'))
     elif family in [socket.AF_INET6, socket.AF_INET]:
         port = unpack(">H", address_bytes[2:4])[0]
 
