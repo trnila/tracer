@@ -4,6 +4,9 @@ from tracer.extensions.extension import Extension, register_syscall
 from tracer.mmap_tracer import MmapTracer
 
 
+def default_capture(region, fd):
+    return fd.read(region.size)
+
 class RegionCapture:
     last_id = 0
 
@@ -12,7 +15,11 @@ class RegionCapture:
         self.size = size
         self.last_hash = None
         self.id = RegionCapture.last_id
+        self.enable_capture = False
         self.content = "{}/region-{}-{}.".format(output_dir, address, size, self.id)
+        self.capture = default_capture
+        self.captured_size = size
+        self.captured_offset = 0
 
         RegionCapture.last_id += 1
 
@@ -25,14 +32,24 @@ class RegionCapture:
                 file.write(content)
 
     def to_json(self):
-        return {
+        data = {
             "address": self.address,
             "size": self.size,
-            "content": self.content
+            'captured_size': self.captured_size,
+            'captured_offset': self.captured_offset
         }
+
+        if self.enable_capture:
+            data["content"] = self.content
+
+        return data
 
 
 class MmapExtension(Extension):
+    """
+    mmap_filter function
+    """
+
     def create_options(self, parser):
         parser.add_argument('--trace-mmap', action="store_true", default=False)
         parser.add_argument('--save-mmap', action="store_true", default=False)
@@ -46,6 +63,25 @@ class MmapExtension(Extension):
         size = syscall.arguments[1].value
 
         capture = RegionCapture(tracer.options.output, start, size)
+        if tracer.options.mmap_filter:
+            result = tracer.options.mmap_filter(capture)
+            if isinstance(result, dict):
+                def specific_capture(region, fd):
+                    if 'offset' in result:
+                        fd.seek(result['offset'], 1)
+
+                    return fd.read(result['size'])
+
+                capture.enable_capture = True
+                capture.capture = specific_capture
+
+                if 'offset' in result:
+                    capture.captured_offset = 0
+                capture.captured_size = result['size']
+            else:
+                capture.enable_capture = result
+        else:
+            capture.enable_capture = tracer.options.save_mmap
         syscall.process['regions'].append(capture)
 
         if fd != 18446744073709551615:  # -1
@@ -71,11 +107,12 @@ class MmapExtension(Extension):
                     with open("/proc/{}/mem".format(pid), 'rb') as f:
                         if proc['regions']:
                             for region in proc['regions']:
-                                try:
-                                    f.seek(region.address)
-                                    region.write(f.read(region.size))
-                                except Exception as e:
-                                    print(e)
-                                    pass
+                                if region.enable_capture:
+                                    try:
+                                        f.seek(region.address)
+                                        region.write(region.capture(region, f))
+                                    except Exception as e:
+                                        print(e)
+                                        pass
                 except Exception as e:
                     print(e)
