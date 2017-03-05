@@ -11,7 +11,7 @@ def default_capture(region, fd):
 class RegionCapture:
     last_id = 0
 
-    def __init__(self, output_dir, address, size):
+    def __init__(self, output_dir, process, address, size):
         self.address = address
         self.size = size
         self.last_hash = None
@@ -22,6 +22,8 @@ class RegionCapture:
         self.captured_size = size
         self.captured_offset = 0
         self.unmapped = False
+        self.descriptor = None
+        self.process = process
 
         RegionCapture.last_id += 1
 
@@ -76,7 +78,10 @@ class MmapExtension(Extension):
         start = syscall.result
         size = syscall.arguments[1].value
 
-        capture = RegionCapture(tracer.options.output, start, size)
+        capture = RegionCapture(tracer.options.output, syscall.process, start, size)
+        if fd != 18446744073709551615:
+            capture.descriptor = syscall.process.descriptors.get(fd)
+
         if tracer.options.mmap_filter:
             result = tracer.options.mmap_filter(capture)
             if isinstance(result, dict):
