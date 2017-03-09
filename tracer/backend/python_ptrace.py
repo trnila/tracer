@@ -68,12 +68,7 @@ class PythonPtraceBackend(Backend):
         # First query to break at next syscall
         self.root.syscall()
 
-        while not self.stop_requested:
-            # No more process? Exit
-            if not self.debugger:
-                break
-
-            # Wait until next syscall enter
+        while not self.stop_requested and self.debugger:
             try:
                 try:
                     # FIXME: better mechanism to stop debugger
