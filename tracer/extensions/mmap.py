@@ -83,7 +83,7 @@ class MmapExtension(Extension):
         if fd != 18446744073709551615:
             capture.descriptor = syscall.process.descriptors.get(fd)
 
-        if tracer.options.mmap_filter:
+        if 'mmap_filter' in tracer.options:
             result = tracer.options.mmap_filter(capture)
             if isinstance(result, dict):
                 def specific_capture(region, fd):
