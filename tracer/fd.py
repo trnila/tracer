@@ -51,7 +51,7 @@ class Descriptor(AttributeTrait):
     READ = 1
     WRITE = 2
 
-    last_pipe = -1
+    last_pair = -1
 
     def __init__(self, descriptor_type, fd):
         super().__init__()
@@ -92,16 +92,27 @@ class Descriptor(AttributeTrait):
 
     @staticmethod
     def create_pipes(fd1, fd2):
-        Descriptor.last_pipe += 1
+        Descriptor.last_pair += 1
 
         return (
-            Descriptor.create(Descriptor.PIPE, fd1, pipe_id=Descriptor.last_pipe),
-            Descriptor.create(Descriptor.PIPE, fd2, pipe_id=Descriptor.last_pipe),
+            Descriptor.create(Descriptor.PIPE, fd1, pipe_id=Descriptor.last_pair),
+            Descriptor.create(Descriptor.PIPE, fd2, pipe_id=Descriptor.last_pair),
         )
 
     @staticmethod
-    def create_socket(fd):
-        return Descriptor.create(Descriptor.SOCKET, fd)
+    def create_socket(fd, **kwargs):
+        return Descriptor.create(Descriptor.SOCKET, fd, **kwargs)
+
+    @staticmethod
+    def create_socket_pair(fd1, fd2, **data):
+        Descriptor.last_pair += 1
+
+        data['remote'] = 'anon socket {}'.format(Descriptor.last_pair)
+
+        return (
+            Descriptor.create(Descriptor.SOCKET, fd1, **data),
+            Descriptor.create(Descriptor.SOCKET, fd2, **data),
+        )
 
     @staticmethod
     def create(descriptor_type, fd, **kwargs):

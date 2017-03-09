@@ -46,6 +46,21 @@ class CoreExtension(Extension):
         res['mode'] = maps.OPEN_MODES.format(syscall.arguments[1].value)
         syscall.process.descriptors.open(res)
 
+    @register_syscall("socketpair")
+    def handler_socketpair(self, syscall):
+        pipe_fd = syscall.process.read_bytes(syscall.arguments[3].value, 8)
+        fd1, fd2 = unpack("ii", pipe_fd)
+
+        data = {
+            "domain": syscall.arguments[0].value,
+            "socket_type": syscall.arguments[1].value,
+        }
+
+        desc1, desc2 = Descriptor.create_socket_pair(fd1, fd2, **data)
+
+        syscall.process.descriptors.open(desc1)
+        syscall.process.descriptors.open(desc2)
+
     @register_syscall("socket")
     def handler_socket(self, syscall):
         descriptor = Descriptor.create_socket(syscall.result)
