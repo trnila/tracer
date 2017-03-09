@@ -43,7 +43,8 @@ class RegionCapture:
             "address": self.address,
             "size": self.size,
             'captured_size': self.captured_size,
-            'captured_offset': self.captured_offset
+            'captured_offset': self.captured_offset,
+            'region_id': self.id
         }
 
         if self.enable_capture:
