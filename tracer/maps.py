@@ -17,7 +17,7 @@ class FlaggedDict:
             if val & value:
                 opts.append(string)
 
-        return ' | '.join(opts)
+        return opts
 
 
 class DictWithDefault:
@@ -26,6 +26,9 @@ class DictWithDefault:
 
     def __getitem__(self, item):
         return self.get(item)
+
+    def items(self):
+        return self.data.items()
 
     def get(self, item):
         if item in self.data:

@@ -183,6 +183,9 @@ class Report(AttributeTrait):
             "kills": []
         }, self.descriptor_groups[group], tracer)
 
+        if parent:
+            self.processes[pid]['cwd'] = [self.processes[parent]['cwd'][-1]]
+
         return self.processes[pid]
 
     def get_process(self, pid):
