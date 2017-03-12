@@ -10,16 +10,16 @@
 #define MAX_SIZE 5
 
 struct Queue {
-    int head;
-    int tail;
-    char letters[MAX_SIZE];
+	int head;
+	int tail;
+	char letters[MAX_SIZE];
 };
 
 struct Data {
-    sem_t lock;
-    sem_t fill;
-    sem_t empty;
-    struct Queue queue;
+	sem_t lock;
+	sem_t fill;
+	sem_t empty;
+	struct Queue queue;
 };
 
 
@@ -39,39 +39,39 @@ void producer(struct Data* data, int worker) {
 }
 
 void semaphore_init(sem_t* sem, int def) {
-    if(sem_init(sem, 1, def) != 0) {
-        perror("sem_init");
-        exit(1);
-    }
+	if(sem_init(sem, 1, def) != 0) {
+		perror("sem_init");
+		exit(1);
+	}
 }
 
 struct Data* data_new() {
-    struct Data* data = mmap(NULL, sizeof(struct Data), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANON, -1, 0);
-    memset(data, 0, sizeof(struct Data));
-    semaphore_init(&data->lock, 1);
-    semaphore_init(&data->fill, 0);
-    semaphore_init(&data->empty, MAX_SIZE);
+	struct Data* data = mmap(NULL, sizeof(struct Data), PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANON, -1, 0);
+	memset(data, 0, sizeof(struct Data));
+	semaphore_init(&data->lock, 1);
+	semaphore_init(&data->fill, 0);
+	semaphore_init(&data->empty, MAX_SIZE);
 	data->queue.head = 0;
 	data->queue.tail = 0;
 
-    return data;
+	return data;
 }
 
 int main() {
-    struct Data *data = data_new();
+	struct Data *data = data_new();
 
-    for(int i = 0; i < PRODUCERS; i++) {
-        if(!fork()) {
+	for(int i = 0; i < PRODUCERS; i++) {
+		if(!fork()) {
 			producer(data, i);
-            exit(0);
-        }
-    }
+			exit(0);
+		}
+	}
 
 
 	char letter;
 	int remaining = PRODUCERS * PRODUCTS;
 	while(remaining--) {
-	    usleep(rand() % 500000);
+		usleep(rand() % 500000);
 		sem_wait(&data->fill);
 
 		sem_wait(&data->lock);
