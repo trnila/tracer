@@ -1,6 +1,7 @@
 import hashlib
 
 from tracer.extensions.extension import Extension, register_syscall
+from tracer.maps import MMAP_PROTS, MMAP_MAPS
 from tracer.mmap_tracer import MmapTracer
 
 
@@ -11,7 +12,7 @@ def default_capture(region, fd):
 class RegionCapture:
     last_id = 0
 
-    def __init__(self, output_dir, process, address, size):
+    def __init__(self, output_dir, process, address, size, prot=0, flags=0):
         self.address = address
         self.size = size
         self.last_hash = None
@@ -24,6 +25,8 @@ class RegionCapture:
         self.unmapped = False
         self.descriptor = None
         self.process = process
+        self.prot = prot
+        self.flags = flags
 
         RegionCapture.last_id += 1
 
@@ -44,7 +47,9 @@ class RegionCapture:
             "size": self.size,
             'captured_size': self.captured_size,
             'captured_offset': self.captured_offset,
-            'region_id': self.id
+            'region_id': self.id,
+            'prot': self.prot,
+            'flags': self.flags
         }
 
         if self.enable_capture:
@@ -80,6 +85,8 @@ class MmapExtension(Extension):
         size = syscall.arguments[1].value
 
         capture = RegionCapture(tracer.options.output, syscall.process, start, size)
+        capture.prot = MMAP_PROTS.format(syscall.arguments[2].value)
+        capture.flags = MMAP_MAPS.format(syscall.arguments[3].value)
         if fd != 18446744073709551615:
             capture.descriptor = syscall.process.descriptors.get(fd)
 
