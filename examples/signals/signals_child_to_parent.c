@@ -7,15 +7,18 @@
 void handler(int sig) {}
 
 int main() {
+	signal(SIGUSR1, handler);
 	int parent = getpid();
 	int child = fork();
-	if(child == 0) {
+	if(child == -1) {
+		perror("fork");
+		exit(1);
+	} else if(child == 0) {
 		sleep(1);
 		kill(parent, SIGUSR1);
 
 		exit(0);
 	}
-	signal(SIGUSR1, handler);
 
 	pause();
 
