@@ -80,9 +80,9 @@ def get_all_interfaces():
 
 def build_repr(obj, items):
     return " ".join([
-                        "{}='{}'".format(attr, getattr(obj, attr))
-                        for attr in items
-                        ])
+        "{}='{}'".format(attr, getattr(obj, attr))
+        for attr in items
+    ])
 
 
 # replace with ** when python3.5 used
@@ -123,9 +123,6 @@ class FakeObject:
 
     def __bool__(self):
         return self.data is not None
-
-    def items(self):
-        return self.data.items()
 
     def to_json(self):
         return self.data

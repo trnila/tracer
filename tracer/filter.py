@@ -4,7 +4,7 @@ import re
 class Filter:
     def __init__(self, tracer):
         self.tracer = tracer
-    
+
     def is_filtered(self, obj):
         filter_fn = getattr(self.tracer.options, 'filter_out_descriptor', None)
         ignore_files = getattr(self.tracer.options, 'ignore_files', [])

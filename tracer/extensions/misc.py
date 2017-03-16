@@ -2,7 +2,6 @@ import struct
 
 from tracer import maps
 from tracer.extensions.extension import register_syscall, Extension
-from tracer.mmap_tracer import MmapTracer
 
 
 class MiscExtension(Extension):

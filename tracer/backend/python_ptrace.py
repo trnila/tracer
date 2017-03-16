@@ -116,7 +116,7 @@ class PythonPtraceBackend(Backend):
 
                 yield ProcessExited(event.process.pid, event.exitcode)
             except ProcessSignal as event:
-#                event.display()
+                #                event.display()
                 event.process.syscall(event.signum)
             except NewProcessEvent as event:
                 process = event.process

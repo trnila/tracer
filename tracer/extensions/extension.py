@@ -65,4 +65,3 @@ class Extension:
 
     def on_tick(self, tracer):
         pass
-

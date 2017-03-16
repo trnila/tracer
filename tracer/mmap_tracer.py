@@ -63,9 +63,8 @@ class MmapTracer:
                     occupied = (num & (1 << 63)) > 0
                     if occupied:
                         self.accessed.add(page)
-        except Exception as e: #TODO: fix
+        except Exception as e:  # TODO: fix
             logging.error("failed reading pagemap %s", e.args)
-
 
     def to_json(self):
         return {

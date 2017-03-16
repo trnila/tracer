@@ -42,7 +42,6 @@ class CoreExtension(Extension):
     def handler_creat(self, syscall):
         res = Descriptor.create_file(syscall.result, syscall.arguments[0].text)
         syscall.process.descriptors.open(res)
-        
 
     @register_syscall("socket")
     def handler_socket(self, syscall):
