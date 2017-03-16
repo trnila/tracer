@@ -15,8 +15,7 @@ int main() {
 		printf("Waiting to be killed\n");
 		write(pipes[1], "R", 1);
 
-		pause();
-
+		sleep(30);
 		exit(0);
 	}
 
