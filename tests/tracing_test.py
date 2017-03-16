@@ -221,8 +221,13 @@ class TracingTest(TracerTestCase):
             sleep(1)
             data.process.terminate()
             data.wait()
-            self.assertEqual(0, data.process.returncode);
+            self.assertEqual(0, data.process.returncode)
             self.assertIsNotNone(data.system.get_process_by(executable=shutil.which("cat")))
+
+    def test_cloexec_open(self):
+        with self.execute('./examples/files/cloexec_open') as data:
+            proc = data.get_first_process()
+            self.assertIsNotNone(proc.get_resource_by(path="/etc/passwd"))
 
 
 if __name__ == '__main__':
