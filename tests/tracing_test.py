@@ -1,6 +1,5 @@
 import os
 import shutil
-import socket
 import subprocess
 import sys
 import unittest
@@ -98,14 +97,14 @@ class TracingTest(TracerTestCase):
             sleep(1)  # TODO: check when ready
             with self.execute('sh', ['-c', 'echo hello world | nc -U /tmp/reverse.sock']) as client:
                 proc = client.get_process_by(executable=shutil.which('nc'))
-                sock = proc.get_resource_by(type='socket', domain=1)
+                sock = proc.get_resource_by(type='socket', domain='AF_UNIX')
                 self.assertEqual("/tmp/reverse.sock", sock['remote'])
 
                 srv.wait()
                 srv = srv.system
 
                 proc = srv.get_first_process()
-                sock = proc.get_resource_by(type='socket', domain=1)
+                sock = proc.get_resource_by(type='socket', domain='AF_UNIX')
                 self.assertEqual("/tmp/reverse.sock", sock['local'])
 
     def test_thread(self):
@@ -170,8 +169,8 @@ class TracingTest(TracerTestCase):
             self.assertEqual("127.0.0.1", sock['local']['address'])
             self.assertEqual("127.0.0.1", sock['remote']['address'])
             self.assertEqual(1234, sock['remote']['port'])
-            self.assertEqual(socket.AF_INET, sock['domain'])
-            self.assertEqual(socket.SOCK_DGRAM, sock['socket_type'])
+            self.assertEqual('AF_INET', sock['domain'])
+            self.assertEqual('SOCK_DGRAM', sock['socket_type'])
 
     @unittest.skipIf("TRAVIS" in os.environ and os.environ["TRAVIS"] == "true", "not supported on travis")
     def test_udp6_send(self):
@@ -182,8 +181,8 @@ class TracingTest(TracerTestCase):
             self.assertEqual("::1", sock['local']['address'])
             self.assertEqual("::1", sock['remote']['address'])
             self.assertEqual(1234, sock['remote']['port'])
-            self.assertEqual(socket.AF_INET6, sock['domain'])
-            self.assertEqual(socket.SOCK_DGRAM, sock['socket_type'])
+            self.assertEqual('AF_INET6', sock['domain'])
+            self.assertEqual('SOCK_DGRAM', sock['socket_type'])
 
     def test_signals(self):
         with self.execute('./examples/signals/signals') as data:
