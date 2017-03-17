@@ -189,24 +189,22 @@ class TracingTest(TracerTestCase):
             parent = data.get_process_by(parent=0)
             child = data.get_process_by(parent=parent['pid'])
 
-            import signal
             self.assertGreaterEqual(1, len(child['kills']))
             self.assertEqual(parent['pid'], child['kills'][0]['pid'])
-            self.assertEqual(signal.SIGUSR1, child['kills'][0]['signal'])
+            self.assertEqual('SIGUSR1', child['kills'][0]['signal'])
 
             self.assertGreaterEqual(1, len(parent['kills']))
             self.assertEqual(child['pid'], parent['kills'][0]['pid'])
-            self.assertEqual(signal.SIGUSR2, parent['kills'][0]['signal'])
+            self.assertEqual('SIGUSR2', parent['kills'][0]['signal'])
 
     def test_signal_kill_child(self):
         with self.execute('./examples/signals/signals_kill_child') as data:
             parent = list(data.processes.values())[0]
             child = list(data.processes.values())[1]
 
-            import signal
             self.assertGreaterEqual(1, len(parent['kills']))
             self.assertEqual(child['pid'], parent['kills'][0]['pid'])
-            self.assertEqual(signal.SIGKILL, parent['kills'][0]['signal'])
+            self.assertEqual('SIGKILL', parent['kills'][0]['signal'])
             # TODO: add that this process has been killed?
 
     def test_open(self):

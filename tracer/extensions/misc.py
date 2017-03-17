@@ -9,7 +9,7 @@ class MiscExtension(Extension):
     def kill(self, syscall):
         syscall.process['kills'].append({
             'pid': syscall.arguments[0].value,
-            'signal': syscall.arguments[1].value
+            'signal': maps.SIGNALS.get(syscall.arguments[1].value)
         })
 
     @register_syscall("set_sock_opt")
