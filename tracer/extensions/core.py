@@ -1,7 +1,7 @@
 import fcntl
-import socket
 from struct import unpack
 
+from tracer import maps
 from tracer import utils
 from tracer.extensions.extension import register_syscall, Extension
 from tracer.fd import Descriptor
@@ -35,19 +35,21 @@ class CoreExtension(Extension):
             path = syscall.process['cwd'][-1] + "/" + path
 
         res = Descriptor.create_file(syscall.result, path)
-        res['mode'] = syscall.arguments[2].value
+        res['flags'] = maps.OPEN_FLAGS.format(syscall.arguments[1].value)
+        res['mode'] = maps.OPEN_MODES.format(syscall.arguments[2].value)
         syscall.process.descriptors.open(res)
 
     @register_syscall("creat")
     def handler_creat(self, syscall):
         res = Descriptor.create_file(syscall.result, syscall.arguments[0].text)
+        res['mode'] = maps.OPEN_MODES.format(syscall.arguments[1].value)
         syscall.process.descriptors.open(res)
 
     @register_syscall("socket")
     def handler_socket(self, syscall):
         descriptor = Descriptor.create_socket(syscall.result)
-        descriptor['domain'] = syscall.arguments[0].value
-        descriptor['socket_type'] = syscall.arguments[1].value
+        descriptor['domain'] = maps.SOCKET_DOMAINS.get(syscall.arguments[0].value)
+        descriptor['socket_type'] = maps.SOCKET_TYPES.get(syscall.arguments[1].value)
         syscall.process.descriptors.open(descriptor)
 
     @register_syscall("pipe")
@@ -68,7 +70,7 @@ class CoreExtension(Extension):
         bytes_content = syscall.process.read_bytes(syscall.arguments[1].value, syscall.arguments[2].value)
         addr = utils.parse_addr(bytes_content)
 
-        if descriptor['socket_type'] == socket.AF_INET and addr.address.__str__() == "0.0.0.0":
+        if descriptor['socket_type'] == 'AF_INET' and addr.address.__str__() == "0.0.0.0":
             addr = {
                 'address': utils.get_all_interfaces(),
                 'port': addr.port
@@ -116,7 +118,7 @@ class CoreExtension(Extension):
 
         descriptor = syscall.process.descriptors.get(fdnum)
         parsed = utils.parse_addr(bytes_content)
-        descriptor['domain'] = parsed.get_domain()
+        # descriptor['domain'] = parsed.get_domain()
         descriptor['remote'] = parsed
 
     @register_syscall("dup2")

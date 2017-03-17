@@ -1,7 +1,7 @@
 import hashlib
 
+from tracer import maps
 from tracer.extensions.extension import Extension, register_syscall
-from tracer.maps import MMAP_PROTS, MMAP_MAPS
 from tracer.mmap_tracer import MmapTracer
 
 
@@ -93,8 +93,8 @@ class MmapExtension(Extension):
         size = syscall.arguments[1].value
 
         capture = RegionCapture(tracer.options.output, syscall.process, start, size)
-        capture.prot = MMAP_PROTS.format(syscall.arguments[2].value)
-        capture.flags = MMAP_MAPS.format(syscall.arguments[3].value)
+        capture.prot = maps.MMAP_PROTS.format(syscall.arguments[2].value)
+        capture.flags = maps.MMAP_FLAGS.format(syscall.arguments[3].value)
         file_backed = 'MAP_ANONYMOUS' not in capture.flags
 
         if file_backed:
