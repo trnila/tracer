@@ -1,4 +1,3 @@
-import socket
 from struct import unpack
 
 from tracer import utils
@@ -13,7 +12,7 @@ class ContentsExtension(Extension):
         if descriptor.ignored:
             return
 
-        if descriptor.is_socket and descriptor['domain'] in [socket.AF_INET, socket.AF_INET6]:
+        if descriptor.is_socket and descriptor['domain'] in ['AF_INET', 'AF_INET6']:
             try:
                 if descriptor['local'].address.__str__() == '0.0.0.0':
                     resolved = resolve(syscall.process.pid, syscall.arguments[0].value, 1)
@@ -47,7 +46,7 @@ class ContentsExtension(Extension):
         data = {
             "backtrace": syscall.process.get_backtrace()
         }
-        if syscall.name in ['recvfrom', 'sendto'] and descriptor['socket_type'] == socket.SOCK_DGRAM:
+        if syscall.name in ['recvfrom', 'sendto'] and descriptor['socket_type'] == 'SOCK_DGRAM':
             # TODO: read addr, IPV6 support!
             # sock_size = syscall.process.readWord(syscall.arguments[5].value)
 
