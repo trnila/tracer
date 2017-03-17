@@ -8,6 +8,10 @@ class MapsTest(unittest.TestCase):
         items = FlaggedDict({})
         self.assertEquals([], items.format(15))
 
+    def test_postprocess(self):
+        items = FlaggedDict({0: 'Hello'}, lambda x: ['TEST'])
+        self.assertEquals(['TEST'], items.format(0))
+
     def test_flagged(self):
         items = FlaggedDict({1: 'test', 2: 'test2'})
         self.assertEquals(['test'], items.format(1))

@@ -2,6 +2,7 @@ import fcntl
 import socket
 from struct import unpack
 
+from tracer import maps
 from tracer import utils
 from tracer.extensions.extension import register_syscall, Extension
 from tracer.fd import Descriptor
@@ -35,12 +36,14 @@ class CoreExtension(Extension):
             path = syscall.process['cwd'][-1] + "/" + path
 
         res = Descriptor.create_file(syscall.result, path)
-        res['mode'] = syscall.arguments[2].value
+        res['flags'] = maps.OPEN_FLAGS.format(syscall.arguments[1].value)
+        res['mode'] = maps.OPEN_MODES.format(syscall.arguments[2].value)
         syscall.process.descriptors.open(res)
 
     @register_syscall("creat")
     def handler_creat(self, syscall):
         res = Descriptor.create_file(syscall.result, syscall.arguments[0].text)
+        res['mode'] = maps.OPEN_MODES.format(syscall.arguments[1].value)
         syscall.process.descriptors.open(res)
 
     @register_syscall("socket")
