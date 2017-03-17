@@ -39,8 +39,6 @@ tracer -h
 ## Examples
 If you clone this repository somewhere, you can run interesting examples though helper script `./examples/run`,
 but it requires `tracer` and [`tracergui`](https://github.com/trnila/tracer-gui) in your *PATH*. 
-It can be achieved by installing both applications with *
-*.  
 
 ## Documentation
 More information is available in [documentation](http://tracertool.readthedocs.io/en/latest/).
