@@ -134,7 +134,7 @@ class CoreExtension(Extension):
 
     @register_syscall(["dup", "fcntl"])
     def handler_dup_like(self, syscall):
-        if syscall.name == 'fcntl' and syscall.arguments[1] != fcntl.F_DUPFD:
+        if syscall.name == 'fcntl' and syscall.arguments[1].value != fcntl.F_DUPFD:
             return
 
         new = syscall.result
