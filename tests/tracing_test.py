@@ -163,7 +163,7 @@ class TracingTest(TracerTestCase):
 
     @unittest.skipIf("TRAVIS" in os.environ and os.environ["TRAVIS"] == "true", "not supported on travis")
     def test_udp4_send(self):
-        with self.execute('sh', ['-c', 'echo hello > /dev/udp/127.0.0.1/1234']) as data:
+        with self.execute('bash', ['-c', 'echo hello > /dev/udp/127.0.0.1/1234']) as data:
             process = data.get_process_by(executable=shutil.which("sh"))
             sock = process.get_resource_by(type="socket")
 
@@ -175,7 +175,7 @@ class TracingTest(TracerTestCase):
 
     @unittest.skipIf("TRAVIS" in os.environ and os.environ["TRAVIS"] == "true", "not supported on travis")
     def test_udp6_send(self):
-        with self.execute('sh', ['-c', 'echo hello > /dev/udp/::1/1234']) as data:
+        with self.execute('bash', ['-c', 'echo hello > /dev/udp/::1/1234']) as data:
             process = data.get_process_by(executable=shutil.which("sh"))
             sock = process.get_resource_by(type="socket")
 

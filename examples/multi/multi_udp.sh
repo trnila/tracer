@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 TOTAL=1
 set -x
 
