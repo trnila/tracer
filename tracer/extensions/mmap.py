@@ -95,7 +95,9 @@ class MmapExtension(Extension):
         capture = RegionCapture(tracer.options.output, syscall.process, start, size)
         capture.prot = MMAP_PROTS.format(syscall.arguments[2].value)
         capture.flags = MMAP_MAPS.format(syscall.arguments[3].value)
-        if fd != 18446744073709551615:
+        file_backed = 'MAP_ANONYMOUS' not in capture.flags
+
+        if file_backed:
             capture.descriptor = syscall.process.descriptors.get(fd)
 
         if 'mmap_filter' in tracer.options:
@@ -119,7 +121,7 @@ class MmapExtension(Extension):
             capture.enable_capture = tracer.options.save_mmap
         syscall.process['regions'].append(capture)
 
-        if fd != 18446744073709551615:  # -1
+        if file_backed:
             mmap = MmapTracer(syscall.process['pid'], start, size,
                               syscall.arguments[2].value,
                               syscall.arguments[3].value)
