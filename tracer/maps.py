@@ -56,7 +56,7 @@ def create_map(module, start_with):
 
 SIGNALS = create_map(signal, 'SIG')
 MMAP_PROTS = FlaggedDict(create_map(MMAP, 'PROT_'))
-MMAP_MAPS = FlaggedDict(create_map(MMAP, 'MAP'))
+MMAP_FLAGS = FlaggedDict(create_map(MMAP, 'MAP'))
 SOCKET_DOMAINS = create_map(socket, 'AF_')
 SOCKET_TYPES = create_map(socket, 'SOCK_')
 SOCKET_OPTS = create_map(socket, 'SO')
