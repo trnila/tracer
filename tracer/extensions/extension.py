@@ -24,7 +24,7 @@ class Extension:
     def on_save(self, tracer):
         pass
 
-    def on_process_created(self, event):
+    def on_process_created(self, process):
         pass
 
     def on_process_exit(self, process):

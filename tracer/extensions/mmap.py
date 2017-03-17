@@ -76,6 +76,14 @@ class MmapExtension(Extension):
         parser.add_argument('--trace-mmap', action="store_true", default=False)
         parser.add_argument('--save-mmap', action="store_true", default=False)
 
+    def on_process_created(self, process):
+        if not process.parent:
+            return
+
+        for region in process.parent['regions']:
+            if 'MAP_SHARED' in region.flags:
+                process['regions'].append(region)
+
     @register_syscall("mmap")
     def mmap(self, syscall):
         tracer = syscall.process.tracer

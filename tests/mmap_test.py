@@ -2,6 +2,17 @@ from .utils.tracer_test_case import TracerTestCase, project_dir
 
 
 class MmapTest(TracerTestCase):
+    def assertHave(self, process, size, required=True):
+        found = False
+        for region in process.data.get('regions', []):
+            if region['size'] == size:
+                found = True
+
+        if required and not found:
+            self.fail("Region with size {} missing".format(size))
+        elif not required and found:
+            self.fail("Region with size {} found".format(size))
+
     def test_mmap(self):
         with self.execute('./examples/mmap/mmap') as data:
             process = data.get_first_process()
@@ -31,3 +42,13 @@ class MmapTest(TracerTestCase):
             self.assertEqual(2, len(regions))
             self.assertEqual(mmap['address'], int(regions[0].split("-")[0], 16))
             self.assertEqual(mmap['address'] + mmap['length'], int(regions[1].split("-")[1], 16))
+
+    def test_mmap_inherit(self):
+        with self.execute('./examples/mmap/inherit') as data:
+            self.assertEqual(2, len(data.processes))
+
+            required = True
+            for pid, process in data.processes.items():
+                self.assertHave(process, 128)
+                self.assertHave(process, 129, required)
+                required = not required

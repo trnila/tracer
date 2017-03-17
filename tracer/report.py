@@ -104,7 +104,9 @@ class Process(AttributeTrait):
 
     @property
     def parent(self):
-        return self.report['processes'][self['parent']]
+        if self['parent'] > 0:
+            return self.report['processes'][self['parent']]
+        return None
 
     def get_backtrace(self):
         return self.tracer.backend.create_backtrace(self.pid)
