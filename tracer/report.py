@@ -2,6 +2,7 @@ import copy
 import json
 import os
 
+import logging
 from tracer import utils
 from tracer.json_encode import AppJSONEncoder
 from tracer.utils import AttributeTrait, build_repr
@@ -42,6 +43,12 @@ class Capture:
         self.report.append_file(filename, content)
         self.operations.append(utils.merge_dicts({'type': action, 'size': len(content)}, kwargs))
 
+    def __setitem__(self, key, value):
+        self.descriptor[key] = value
+
+    def __getitem__(self, item):
+        return self.descriptor[item]
+
 
 class Descriptors:
     def __init__(self, filterer):
@@ -54,6 +61,9 @@ class Descriptors:
 
         if self.filter.is_filtered(descriptor):
             descriptor.ignored = True
+
+        for process in self.processes:
+            process.open(descriptor)
 
         return descriptor
 
@@ -89,6 +99,23 @@ class Process(AttributeTrait):
         self.descriptors.processes.append(self)
         self.tracer = tracer
         self.attributes.update(data)
+        self.rely = []
+
+        for i, descriptor in self.descriptors.descriptors.items():
+            self.open(descriptor)
+
+        if self.parent:
+            # sh
+            fds = [int(i) for i in os.listdir("/proc/{}/fd".format(self.pid))]
+
+
+            our = [pid for pid, v in self.descriptors.descriptors.items()]
+            if our != fds:
+                print(fds, our)
+                os.system("ls -l /proc/{}/fd".format(self.pid))
+                import sys
+                logging.error('test')
+                #sys.exit(1)
 
     @property
     def pid(self):
@@ -118,29 +145,30 @@ class Process(AttributeTrait):
         return self.tracer.backend.read_bytes(self.pid, address, size)
 
     def read(self, fd, content, **kwargs):
-        self.__prepare_capture(fd)
         self.captures[fd].read(content, **kwargs)
 
     def write(self, fd, content, **kwargs):
-        self.__prepare_capture(fd)
         self.captures[fd].write(content, **kwargs)
 
     def mmap(self, fd, params):
-        self.__prepare_capture(fd)
         self.captures[fd].descriptor['mmap'].append(params)
+
+    def open(self, descriptor):
+        self.__prepare_capture(descriptor['fd'])
 
     def on_close(self, fd):
         self.captures[fd] = None
 
     def to_json(self):
-        self.attributes['descriptors'] = [desc for desc in self.attributes['descriptors'] if
-                                          not desc.descriptor.ignored]
+        #self.attributes['descriptors'] = [desc for desc in self.attributes['descriptors'] if
+        #                                  not desc.descriptor.ignored]
+        self.attributes['descriptors'] = self.rely
         return self.attributes
 
     def __prepare_capture(self, fd):
         if fd not in self.captures or self.captures[fd] is None:
-            self.captures[fd] = Capture(self.report, self, self.descriptors.get(fd), len(self['descriptors']))
-            self['descriptors'].append(self.captures[fd])
+            self.captures[fd] = Capture(self.report, self, self.descriptors.get(fd), len(self.rely))
+            self.rely.append(self.captures[fd])
 
     def __str__(self):
         return "<Process {}>".format(
@@ -187,6 +215,7 @@ class Report(AttributeTrait):
 
         if parent:
             self.processes[pid]['cwd'] = [self.processes[parent]['cwd'][-1]]
+
 
         return self.processes[pid]
 

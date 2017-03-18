@@ -1,6 +1,16 @@
+import json
 import pprint
 
 import pytest
+
+
+def _sanitize(string):
+    data = json.loads(string)
+
+    for pid, process in data['processes'].items():
+        process['env'] = None
+
+    return json.dumps(data, indent=2)
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
@@ -22,10 +32,7 @@ def pytest_runtest_makereport(item, call):
                 result.append('OPTIONS: {}'.format(
                     executed.options
                 ))
-                result.append("ENV: {}".format(
-                    pprint.pformat(executed.env)
-                ))
                 result.append('-' * 100)
-                result.append(executed.data)
+                result.append(_sanitize(executed.data))
 
                 rep.sections.append((executed.command, "\n".join(result)))

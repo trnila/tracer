@@ -146,7 +146,7 @@ class MmapExtension(Extension):
     def on_tick(self, tracer):
         for pid, proc in tracer.data.processes.items():
             if tracer.options.trace_mmap:
-                for capture in proc['descriptors']:
+                for capture in proc.rely:
                     if capture.descriptor.is_file and capture.descriptor['mmap']:
                         for mmap_area in capture.descriptor['mmap']:
                             mmap_area.check()

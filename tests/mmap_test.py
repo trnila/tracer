@@ -37,7 +37,7 @@ class MmapTest(TracerTestCase):
     def test_mmap_track(self):
         with self.execute('./examples/mmap/mmap_track2', options=['--trace-mmap']) as data:
             process = data.get_first_process()
-            mmap = process.get_resource_by(type="file", path="%s/examples/100mb" % project_dir)['mmap'][0]
+            mmap = process.get_resource_by(type="file", path__endswith="examples/100mb")['mmap'][0]
 
             regions = mmap['regions']
 

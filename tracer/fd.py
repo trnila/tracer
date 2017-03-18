@@ -59,6 +59,7 @@ class Descriptor(AttributeTrait):
         self['fd'] = fd
         self.used = 0
         self.ignored = False
+        self.open = True
 
     def get_label(self):
         return "{}-{}".format(self['type'], self['fd'])

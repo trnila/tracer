@@ -3,6 +3,7 @@ import shutil
 import subprocess
 import sys
 import unittest
+from pprint import pprint
 from time import sleep
 
 from .utils.tracer_test_case import TracerTestCase
@@ -26,7 +27,7 @@ class TracingTest(TracerTestCase):
             self.assertEqual(output, data.read_file(stdout['write_content']))
 
     def test_pipes(self):
-        with self.execute("sh", ['-c', "cat /etc/passwd | tr a-z A-Z | tac"]) as data:
+        with self.execute("sh", ['-c', "cat /etc/passwd | tr a-z A-Z | tac"], options=['-vvvvvv']) as data:
             sh = data.get_process_by(executable=shutil.which('sh'))
             cat = data.get_process_by(executable=shutil.which('cat'))
             tr = data.get_process_by(executable=shutil.which('tr'))
@@ -71,7 +72,7 @@ class TracingTest(TracerTestCase):
     def test_ipv4_resolve(self):
         with self.execute('curl', ['http://93.184.216.34/']) as data:
             curl = data.get_process_by(executable=shutil.which('curl'))
-            sock = curl.get_resource_by(type='socket')
+            sock = curl.get_resource_by(type='socket', domain='AF_INET')
 
             self.assertIsNotNone(sock)
             self.assertIsNotNone(sock['remote'])
@@ -85,7 +86,7 @@ class TracingTest(TracerTestCase):
     def test_ipv6_resolve(self):
         with self.execute('curl', ['http://[2606:2800:220:1:248:1893:25c8:1946]/']) as data:
             curl = data.get_process_by(executable=shutil.which('curl'))
-            sock = curl.get_resource_by(type='socket')
+            sock = curl.get_resource_by(type='socket', domain='AF_INET6', socket_type='SOCK_STREAM')
 
             self.assertEqual('2606:2800:220:1:248:1893:25c8:1946', sock['remote']['address'])
             self.assertEqual(80, sock['remote']['port'])
