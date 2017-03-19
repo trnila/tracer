@@ -20,3 +20,5 @@ Examples
     Bash `script creating graph of network interfaces and ip addresses <https://github.com/trnila/tracer/blob/master/examples/bash/graphviz_syntax_err.sh>`_, but unfortunately there is syntax error in DOT language.
     What graph data are sent to graphviz?
     There is no need of modifying bash script to see corrupted graph data.
+
+More examples are available after invoking **./examples/run** in root of project repository.
