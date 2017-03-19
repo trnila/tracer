@@ -47,7 +47,7 @@ def create_map(module, start_with):
     values = {
         getattr(module, i): i for i in dir(module)
         if i.startswith(start_with) and isinstance(getattr(module, i), int)
-        }
+    }
     return DictWithDefault(values)
 
 
