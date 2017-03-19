@@ -59,11 +59,9 @@ class RegionCapture:
 
 
 def get_region(process, address):
-    if process['regions']:
-        for region in process['regions']:
-            if not region.unmapped and region.address == address:
-                return region
-
+    for region in process['regions']:
+        if not region.unmapped and region.address == address:
+            return region
     return None
 
 
@@ -77,6 +75,8 @@ class MmapExtension(Extension):
         parser.add_argument('--save-mmap', action="store_true", default=False)
 
     def on_process_created(self, process):
+        process['regions'] = []
+
         if not process.parent:
             return
 
@@ -149,13 +149,12 @@ class MmapExtension(Extension):
             if tracer.options.save_mmap:
                 try:
                     with open("/proc/{}/mem".format(pid), 'rb') as f:
-                        if proc['regions']:
-                            for region in proc['regions']:
-                                if region.is_active():
-                                    try:
-                                        f.seek(region.address)
-                                        region.write(region.capture(region, f))
-                                    except Exception as e:
-                                        print(e, region.address, region.size)
+                        for region in proc['regions']:
+                            if region.is_active():
+                                try:
+                                    f.seek(region.address)
+                                    region.write(region.capture(region, f))
+                                except Exception as e:
+                                    print(e, region.address, region.size)
                 except Exception as e:
                     print(e)
