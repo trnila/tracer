@@ -38,10 +38,7 @@ class DictWithDefault:
         return item
 
     def __repr__(self):
-        content = "\n\t".join([
-                                  "{}={}".format(key, value)
-                                  for key, value in self.items()
-                                  ])
+        content = "\n\t".join(["{}={}".format(key, value) for key, value in self.items()])
 
         return "FlaggedDict<\n\t{}\n>".format(content)
 
