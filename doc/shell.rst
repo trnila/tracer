@@ -25,3 +25,7 @@ The following example shows shell extension with procfs(), that drops you to the
     auxv       cmdline     cpuset           exe      io      maps       mounts     ns          oom_score  personality    schedstat  stat   syscall  wchan
 
 When you call exit(), no further syscalls will break the program.
+
+.. raw:: html
+
+    <script type="text/javascript" src="https://asciinema.org/a/786udoxzbl8n5ocl2d4gnoy5g.js" id="asciicast-786udoxzbl8n5ocl2d4gnoy5g" async></script>

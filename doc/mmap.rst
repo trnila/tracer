@@ -37,3 +37,16 @@ The last row ignores regions that are file-backed.
             return False
 
     return not region.descriptor
+
+.. figure:: _static/images/mmap1.jpg
+   :scale: 75%
+
+   An example report for `producer consumer <https://github.com/trnila/tracer/blob/master/examples/mmap/queue.c>`_.
+
+.. figure:: _static/images/mmap2.jpg
+   :scale: 75%
+
+   Mmap captured content. User is for example able to view hex representation in external editor by right clicking on upper half.
+   Custom scripts can be used to parse mmaped region and show only relevant information.
+   Input of that script is **raw** of type bytes and output data have to be set in **result** variable.
+   Example on this image shows states of semaphores, value of head, tail and current letters in queue.

@@ -11,6 +11,7 @@ Welcome to tracer's documentation!
    :caption: Contents:
 
    overview
+   examples
    installation
    usage
    configuration
