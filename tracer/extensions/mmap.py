@@ -41,11 +41,16 @@ class RegionCapture:
             with open(self.content, "ab") as file:
                 file.write(content)
 
+    def effective_size(self):
+        size = min(self.size, self.captured_size)
+
+        return max(0, size - self.captured_offset)
+
     def to_json(self):
         data = {
             "address": self.address,
             "size": self.size,
-            'captured_size': self.captured_size,
+            'captured_size': self.effective_size(),
             'captured_offset': self.captured_offset,
             'region_id': self.id,
             'prot': self.prot,
@@ -103,18 +108,18 @@ class MmapExtension(Extension):
         if 'mmap_filter' in tracer.options:
             result = tracer.options.mmap_filter(capture)
             if isinstance(result, dict):
+                if 'offset' in result:
+                    capture.captured_offset = 0
+                capture.captured_size = result['size']
+
                 def specific_capture(region, fd):
                     if 'offset' in result:
                         fd.seek(result['offset'], 1)
 
-                    return fd.read(result['size'])
+                    return fd.read(capture.effective_size())
 
                 capture.enable_capture = True
                 capture.capture = specific_capture
-
-                if 'offset' in result:
-                    capture.captured_offset = 0
-                capture.captured_size = result['size']
             else:
                 capture.enable_capture = result
         else:
