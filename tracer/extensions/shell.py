@@ -86,7 +86,8 @@ class ShellExtension(Extension):
             'process': syscall.process,
             'tracer': tracer,
             'exit': ExitCommand(self),
-            'procfs': ProcFsShellCommand(syscall.process)
+            'procfs': ProcFsShellCommand(syscall.process),
+            'backtrace': self._format_backtrace
         }
 
         banner = [
