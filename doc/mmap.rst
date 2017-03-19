@@ -27,7 +27,7 @@ The last row ignores regions that are file-backed.
 .. code-block:: python
 
     def mmap_filter(region):
-        if region.descriptor and region.descriptor['path'] == '/tmp/file' and region.process['executable'].endswith('write_track')::
+        if region.descriptor and region.descriptor['path'] == '/tmp/file' and region.process['executable'].endswith('write_track'):
             return {
                 'size': 8182,
                 'offset': 6000
