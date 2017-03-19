@@ -14,7 +14,7 @@ class Backtrace(Extension):
     def on_process_exit(self, event):
         event.tracer.backend.backtracer.process_exited(event.process['pid'])
 
-    @register_syscall(["open", "socket"])
+    @register_syscall(["open", "socket", "accept", "syscall<288>"])
     def open_handler(self, syscall):
         descriptor = syscall.process.descriptors.get(syscall.result)
 
