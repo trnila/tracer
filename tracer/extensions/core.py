@@ -3,6 +3,7 @@ from struct import unpack
 
 from tracer import maps
 from tracer import utils
+from tracer.addresses import NetworkAddress
 from tracer.extensions.extension import register_syscall, Extension
 from tracer.fd import Descriptor
 from tracer.fd_resolve import resolve
@@ -71,10 +72,7 @@ class CoreExtension(Extension):
         addr = utils.parse_addr(bytes_content)
 
         if descriptor['socket_type'] == 'AF_INET' and addr.address.__str__() == "0.0.0.0":
-            addr = {
-                'address': utils.get_all_interfaces(),
-                'port': addr.port
-            }
+            addr = NetworkAddress(utils.get_all_interfaces(), addr.port)
 
         descriptor['local'] = addr
 

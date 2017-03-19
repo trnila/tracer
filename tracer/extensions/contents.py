@@ -1,6 +1,7 @@
 from struct import unpack
 
 from tracer import utils
+from tracer.addresses import NetworkAddress
 from tracer.extensions.extension import register_syscall, Extension
 from tracer.fd_resolve import resolve
 
@@ -16,8 +17,8 @@ class ContentsExtension(Extension):
             try:
                 if descriptor['local'].address.__str__() == '0.0.0.0':
                     resolved = resolve(syscall.process.pid, syscall.arguments[0].value, 1)
-                    descriptor['local'] = resolved['dst']
-            except:
+                    descriptor['local'] = NetworkAddress(resolved['dst']['address'], resolved['dst']['port'])
+            except AttributeError:
                 pass
 
         family = {

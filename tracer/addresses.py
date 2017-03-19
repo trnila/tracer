@@ -1,6 +1,5 @@
-import socket
-
 import ipaddress
+import socket
 
 
 class Address:
@@ -27,6 +26,9 @@ class NetworkAddress:
             'address': self.address,
             'port': self.port
         }
+
+    def __repr__(self):
+        return "{}:{}".format(self.address, self.port)
 
 
 class UnixAddress:
