@@ -68,10 +68,6 @@ class MmapTracer:
 
     def to_json(self):
         return {
-            'address': self.start,
-            'length': self.size,
-            'prot': self.prot,
-            'flags': self.flags,
             'regions': self.accessed.get_ranges(),
             'region_id': self.region_id
         }
