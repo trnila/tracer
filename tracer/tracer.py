@@ -1,3 +1,4 @@
+import argparse
 import logging
 import os
 import shutil
@@ -42,7 +43,7 @@ class Tracer:
         parser.add_argument('-c', '--config', help="Load configuration from this file instead from tracer.conf.py in "
                                                    "current working directory", default='tracer.conf.py')
         parser.add_argument("program", nargs='?')
-        parser.add_argument("arguments", nargs='*')
+        parser.add_argument("arguments", nargs=argparse.REMAINDER)
 
         return parser
 
