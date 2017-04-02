@@ -22,7 +22,8 @@ class ChangeOpenPath(Extension):
         parser.add_argument(
             '--replace-path',
             action=StoreToDict,
-            help='Replace path1 with path2 in open syscalls, --replace-path path1:path2'
+            help='Replace path1 with path2 in open syscalls, --replace-path path1:path2',
+            default={}
         )
 
     @register_syscall("open", success_only=False)
