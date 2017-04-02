@@ -3,7 +3,8 @@ Configuration
 +++++++++++++
 Tracer can be configured with arguments and with configuration file.
 
-List of possible arguments for all activated extensions is available by invoking  command with **-h** or **--help**.
+List of possible arguments for all activated extensions is available by invoking  `tracer` with **-h** or **--help**.
+Third party arguments shall be defined after core parameters, otherwise parsing may fail (especially if third party argument has value).
 
 After configuration parameters are parsed from arguments then they are merged with configurations stored in *~/.tracerrc* and *tracer.conf.py* stored in current working directory or file provided by *-c*.
 
