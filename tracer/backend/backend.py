@@ -23,6 +23,9 @@ class Backend:
     def read_bytes(self, pid, address, size):
         raise NotImplementedError
 
+    def write_bytes(self, pid, address, data):
+        raise NotImplementedError
+
     def create_backtrace(self, pid):
         raise NotImplementedError
 
