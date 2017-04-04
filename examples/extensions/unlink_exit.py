@@ -34,7 +34,7 @@ class ExitOnUnlink(Extension):
             return
 
         proc = syscall.process
-        addr = InjectedMemory(syscall, 1024, prot=mmap.PROT_READ | mmap.PROT_WRITE | mmap.PROT_EXEC)
+        addr = InjectedMemory(syscall.process, 1024, prot=mmap.PROT_READ | mmap.PROT_WRITE | mmap.PROT_EXEC)
 
         proc.write_bytes(addr.addr, self.EXIT_CODE)
 

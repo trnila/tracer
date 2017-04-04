@@ -29,7 +29,7 @@ class InjectWrite(Extension):
         backup.backup(p.getregs())
 
         # prepare buffer of count size for content of whole file
-        buffer = InjectedMemory(syscall, count)
+        buffer = InjectedMemory(syscall.process, count)
 
         # XXX: use return value of read syscall
         # XXX: use buffering
@@ -51,7 +51,7 @@ class InjectWrite(Extension):
         code = b"".join([i.encode() for i in instrs])
 
         # prepare region for code instructions
-        addr = InjectedMemory(syscall, 1024, prot=mmap.PROT_READ | mmap.PROT_WRITE | mmap.PROT_EXEC)
+        addr = InjectedMemory(syscall.process, 1024, prot=mmap.PROT_READ | mmap.PROT_WRITE | mmap.PROT_EXEC)
         proc.write_bytes(addr.addr, code)
 
         # jump to injected code

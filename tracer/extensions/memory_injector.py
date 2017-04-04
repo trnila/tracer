@@ -11,16 +11,20 @@ REGISTERS = [
 ]
 
 
-def inject_syscall(syscall, new_syscall, arguments=[]):
+def inject_syscall(proc, new_syscall, arguments=None):
     """
     inject syscall to traced process
     currently injecting memory works for process that is *before* syscall, ie. syscall.result returns None
     """
 
-    if syscall.result is not None:
+    if arguments is None:
+        arguments = []
+
+    process = proc.tracer.backend.debugger[proc.pid]
+
+    if process.syscall_state.syscall.result is not None:
         raise RuntimeError("Process must be before syscall, ie. syscall.result must return None")
 
-    process = syscall.process.tracer.backend.debugger[syscall.process.pid]
     regs = process.getregs()
 
     # backup all registers that will be restored when injected syscall completes
@@ -53,20 +57,20 @@ def inject_syscall(syscall, new_syscall, arguments=[]):
 class InjectedMemory:
     def __init__(
             self,
-            syscall,
+            process,
             length,
             prot=mmap.PROT_READ | mmap.PROT_WRITE,
             flags=mmap.MAP_ANONYMOUS | mmap.MAP_PRIVATE):
         self.length = length
-        self.process = syscall.process
+        self.process = process
         self.mapped = True
         self.caller_frame = inspect.stack()[1]
 
         parameters = [0, length, prot, flags, -1, 0]
-        self.addr = inject_syscall(syscall, SYSCALL_MMAP, parameters)
+        self.addr = inject_syscall(process, SYSCALL_MMAP, parameters)
 
-    def munmap(self, syscall):
-        inject_syscall(syscall, SYSCALL_MUNMAP, [self.addr, self.length])
+    def munmap(self):
+        inject_syscall(self.process, SYSCALL_MUNMAP, [self.addr, self.length])
         self.mapped = False
 
     def write(self, content, offset=0):

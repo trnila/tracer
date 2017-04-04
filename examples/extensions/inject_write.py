@@ -33,7 +33,7 @@ class InjectWrite(Extension):
         backup.backup(p.getregs())
 
         # prepare buffer for text that will be written to stdout
-        buffer = InjectedMemory(syscall, 1024)
+        buffer = InjectedMemory(syscall.process, 1024)
         proc.write_bytes(buffer.addr, text)
 
         # create instructions for write(0, buffer, size) on fly
@@ -44,7 +44,7 @@ class InjectWrite(Extension):
                self.CODE_SYSCALL
 
         # prepare region for code instructions
-        addr = InjectedMemory(syscall, 1024, prot=mmap.PROT_READ | mmap.PROT_WRITE | mmap.PROT_EXEC)
+        addr = InjectedMemory(syscall.process, 1024, prot=mmap.PROT_READ | mmap.PROT_WRITE | mmap.PROT_EXEC)
         proc.write_bytes(addr.addr, code)
 
         # jump to injected code
@@ -66,9 +66,11 @@ class InjectWrite(Extension):
         p.syscall()
         p.waitSyscall()
 
+        # unmap memory in before state
+        addr.munmap()
+        buffer.munmap()
+
         # we are before syscall, restore registers
         regs = p.getregs()
         backup.restore(regs)
         p.setregs(regs)
-
-        # XXX: we shall unmap memory regions!
