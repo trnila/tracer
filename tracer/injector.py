@@ -22,6 +22,9 @@ def inject_syscall(proc, new_syscall, arguments=None):
 
     process = proc.tracer.backend.debugger[proc.pid]
 
+    if not process.syscall_state.syscall:
+        raise RuntimeError("No active syscall")
+
     if process.syscall_state.syscall.result is not None:
         raise RuntimeError("Process must be before syscall, ie. syscall.result must return None")
 
@@ -85,6 +88,9 @@ class InjectedMemory:
 
     def write(self, content, offset=0):
         self.process.write_bytes(self.addr + offset, content)
+
+    def read(self):
+        return self.process.read_bytes(self.addr, self.length)
 
     def __del__(self):
         if self.mapped:
