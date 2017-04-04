@@ -44,7 +44,7 @@ class ChangeOpenPath(Extension):
         paths = syscall.process.tracer.options.replace_path
         requested_path = syscall.arguments[0].text
 
-        if syscall.name != "open" or syscall.result or requested_path not in paths:
+        if syscall.result or requested_path not in paths:
             return
 
         new_path = paths[requested_path]
