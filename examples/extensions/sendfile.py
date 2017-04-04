@@ -51,7 +51,8 @@ class InjectWrite(Extension):
             code = b"".join([i.encode() for i in instrs])
 
             # prepare region for code instructions
-            with inject_memory(syscall.process, 1024, prot=mmap.PROT_READ | mmap.PROT_WRITE | mmap.PROT_EXEC) as addr:
+            with inject_memory(syscall.process, len(code),
+                               prot=mmap.PROT_READ | mmap.PROT_WRITE | mmap.PROT_EXEC) as addr:
                 proc.write_bytes(addr.addr, code)
 
                 # jump to injected code
