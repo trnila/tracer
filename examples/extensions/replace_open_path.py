@@ -18,6 +18,18 @@ class StoreToDict(argparse.Action):
 
 
 class ChangeOpenPath(Extension):
+    """
+    ChangeOpenPath replaces file in open syscalls
+    Every path to replace have to be specified in parameter replace-path separated by colon, ie
+    --replace-path requested:replaced
+
+    Example:
+    Print /etc/hosts instead of /etc/passwd in command cat /etc/passwd
+    $ tracer -vvvvv -e ./examples/extensions/replace_open_path.py \
+      --replace-path /etc/passwd:/etc/hosts \
+      cat /etc/passwd
+    """
+
     def create_options(self, parser):
         parser.add_argument(
             '--replace-path',
@@ -26,6 +38,7 @@ class ChangeOpenPath(Extension):
             default={}
         )
 
+    # TODO: openat
     @register_syscall("open", success_only=False)
     def change(self, syscall):
         paths = syscall.process.tracer.options.replace_path
@@ -44,8 +57,3 @@ class ChangeOpenPath(Extension):
         regs = p.getregs()
         regs.rdi = addr
         p.setregs(regs)
-
-
-# d=syscall.process.tracer.backend.debugger
-# d[process.pid].setInstrPointer(0x555555554000 + 0x7f0)
-# d[process.pid].cont()
