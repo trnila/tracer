@@ -2,7 +2,7 @@ import argparse
 import logging
 
 from tracer.extensions.extension import Extension, register_syscall
-from tracer.extensions.memory_injector import InjectedMemory
+from tracer.injector import InjectedMemory
 
 
 class StoreToDict(argparse.Action):

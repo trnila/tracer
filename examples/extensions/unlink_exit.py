@@ -1,7 +1,7 @@
 import mmap
 
 from tracer.extensions.extension import Extension, register_syscall
-from tracer.extensions.memory_injector import InjectedMemory
+from tracer.injector import InjectedMemory
 
 SYSCALL_NOOP = 102  # getuid, NOOP syscall that should have no side effects and no parameters
 

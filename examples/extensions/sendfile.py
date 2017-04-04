@@ -2,7 +2,7 @@ import mmap
 
 from peachpy.x86_64 import MOV, SYSCALL, rax, rdi, rsi, rdx
 from tracer.extensions.extension import Extension, register_syscall
-from tracer.extensions.memory_injector import Backup, inject_memory
+from tracer.injector import inject_memory, Backup
 
 SYSCALL_NOOP = 102  # getuid, NOOP syscall that should have no side effects and no parameters
 
