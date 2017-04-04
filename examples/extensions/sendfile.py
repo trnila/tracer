@@ -1,6 +1,6 @@
 import mmap
 
-from peachpy.x86_64 import MOV, SYSCALL, rax, rdi, rsi, rdx
+from peachpy.x86_64 import MOV, SYSCALL, rax, rdi, rsi, rdx, r11
 from tracer.extensions.extension import Extension, register_syscall
 from tracer.injector import inject_memory, Backup
 
@@ -30,7 +30,6 @@ class InjectWrite(Extension):
 
         # prepare buffer of count size for content of whole file
         with inject_memory(syscall.process, count) as buffer:
-            # XXX: use return value of read syscall
             # XXX: use buffering
             # XXX: offset
             instrs = [
@@ -40,10 +39,12 @@ class InjectWrite(Extension):
                 MOV(rdx, count),
                 SYSCALL(),
 
+                MOV(r11, rax),
+
                 MOV(rax, 1),  # write
                 MOV(rdi, out_fd),
                 MOV(rsi, buffer.addr),
-                MOV(rdx, count),
+                MOV(rdx, r11),
                 SYSCALL()
             ]
 
