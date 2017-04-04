@@ -151,3 +151,9 @@ class AttributeTrait:
 
     def __setitem__(self, key, value):
         self.attributes[key] = value
+
+
+def eval_file(file, global_data):
+    with open(file) as f:
+        code = compile(f.read(), file, 'exec')
+        exec(code, global_data)

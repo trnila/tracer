@@ -20,6 +20,7 @@ from tracer.extensions.shell import ShellExtension
 from tracer.fd import Descriptor, Syscall
 from tracer.filter import Filter
 from tracer.report import UnknownFd
+from tracer.utils import eval_file
 
 
 class Tracer:
@@ -210,14 +211,13 @@ class Tracer:
             else:
                 logging.debug("Loading plugin from %s", extension)
                 try:
-                    with open(extension) as file:
-                        globs = {}
-                        exec(file.read(), globs)
-
-                        for name, obj in globs.items():
-                            if isinstance(obj, type):
-                                if issubclass(obj, Extension):
-                                    self.register_extension(obj())
+                    eval_file(extension, globals())
                 except Exception as e:
                     logging.exception("Could not load plugin %s", extension)
                     sys.exit(1)
+
+        for name, obj in globals().items():
+            if isinstance(obj, type):
+                print(obj)
+                if issubclass(obj, Extension) and not obj.__module__.startswith('tracer.extensions'):
+                    self.register_extension(obj())
