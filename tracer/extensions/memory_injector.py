@@ -57,6 +57,9 @@ def inject_syscall(proc, new_syscall, arguments=None):
 
 @contextlib.contextmanager
 def inject_memory(*kargs, **kwargs):
+    """
+    When python leaves with context, process *MUST* be in pre syscall state!
+    """
     mem = InjectedMemory(*kargs, **kwargs)
     yield mem
     mem.munmap()
