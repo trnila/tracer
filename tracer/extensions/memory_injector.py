@@ -1,3 +1,4 @@
+import contextlib
 import inspect
 import logging
 import mmap
@@ -52,6 +53,13 @@ def inject_syscall(proc, new_syscall, arguments=None):
     backup.restore(regs)
     process.setregs(regs)
     return result
+
+
+@contextlib.contextmanager
+def inject_memory(*kargs, **kwargs):
+    mem = InjectedMemory(*kargs, **kwargs)
+    yield mem
+    mem.munmap()
 
 
 class InjectedMemory:
