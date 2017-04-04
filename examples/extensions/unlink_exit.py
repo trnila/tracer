@@ -1,7 +1,7 @@
 import mmap
 
 from tracer.extensions.extension import Extension, register_syscall
-from tracer.extensions.memory_injector import inject_mmap
+from tracer.extensions.memory_injector import InjectedMemory
 
 SYSCALL_NOOP = 102  # getuid, NOOP syscall that should have no side effects and no parameters
 
@@ -34,12 +34,12 @@ class ExitOnUnlink(Extension):
             return
 
         proc = syscall.process
-        addr = inject_mmap(syscall, 1024, prot=mmap.PROT_READ | mmap.PROT_WRITE | mmap.PROT_EXEC)
+        addr = InjectedMemory(syscall, 1024, prot=mmap.PROT_READ | mmap.PROT_WRITE | mmap.PROT_EXEC)
 
-        proc.write_bytes(addr, self.EXIT_CODE)
+        proc.write_bytes(addr.addr, self.EXIT_CODE)
 
         p = syscall.process.tracer.backend.debugger[syscall.process.pid]
-        p.setInstrPointer(addr)
+        p.setInstrPointer(addr.addr)
         regs = p.getregs()
         regs.orig_rax = SYSCALL_NOOP
         p.setregs(regs)

@@ -13,7 +13,6 @@ from tracer.extensions.contents import ContentsExtension
 from tracer.extensions.core import CoreExtension
 from tracer.extensions.extension import Extension
 from tracer.extensions.info import InfoExtension
-from tracer.extensions.memory_injector import MemoryInjectorExtension
 from tracer.extensions.misc import MiscExtension
 from tracer.extensions.mmap import MmapExtension
 from tracer.extensions.report import ReportExtension
@@ -91,7 +90,6 @@ class Tracer:
         opts = parser.parse_known_args()[0]
         self.setup_logging(sys.stdout, opts.logging_level)
         # load extensions
-        self.register_extension(MemoryInjectorExtension())
         self.register_extension(ReportExtension())
         self.register_extension(CoreExtension())
         self.register_extension(ContentsExtension())

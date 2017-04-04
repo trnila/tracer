@@ -2,6 +2,7 @@ import argparse
 import logging
 
 from tracer.extensions.extension import Extension, register_syscall
+from tracer.extensions.memory_injector import InjectedMemory
 
 
 class StoreToDict(argparse.Action):
@@ -50,10 +51,10 @@ class ChangeOpenPath(Extension):
         new_path = paths[requested_path]
         logging.info("Replacing path %s with %s", requested_path, new_path)
 
-        addr = syscall.process['mem']
-        syscall.process.write_bytes(addr, new_path.encode('utf-8') + b'\0')
+        addr = InjectedMemory(syscall, len(new_path))
+        addr.write(new_path.encode('utf-8') + b'\0')
 
         p = syscall.process.tracer.backend.debugger[syscall.process.pid]
         regs = p.getregs()
-        regs.rdi = addr
+        regs.rdi = addr.addr
         p.setregs(regs)

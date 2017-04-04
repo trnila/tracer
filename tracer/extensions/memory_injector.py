@@ -1,52 +1,85 @@
+import inspect
 import logging
 import mmap
 
-from tracer.extensions.extension import Extension
-
 SYSCALL_INSTR_SIZE = 2
 SYSCALL_MMAP = 9
+SYSCALL_MUNMAP = 11
+
+REGISTERS = [
+    'rdi', 'rsi', 'rdx', 'r10', 'r8', 'r9'
+]
 
 
-def inject_mmap(syscall, length, prot=mmap.PROT_READ | mmap.PROT_WRITE, flags=mmap.MAP_ANONYMOUS | mmap.MAP_PRIVATE):
+def inject_syscall(syscall, new_syscall, arguments=[]):
     """
-        create address space of length in traced process, returns address in traced process
-        currently injecting memory works for process that is *before* syscall, ie. syscall.result returns None
+    inject syscall to traced process
+    currently injecting memory works for process that is *before* syscall, ie. syscall.result returns None
     """
+
     if syscall.result is not None:
         raise RuntimeError("Process must be before syscall, ie. syscall.result must return None")
 
-    backup = Backup()
-    p = syscall.process.tracer.backend.debugger[syscall.process.pid]
+    process = syscall.process.tracer.backend.debugger[syscall.process.pid]
+    regs = process.getregs()
 
-    # backup and prepare new register with mmap syscall
-    regs = p.getregs()
+    # backup all registers that will be restored when injected syscall completes
+    backup = Backup()
     backup.backup(regs)
-    regs.orig_rax = SYSCALL_MMAP
-    regs.rdi = 0
-    regs.rsi = length
-    regs.rdx = prot
-    regs.r10 = flags
-    regs.r8 = -1
-    regs.r9 = 0
+
+    regs.orig_rax = new_syscall
+    for reg, val in zip(REGISTERS, arguments):
+        setattr(regs, reg, val)
+    process.setregs(regs)
 
     # set modified registers, resume and wait for syscall
-    p.setregs(regs)
-    p.syscall()
-    p.waitSyscall()
+    process.setregs(regs)
+    process.syscall()
+    process.waitSyscall()
 
-    # get mmap address
-    addr = p.getregs().rax
+    result = process.getregs().rax
 
     # set instruction pointer before original syscall, resume and wait
-    p.setInstrPointer(p.getInstrPointer() - SYSCALL_INSTR_SIZE)
-    p.syscall()
-    p.waitSyscall()
+    process.setInstrPointer(process.getInstrPointer() - SYSCALL_INSTR_SIZE)
+    process.syscall()
+    process.waitSyscall()
 
     # restore original registers
     backup.restore(regs)
-    p.setregs(regs)
+    process.setregs(regs)
+    return result
 
-    return addr
+
+class InjectedMemory:
+    def __init__(
+            self,
+            syscall,
+            length,
+            prot=mmap.PROT_READ | mmap.PROT_WRITE,
+            flags=mmap.MAP_ANONYMOUS | mmap.MAP_PRIVATE):
+        self.length = length
+        self.process = syscall.process
+        self.mapped = True
+        self.caller_frame = inspect.stack()[1]
+
+        parameters = [0, length, prot, flags, -1, 0]
+        self.addr = inject_syscall(syscall, SYSCALL_MMAP, parameters)
+
+    def munmap(self, syscall):
+        inject_syscall(syscall, SYSCALL_MUNMAP, [self.addr, self.length])
+        self.mapped = False
+
+    def write(self, content, offset=0):
+        self.process.write_bytes(self.addr + offset, content)
+
+    def __del__(self):
+        if self.mapped:
+            logging.warning(
+                "Mapped region left in process, %s:%d (%s)",
+                self.caller_frame.filename,
+                self.caller_frame.lineno,
+                self.caller_frame.function
+            )
 
 
 class Backup:
@@ -61,18 +94,3 @@ class Backup:
     def restore(self, regs):
         for key, val in self.registers.items():
             setattr(regs, key, val)
-
-
-class MemoryInjectorExtension(Extension):
-    """  Extension injects mmap region to each process at start """
-
-    def __init__(self):
-        super().__init__()
-        self.injected = set()
-
-    def on_syscall(self, syscall):
-        if syscall.process.pid not in self.injected:
-            addr = inject_mmap(syscall, 1024)
-            syscall.process['mem'] = addr
-            logging.debug("[%d] our mmap memory located at %X", syscall.process.pid, addr)
-            self.injected.add(syscall.process.pid)

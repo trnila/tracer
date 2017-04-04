@@ -2,7 +2,7 @@ import mmap
 
 from peachpy.x86_64 import MOV, SYSCALL, rax, rdi, rsi, rdx
 from tracer.extensions.extension import Extension, register_syscall
-from tracer.extensions.memory_injector import inject_mmap, Backup
+from tracer.extensions.memory_injector import Backup, InjectedMemory
 
 SYSCALL_NOOP = 102  # getuid, NOOP syscall that should have no side effects and no parameters
 
@@ -29,7 +29,7 @@ class InjectWrite(Extension):
         backup.backup(p.getregs())
 
         # prepare buffer of count size for content of whole file
-        buffer = inject_mmap(syscall, count)
+        buffer = InjectedMemory(syscall, count)
 
         # XXX: use return value of read syscall
         # XXX: use buffering
@@ -37,13 +37,13 @@ class InjectWrite(Extension):
         instrs = [
             MOV(rax, 0),  # read
             MOV(rdi, in_fd),  # descriptor
-            MOV(rsi, buffer),
+            MOV(rsi, buffer.addr),
             MOV(rdx, count),
             SYSCALL(),
 
             MOV(rax, 1),  # write
             MOV(rdi, out_fd),
-            MOV(rsi, buffer),
+            MOV(rsi, buffer.addr),
             MOV(rdx, count),
             SYSCALL()
         ]
@@ -51,11 +51,11 @@ class InjectWrite(Extension):
         code = b"".join([i.encode() for i in instrs])
 
         # prepare region for code instructions
-        addr = inject_mmap(syscall, 1024, prot=mmap.PROT_READ | mmap.PROT_WRITE | mmap.PROT_EXEC)
-        proc.write_bytes(addr, code)
+        addr = InjectedMemory(syscall, 1024, prot=mmap.PROT_READ | mmap.PROT_WRITE | mmap.PROT_EXEC)
+        proc.write_bytes(addr.addr, code)
 
         # jump to injected code
-        p.setInstrPointer(addr)
+        p.setInstrPointer(addr.addr)
 
         # replace syscall with NOOP syscall
         regs = p.getregs()
@@ -64,12 +64,12 @@ class InjectWrite(Extension):
 
         # execute all instructions that we have written to injected memory
         # XXX: performance: maybe we can insert syscall(SIGTRAP)
-        while p.getInstrPointer() < addr + len(code):
+        while p.getInstrPointer() < addr.addr + len(code):
             p.singleStep()
             p.waitEvent()
 
         # write content of whole file from memory
-        syscall.process.write(out_fd, syscall.process.read_bytes(buffer, count))
+        syscall.process.write(out_fd, syscall.process.read_bytes(buffer.addr, count))
 
         # go back before original syscall
         p.setInstrPointer(orig_ip - 2)

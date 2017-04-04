@@ -2,7 +2,7 @@ import mmap
 import struct
 
 from tracer.extensions.extension import Extension, register_syscall
-from tracer.extensions.memory_injector import inject_mmap, Backup
+from tracer.extensions.memory_injector import Backup, InjectedMemory
 
 SYSCALL_NOOP = 102  # getuid, NOOP syscall that should have no side effects and no parameters
 
@@ -33,22 +33,22 @@ class InjectWrite(Extension):
         backup.backup(p.getregs())
 
         # prepare buffer for text that will be written to stdout
-        buffer = inject_mmap(syscall, 1024)
-        proc.write_bytes(buffer, text)
+        buffer = InjectedMemory(syscall, 1024)
+        proc.write_bytes(buffer.addr, text)
 
         # create instructions for write(0, buffer, size) on fly
         code = self.CODE_SET_SYSCALL + \
                self.CODE_SET_DESCRIPTOR + \
                self.CODE_SET_LEN + struct.pack("<q", len(text)) + \
-               self.CODE_SET_BUF + struct.pack("<q", buffer) + \
+               self.CODE_SET_BUF + struct.pack("<q", buffer.addr) + \
                self.CODE_SYSCALL
 
         # prepare region for code instructions
-        addr = inject_mmap(syscall, 1024, prot=mmap.PROT_READ | mmap.PROT_WRITE | mmap.PROT_EXEC)
-        proc.write_bytes(addr, code)
+        addr = InjectedMemory(syscall, 1024, prot=mmap.PROT_READ | mmap.PROT_WRITE | mmap.PROT_EXEC)
+        proc.write_bytes(addr.addr, code)
 
         # jump to injected code
-        p.setInstrPointer(addr)
+        p.setInstrPointer(addr.addr)
 
         # replace syscall with NOOP syscall
         regs = p.getregs()
@@ -57,7 +57,7 @@ class InjectWrite(Extension):
 
         # execute all instructions that we have written to injected memory
         # XXX: performance: maybe we can insert syscall(SIGTRAP)
-        while p.getInstrPointer() < addr + len(code):
+        while p.getInstrPointer() < addr.addr + len(code):
             p.singleStep()
             p.waitEvent()
 
