@@ -37,8 +37,13 @@ class ChangeOpenPath(Extension):
         new_path = paths[requested_path]
         logging.info("Replacing path %s with %s", requested_path, new_path)
 
-        addr = syscall.arguments[0].value
+        addr = syscall.process['mem']
         syscall.process.write_bytes(addr, new_path.encode('utf-8') + b'\0')
+
+        p = syscall.process.tracer.backend.debugger[syscall.process.pid]
+        regs = p.getregs()
+        regs.rdi = addr
+        p.setregs(regs)
 
 
 # d=syscall.process.tracer.backend.debugger
