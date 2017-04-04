@@ -1,17 +1,23 @@
 dist: trusty
 before_install:
-    - "sudo apt-get install libunwind8"
+    - "sudo apt-get install libunwind8 libunwind8-dev"
     - "make"
 language: python
-python:
-    - "nightly"
-    - "3.6"
-    - "3.5"
-    - "3.4"
-    - "3.3"
+matrix:
+    include:
+        - python: 3.7-dev
+          env: TOXENV=py37
+        - python: 3.6
+          env: TOXENV=py36
+        - python: 3.5
+          env: TOXENV=py35
+        - python: 3.4
+          env: TOXENV=py34
+        - python: nightly
+          env: TOXENV=docs
+        - python: nightly
+          env: TOXENV=pep8
 install: 
-    - pip install flake8
-    - pip install -r requirements.txt
+    - pip install -U tox
 script: 
-    - "flake8 --ignore=E501 tracer"
-    - "pytest -q tests/"
+    - tox
