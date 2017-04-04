@@ -1,9 +1,8 @@
 import argparse
 import logging
-
 import mmap
 
-from tracer.extensions.extension import Extension, register_syscall
+from tracer.extensions.extension import Extension
 
 
 class StoreToDict(argparse.Action):
@@ -52,7 +51,7 @@ class Backup:
         self.registers = {}
 
     def backup(self, regs):
-        for prop in dir(regs): #['orig_rax', 'rdi', 'rsi', 'rdx', 'r10', 'r8', 'r9']: #dir(regs):
+        for prop in dir(regs):
             if not prop.startswith('_'):
                 self.registers[prop] = getattr(regs, prop)
 
@@ -60,22 +59,18 @@ class Backup:
         for key, val in self.registers.items():
             setattr(regs, key, val)
 
-class Test(Extension):
+
+class ProcessMemoryInjector(Extension):
+    SYSCALL_INSTR_SIZE = 2
+
     def __init__(self):
         super().__init__()
         self.injected = set()
 
     def on_syscall(self, syscall):
-        if syscall.name != 'open' or syscall.arguments[0].text != "/etc/passwd" or syscall.result is not None:
-            return
-
-
-        backup = Backup()
         if syscall.process.pid not in self.injected:
-            p=syscall.process.tracer.backend.debugger[syscall.process.pid]
-
-            pre = p.getInstrPointer()
-            print(hex(p.getInstrPointer()))
+            backup = Backup()
+            p = syscall.process.tracer.backend.debugger[syscall.process.pid]
 
             # backup and prepare new register with mmap syscall
             regs = p.getregs()
@@ -88,37 +83,23 @@ class Test(Extension):
             regs.r8 = -1
             regs.r9 = 0
 
-            # resume and wait for syscall
+            # set modified registers, resume and wait for syscall
             p.setregs(regs)
             p.syscall()
             p.waitSyscall()
-            print('ok injected')
 
-            print(hex(p.getInstrPointer()))
-
-            # get mmap region
+            # get mmap address
             addr = p.getregs().rax
-            logging.info("%d mmap located at %X", p.pid, addr)
+            syscall.process['mem'] = addr
+            logging.debug("[%d] our mmap memory located at %X", p.pid, addr)
 
-            # part 2
-            p.setInstrPointer(pre - 2)
+            # set instruction pointer before original syscall, resume and wait
+            p.setInstrPointer(p.getInstrPointer() - self.SYSCALL_INSTR_SIZE)
             p.syscall()
             p.waitSyscall()
-            print('we can continue')
 
+            # restore original registers
             backup.restore(regs)
             p.setregs(regs)
 
             self.injected.add(syscall.process.pid)
-            syscall.process['mem'] = addr
-
-
-
-            #p.setInstrPointer(before_syscall_addr)
-            #p.syscall()
-
-            #import struct
-            #val = p.getregs().rax.to_bytes(8, byteorder='little')
-            #print(struct.unpack("l", val))
-
-            #from IPython import embed; embed()
