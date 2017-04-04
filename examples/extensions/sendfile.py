@@ -72,13 +72,19 @@ class InjectWrite(Extension):
                 # write content of whole file from memory
                 syscall.process.write(out_fd, syscall.process.read_bytes(buffer.addr, count))
 
-                # go back before original syscall
+                # go back before original syscall, because managers for mapped memory needs this process state
                 p.setInstrPointer(orig_ip - 2)
                 p.syscall()
                 p.waitSyscall()
 
-        # we are before syscall, restore registers
+        # we are before syscall, restore registers and do noop operation
         regs = p.getregs()
         backup.restore(regs)
+        regs.orig_rax = SYSCALL_NOOP
         p.setregs(regs)
+        p.syscall()
+        p.waitSyscall()
 
+        # set return value of sendfile
+        regs.rax = count  # XXX: this is expected count
+        p.setregs(regs)

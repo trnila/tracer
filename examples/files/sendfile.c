@@ -17,7 +17,9 @@ int main() {
 		perror("fstat");
 		exit(1);
 	}
-	sendfile(1, fd, NULL, buf.st_size);
+	int ret = sendfile(1, fd, NULL, buf.st_size);
+	perror("sendfile");
+	printf("return: %d\n", ret);
 
 	return 0;
 }
