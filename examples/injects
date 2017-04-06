@@ -1,0 +1,5 @@
+tracer -e ./examples/extensions/inject_write.py -vvvv cat /etc/passwd
+tracer -e ./examples/extensions/sendfile.py -vvvv ./examples/files/sendfile
+touch /tmp/xxx; tracer -e ./examples/extensions/unlink_exit.py -vvvv rm /tmp/xxx
+tracer -e ./examples/extensions/replace_open_path.py --replace-path /etc/passwd:/etc/hosts cat /etc/passwd
+tracer -e examples/extensions/replace_execve.py bash -c 'cat /etc/hosts'

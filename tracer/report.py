@@ -117,6 +117,9 @@ class Process(AttributeTrait):
     def read_bytes(self, address, size):
         return self.tracer.backend.read_bytes(self.pid, address, size)
 
+    def write_bytes(self, address, data):
+        return self.tracer.backend.write_bytes(self.pid, address, data)
+
     def read(self, fd, content, **kwargs):
         self.__prepare_capture(fd)
         self.captures[fd].read(content, **kwargs)

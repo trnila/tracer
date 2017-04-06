@@ -61,6 +61,9 @@ class PythonPtraceBackend(Backend):
     def read_bytes(self, pid, address, size):
         return self.debugger[pid].readBytes(address, size)
 
+    def write_bytes(self, pid, address, data):
+        return self.debugger[pid].writeBytes(address, data)
+
     def create_backtrace(self, pid):
         return self.backtracer.create_backtrace(self.debugger[pid])
 
