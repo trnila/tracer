@@ -27,8 +27,8 @@ class CoreExtension(Extension):
         if syscall.name == "openat":
             path = syscall.arguments[1].text
             if path[0] != '/' and syscall.arguments[0].value not in [-100, 18446744073709551516]:  # AT_FDCWD = -100
-                dir = syscall.process.descriptors.get(syscall.arguments[0].value)
-                path = dir['path'] + "/" + path
+                directory = syscall.process.descriptors.get(syscall.arguments[0].value)
+                path = directory['path'] + "/" + path
         else:
             path = syscall.arguments[0].text
 

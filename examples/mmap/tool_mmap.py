@@ -13,8 +13,8 @@ start = int(addr[0], 16)
 end = int(addr[1], 16)
 
 
-def to_int(str):
-    return int("".join(["{0:b}".format(i).ljust(8, '0') for i in str])[::-1], 2)
+def to_int(s):
+    return int("".join(["{0:b}".format(i).ljust(8, '0') for i in s])[::-1], 2)
 
 
 with open("/proc/%d/pagemap" % pid, 'rb') as f, open("/proc/kpageflags", "rb") as f2:
@@ -23,16 +23,15 @@ with open("/proc/%d/pagemap" % pid, 'rb') as f, open("/proc/kpageflags", "rb") a
     while start < end:
         if i % 40 == 0:
             print("\n" + hex(start), end=" ")
-            pass
         i += 1
         num = struct.unpack('Q', f.read(8))[0]
-        id = num & 0x7FFFFFFFFFFFFF
+        page_id = num & 0x7FFFFFFFFFFFFF
         print("%d" % ((num & (1 << 63)) > 0), end=" ")
 
         # print(id)
         # print(hex(id))
-        f2.seek(id * 8, 0)
-        num = struct.unpack('Q', f2.read(8))[0]
+        f2.seek(page_id * 8, 0)
+        # num = struct.unpack('Q', f2.read(8))[0]
         # print(bin(num))
 
         start += page_size

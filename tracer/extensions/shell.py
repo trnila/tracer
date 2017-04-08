@@ -32,7 +32,6 @@ class ProcFsShellCommand:
 
 class CodeShell:
     def __init__(self):
-        import code
         self.shell = code
 
     def run(self, banner, arguments):
@@ -101,7 +100,8 @@ class ShellExtension(Extension):
             banner.append(backtrace)
             banner.append("")
 
-        [banner.append("{} = {}".format(name, str(value))) for name, value in local.items()]
+        for name, value in local.items():
+            banner.append("{} = {}".format(name, str(value)))
 
         try:
             self.shell.run("\n".join(banner), local)
