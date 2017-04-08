@@ -98,8 +98,7 @@ class PythonPtraceBackend(Backend):
                     def read_group(pid):
                         with open('/proc/%d/status' % pid) as f:
                             return int(
-                                dict([(i, j.strip()) for i, j in [i.split(':', 1) for i in f.read().splitlines()]])[
-                                    'Tgid'])
+                                {i: j.strip() for i, j in [i.split(':', 1) for i in f.read().splitlines()]}['Tgid'])
 
                     me = read_group(syscall.process.pid)
                     for process in self.debugger:

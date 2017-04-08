@@ -1,28 +1,27 @@
 import os
 
-file = "/tmp/file"
+file_name = "/tmp/file"
 
 
 def clean():
     try:
-        os.unlink(file)
+        os.unlink(file_name)
     except OSError:
         pass
 
 
 clean()
 
-with open(file, "w") as f:
+with open(file_name, "w") as f:
     f.write("first")
 
-
-with open(file, "r") as f:
+with open(file_name, "r") as f:
     f.read()
 
-with open(file, "a") as f:
+with open(file_name, "a") as f:
     f.write("second")
 
-with open(file) as f:
+with open(file_name) as f:
     f.read()
 
 

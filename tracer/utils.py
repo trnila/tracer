@@ -44,7 +44,7 @@ def parse_ipv6(raw_bytes):
     for i in range(0, 4):
         for j in range(0, 4):
             result += format(((int(parts[i], 16) >> (8 * j)) & 0xFF), '02x')
-            if j == 1 or j == 3:
+            if j in [1, 3]:
                 result += ':'
 
     return ipaddress.ip_address(result.strip(':'))

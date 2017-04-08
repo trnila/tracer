@@ -213,4 +213,4 @@ class Report(AttributeTrait):
 
     def _get_group(self, pid):
         with open('/proc/%d/status' % pid) as f:
-            return int(dict([(i, j.strip()) for i, j in [i.split(':', 1) for i in f.read().splitlines()]])['Tgid'])
+            return int({i: j.strip() for i, j in [i.split(':', 1) for i in f.read().splitlines()]}['Tgid'])

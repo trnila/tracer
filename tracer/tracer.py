@@ -217,6 +217,6 @@ class Tracer:
                     sys.exit(1)
 
         for name, obj in globals().items():
-            if isinstance(obj, type):
-                if issubclass(obj, Extension) and not obj.__module__.startswith('tracer.extensions'):
+            if isinstance(obj, type) and issubclass(obj, Extension) \
+                    and not obj.__module__.startswith('tracer.extensions'):
                     self.register_extension(obj())

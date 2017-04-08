@@ -70,15 +70,18 @@ class Tracing:
 
 
 class TracerTestCase(unittest.TestCase):
-    def assertFileEqual(self, file1, file2):
+    def assert_file_equal(self, file1, file2):
         with open(file1) as f1, open(file2) as f2:
             self.assertEqual(f1.read(), f2.read())
 
-    def assertAllProcessExitedOk(self, data):
+    def assert_all_process_exited_ok(self, data):
         for pid, proc in data.items():
             self.assertEqual(0, proc['exitCode'])
 
-    def execute(self, program, arguments=[], **kwargs):
+    def execute(self, program, arguments=None, **kwargs):
+        if arguments is None:
+            arguments = []
+
         resolved = shutil.which(program)
         tracing = Tracing(resolved if resolved else program, arguments, **kwargs)
 

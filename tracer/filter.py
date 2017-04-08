@@ -14,8 +14,7 @@ class Filter:
                 if re.search(ignore, obj['path']):
                     return True
 
-        if filter_fn:
-            if filter_fn(obj):
+        if filter_fn and filter_fn(obj):
                 return True
 
         return False
