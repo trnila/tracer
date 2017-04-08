@@ -146,20 +146,26 @@ class MmapExtension(Extension):
     def on_tick(self, tracer):
         for pid, proc in tracer.data.processes.items():
             if tracer.options.trace_mmap:
-                for capture in proc['descriptors']:
-                    if capture.descriptor.is_file and capture.descriptor['mmap']:
-                        for mmap_area in capture.descriptor['mmap']:
-                            mmap_area.check()
+                self.check_read_pages(proc)
 
             if tracer.options.save_mmap:
-                try:
-                    with open("/proc/{}/mem".format(pid), 'rb') as f:
-                        for region in proc['regions']:
-                            if region.is_active():
-                                try:
-                                    f.seek(region.address)
-                                    region.write(region.capture(region, f))
-                                except Exception as e:
-                                    print(e, region.address, region.size)
-                except Exception as e:
-                    print(e)
+                self.capture_content(pid, proc)
+
+    def capture_content(self, pid, proc):
+        try:
+            with open("/proc/{}/mem".format(pid), 'rb') as f:
+                for region in proc['regions']:
+                    if region.is_active():
+                        try:
+                            f.seek(region.address)
+                            region.write(region.capture(region, f))
+                        except Exception as e:
+                            print(e, region.address, region.size)
+        except Exception as e:
+            print(e)
+
+    def check_read_pages(self, proc):
+        for capture in proc['descriptors']:
+            if capture.descriptor.is_file and capture.descriptor['mmap']:
+                for mmap_area in capture.descriptor['mmap']:
+                    mmap_area.check()
