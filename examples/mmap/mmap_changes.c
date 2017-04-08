@@ -2,8 +2,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
-#include <stdio.h>_
-
+#include <stdio.h>
 
 int main() {
 	const char* str[] = {

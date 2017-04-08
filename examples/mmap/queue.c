@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/mman.h>
+#include <string.h>
 
 #define PRODUCERS 5
 #define PRODUCTS 10

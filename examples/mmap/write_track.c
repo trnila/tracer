@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 void main() {
     int fd = open("/tmp/file", O_RDWR | O_CREAT, 0600);

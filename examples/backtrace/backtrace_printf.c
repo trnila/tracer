@@ -2,7 +2,6 @@
 #include <unistd.h>
 #include <string.h>
 
-#define FN(msg); printf(msg); fflush(stdout);
 #define FN(msg); write(1, msg, strlen(msg));
 
 int a() {

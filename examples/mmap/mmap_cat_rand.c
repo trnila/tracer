@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 int main() {
 	int fd = open("/etc/services", O_RDONLY);
@@ -27,9 +28,6 @@ int main() {
 		putchar(*addr);
 		addr++;
 	}
-
-
-
 
 	return 0;
 }

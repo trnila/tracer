@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 int main() {
 	int fd = open("/tmp/file", O_RDONLY);
