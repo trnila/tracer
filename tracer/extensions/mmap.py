@@ -14,7 +14,7 @@ class RegionCapture:
         self.last_hash = None
         self.id = RegionCapture.last_id
         self.enable_capture = False
-        self.content = "{}/region-{}-{}.".format(output_dir, address, size, self.id)
+        self.content = "{}/region-{}-{}-{}.mmap".format(output_dir, address, size, self.id)
         self.captured_size = size
         self.captured_offset = 0
         self.unmapped = False
