@@ -3,11 +3,13 @@ import threading
 f = None
 lock = threading.Lock()
 
+
 def fn():
     lock.acquire()
     f.write("another")
     f.flush()
     lock.release()
+
 
 lock.acquire()
 
@@ -18,7 +20,4 @@ f.write("test")
 f.flush()
 lock.release()
 
-
 t.join()
-
-

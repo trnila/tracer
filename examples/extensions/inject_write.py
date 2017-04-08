@@ -37,11 +37,13 @@ class InjectWrite(Extension):
         proc.write_bytes(buffer.addr, text)
 
         # create instructions for write(0, buffer, size) on fly
-        code = self.CODE_SET_SYSCALL + \
-               self.CODE_SET_DESCRIPTOR + \
-               self.CODE_SET_LEN + struct.pack("<q", len(text)) + \
-               self.CODE_SET_BUF + struct.pack("<q", buffer.addr) + \
-               self.CODE_SYSCALL
+        code = b''.join([
+            self.CODE_SET_SYSCALL,
+            self.CODE_SET_DESCRIPTOR,
+            self.CODE_SET_LEN + struct.pack("<q", len(text)),
+            self.CODE_SET_BUF + struct.pack("<q", buffer.addr),
+            self.CODE_SYSCALL
+        ])
 
         # prepare region for code instructions
         addr = InjectedMemory(syscall.process, 1024, prot=mmap.PROT_READ | mmap.PROT_WRITE | mmap.PROT_EXEC)

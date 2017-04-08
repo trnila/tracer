@@ -2,6 +2,7 @@ import pytest
 
 from .utils.tracer_test_case import TracerTestCase, project_dir
 
+
 @pytest.mark.skip
 class MmapTest(TracerTestCase):
     def assertHave(self, process, size, required=True):

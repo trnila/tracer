@@ -47,7 +47,6 @@ class UtilsTest(unittest.TestCase):
         self.assertEqual("baz", obj["bar"])
 
 
-
 if __name__ == '__main__':
     sys.argv.append('-b')
     unittest.main()

@@ -1,8 +1,12 @@
+import os
+
 file = "/tmp/file"
 
+
 def clean():
-    #os.unlink(file)
+    os.unlink(file)
     pass
+
 
 clean()
 
