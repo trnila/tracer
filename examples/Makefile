@@ -14,6 +14,9 @@ mmap/mmap: mmap/mmap.c
 mmap/mmap_memory: mmap/mmap_memory.c
 	$(CC) $(CFLAGS) -o $@ $^ -lrt
 
+mmap/share_nonparent: mmap/share_nonparent.c
+	$(CC) $(CFLAGS) -o $@ $^ -lrt
+
 standalone:
 	for i in $(STANDALONE) ; do \
 		make -C $$i ; \
