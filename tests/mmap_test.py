@@ -1,9 +1,13 @@
-import pytest
-
 from .utils.tracer_test_case import TracerTestCase, project_dir
 
 
-@pytest.mark.skip
+def get_region(process, region_id):
+    for region in process['regions']:
+        if region['region_id'] == region_id:
+            return region
+    return None
+
+
 class MmapTest(TracerTestCase):
     def assertHave(self, process, size, required=True):
         found = False
@@ -21,19 +25,24 @@ class MmapTest(TracerTestCase):
             process = data.get_first_process()
             maps = process.get_resource_by(type="file", path="/tmp/file")['mmap']
 
-            self.assertEqual(12, maps[0]['length'])
-            self.assertEqual(12, maps[1]['length'])
-            self.assertEqual(12, maps[2]['length'])
+            regions = [
+                get_region(process, maps[0]['region_id']),
+                get_region(process, maps[1]['region_id']),
+                get_region(process, maps[2]['region_id'])
+            ]
 
-            import mmap
-            self.assertEqual(mmap.PROT_READ, maps[0]['prot'])
-            self.assertEqual(mmap.MAP_PRIVATE, maps[0]['flags'])
+            self.assertEqual(12, regions[0]['size'])
+            self.assertEqual(12, regions[1]['size'])
+            self.assertEqual(12, regions[2]['size'])
 
-            self.assertEqual(mmap.PROT_READ, maps[1]['prot'])
-            self.assertEqual(mmap.MAP_SHARED, maps[1]['flags'])
+            self.assertEqual(['PROT_READ'], regions[0]['prot'])
+            self.assertEqual(['MAP_PRIVATE'], regions[0]['flags'])
 
-            self.assertEqual(mmap.PROT_WRITE, maps[2]['prot'])
-            self.assertEqual(mmap.MAP_SHARED, maps[2]['flags'])
+            self.assertEqual(['PROT_READ'], regions[1]['prot'])
+            self.assertEqual(['MAP_SHARED'], regions[1]['flags'])
+
+            self.assertEqual(['PROT_WRITE'], regions[2]['prot'])
+            self.assertEqual(['MAP_SHARED'], regions[2]['flags'])
 
     def test_mmap_track(self):
         with self.execute('./examples/mmap/mmap_track2', options=['--trace-mmap']) as data:
@@ -41,10 +50,11 @@ class MmapTest(TracerTestCase):
             mmap = process.get_resource_by(type="file", path="%s/examples/100mb" % project_dir)['mmap'][0]
 
             regions = mmap['regions']
+            region = get_region(process, mmap['region_id'])
 
             self.assertEqual(2, len(regions))
-            self.assertEqual(mmap['address'], int(regions[0].split("-")[0], 16))
-            self.assertEqual(mmap['address'] + mmap['length'], int(regions[1].split("-")[1], 16))
+            self.assertEqual(region['address'], int(regions[0].split("-")[0], 16))
+            self.assertEqual(region['address'] + region['size'], int(regions[1].split("-")[1], 16))
 
     def test_mmap_inherit(self):
         with self.execute('./examples/mmap/inherit') as data:

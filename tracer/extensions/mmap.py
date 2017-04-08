@@ -5,10 +5,6 @@ from tracer.extensions.extension import Extension, register_syscall
 from tracer.mmap_tracer import MmapTracer
 
 
-def default_capture(region, fd):
-    return fd.read(region.size)
-
-
 class RegionCapture:
     last_id = 0
 
@@ -18,8 +14,7 @@ class RegionCapture:
         self.last_hash = None
         self.id = RegionCapture.last_id
         self.enable_capture = False
-        self.content = "{}/region-{}-{}.".format(output_dir, address, size, self.id)
-        self.capture = default_capture
+        self.content = "{}/region-{}-{}-{}.mmap".format(output_dir, address, size, self.id)
         self.captured_size = size
         self.captured_offset = 0
         self.unmapped = False
@@ -33,7 +28,13 @@ class RegionCapture:
     def is_active(self):
         return self.enable_capture and not self.unmapped
 
-    def write(self, content):
+    def capture(self, fd):
+        fd.seek(self.address + self.captured_offset, 1)
+
+        content = fd.read(self.effective_size())
+        self._write(content)
+
+    def _write(self, content):
         m = hashlib.md5()
         m.update(content)
         if m.hexdigest() != self.last_hash:
@@ -62,6 +63,14 @@ class RegionCapture:
 
         return data
 
+    @property
+    def is_anonymouse(self):
+        return 'MAP_ANONYMOUS' in self.flags
+
+    @property
+    def is_shared(self):
+        return 'MAP_SHARED' in self.flags
+
 
 def get_region(process, address):
     for region in process['regions']:
@@ -86,7 +95,7 @@ class MmapExtension(Extension):
             return
 
         for region in process.parent['regions']:
-            if 'MAP_SHARED' in region.flags:
+            if region.is_shared:
                 process['regions'].append(region)
 
     @register_syscall("mmap")
@@ -100,41 +109,14 @@ class MmapExtension(Extension):
         capture = RegionCapture(tracer.options.output, syscall.process, start, size)
         capture.prot = maps.MMAP_PROTS.format(syscall.arguments[2].value)
         capture.flags = maps.MMAP_FLAGS.format(syscall.arguments[3].value)
-        file_backed = 'MAP_ANONYMOUS' not in capture.flags
 
-        if file_backed:
+        if not capture.is_anonymouse:  # file backed
             capture.descriptor = syscall.process.descriptors.get(fd)
+            self.configure_page_tracer(capture, fd, size, start, syscall)
 
-        if 'mmap_filter' in tracer.options:
-            result = tracer.options.mmap_filter(capture)
-            if isinstance(result, dict):
-                if 'offset' in result:
-                    capture.captured_offset = 0
-                capture.captured_size = result['size']
+        self.apply_filter(capture, tracer)
 
-                def specific_capture(region, fd):
-                    if 'offset' in result:
-                        fd.seek(result['offset'], 1)
-
-                    return fd.read(capture.effective_size())
-
-                capture.enable_capture = True
-                capture.capture = specific_capture
-            else:
-                capture.enable_capture = result
-        else:
-            capture.enable_capture = tracer.options.save_mmap
         syscall.process['regions'].append(capture)
-
-        if file_backed:
-            mmap = MmapTracer(syscall.process['pid'], start, size,
-                              syscall.arguments[2].value,
-                              syscall.arguments[3].value)
-
-            syscall.process.mmap(syscall.arguments[4].value, mmap)
-            mmap.file = syscall.process.descriptors.get(fd)
-
-            mmap.region_id = capture.id
 
     # TODO: add support for unmaping just part of region
     @register_syscall("munmap")
@@ -143,23 +125,50 @@ class MmapExtension(Extension):
         if region:
             region.unmapped = True
 
+    def configure_page_tracer(self, capture, fd, size, start, syscall):
+        """ enable tracing accessed pages in file backed map """
+        mmap = MmapTracer(syscall.process['pid'], start, size,
+                          syscall.arguments[2].value,
+                          syscall.arguments[3].value)
+        syscall.process.mmap(syscall.arguments[4].value, mmap)
+        mmap.file = syscall.process.descriptors.get(fd)
+        mmap.region_id = capture.id
+
+    def apply_filter(self, capture, tracer):
+        if 'mmap_filter' in tracer.options:
+            result = tracer.options.mmap_filter(capture)
+            if isinstance(result, dict):
+                if 'offset' in result:
+                    capture.captured_offset = result['offset']
+                capture.captured_size = result['size']
+                capture.enable_capture = True
+            else:
+                capture.enable_capture = result
+        else:
+            capture.enable_capture = tracer.options.save_mmap
+
     def on_tick(self, tracer):
         for pid, proc in tracer.data.processes.items():
             if tracer.options.trace_mmap:
-                for capture in proc['descriptors']:
-                    if capture.descriptor.is_file and capture.descriptor['mmap']:
-                        for mmap_area in capture.descriptor['mmap']:
-                            mmap_area.check()
+                self.check_read_pages(proc)
 
             if tracer.options.save_mmap:
-                try:
-                    with open("/proc/{}/mem".format(pid), 'rb') as f:
-                        for region in proc['regions']:
-                            if region.is_active():
-                                try:
-                                    f.seek(region.address)
-                                    region.write(region.capture(region, f))
-                                except Exception as e:
-                                    print(e, region.address, region.size)
-                except Exception as e:
-                    print(e)
+                self.capture_content(pid, proc)
+
+    def capture_content(self, pid, proc):
+        try:
+            with open("/proc/{}/mem".format(pid), 'rb') as f:
+                for region in proc['regions']:
+                    if region.is_active():
+                        try:
+                            region.capture(f)
+                        except Exception as e:
+                            print(e, region.address, region.size)
+        except Exception as e:
+            print(e)
+
+    def check_read_pages(self, proc):
+        for capture in proc['descriptors']:
+            if capture.descriptor.is_file and capture.descriptor['mmap']:
+                for mmap_area in capture.descriptor['mmap']:
+                    mmap_area.check()
