@@ -5,10 +5,6 @@ from tracer.extensions.extension import Extension, register_syscall
 from tracer.mmap_tracer import MmapTracer
 
 
-def default_capture(region, fd):
-    return fd.read(region.size)
-
-
 class RegionCapture:
     last_id = 0
 
@@ -19,7 +15,6 @@ class RegionCapture:
         self.id = RegionCapture.last_id
         self.enable_capture = False
         self.content = "{}/region-{}-{}.".format(output_dir, address, size, self.id)
-        self.capture = default_capture
         self.captured_size = size
         self.captured_offset = 0
         self.unmapped = False
@@ -33,7 +28,13 @@ class RegionCapture:
     def is_active(self):
         return self.enable_capture and not self.unmapped
 
-    def write(self, content):
+    def capture(self, fd):
+        fd.seek(self.address + self.captured_offset, 1)
+
+        content = fd.read(self.effective_size())
+        self._write(content)
+
+    def _write(self, content):
         m = hashlib.md5()
         m.update(content)
         if m.hexdigest() != self.last_hash:
@@ -109,17 +110,9 @@ class MmapExtension(Extension):
             result = tracer.options.mmap_filter(capture)
             if isinstance(result, dict):
                 if 'offset' in result:
-                    capture.captured_offset = 0
+                    capture.captured_offset = result['offset']
                 capture.captured_size = result['size']
-
-                def specific_capture(region, fd):
-                    if 'offset' in result:
-                        fd.seek(result['offset'], 1)
-
-                    return fd.read(capture.effective_size())
-
                 capture.enable_capture = True
-                capture.capture = specific_capture
             else:
                 capture.enable_capture = result
         else:
@@ -157,8 +150,7 @@ class MmapExtension(Extension):
                 for region in proc['regions']:
                     if region.is_active():
                         try:
-                            f.seek(region.address)
-                            region.write(region.capture(region, f))
+                            region.capture(f)
                         except Exception as e:
                             print(e, region.address, region.size)
         except Exception as e:
