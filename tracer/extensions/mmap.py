@@ -63,6 +63,14 @@ class RegionCapture:
 
         return data
 
+    @property
+    def is_anonymouse(self):
+        return 'MAP_ANONYMOUS' in self.flags
+
+    @property
+    def is_shared(self):
+        return 'MAP_SHARED' in self.flags
+
 
 def get_region(process, address):
     for region in process['regions']:
@@ -87,7 +95,7 @@ class MmapExtension(Extension):
             return
 
         for region in process.parent['regions']:
-            if 'MAP_SHARED' in region.flags:
+            if region.is_shared:
                 process['regions'].append(region)
 
     @register_syscall("mmap")
@@ -101,11 +109,32 @@ class MmapExtension(Extension):
         capture = RegionCapture(tracer.options.output, syscall.process, start, size)
         capture.prot = maps.MMAP_PROTS.format(syscall.arguments[2].value)
         capture.flags = maps.MMAP_FLAGS.format(syscall.arguments[3].value)
-        file_backed = 'MAP_ANONYMOUS' not in capture.flags
 
-        if file_backed:
+        if not capture.is_anonymouse:  # file backed
             capture.descriptor = syscall.process.descriptors.get(fd)
+            self.configure_page_tracer(capture, fd, size, start, syscall)
 
+        self.apply_filter(capture, tracer)
+
+        syscall.process['regions'].append(capture)
+
+    # TODO: add support for unmaping just part of region
+    @register_syscall("munmap")
+    def munmap(self, syscall):
+        region = get_region(syscall.process, syscall.arguments[0].value)
+        if region:
+            region.unmapped = True
+
+    def configure_page_tracer(self, capture, fd, size, start, syscall):
+        """ enable tracing accessed pages in file backed map """
+        mmap = MmapTracer(syscall.process['pid'], start, size,
+                          syscall.arguments[2].value,
+                          syscall.arguments[3].value)
+        syscall.process.mmap(syscall.arguments[4].value, mmap)
+        mmap.file = syscall.process.descriptors.get(fd)
+        mmap.region_id = capture.id
+
+    def apply_filter(self, capture, tracer):
         if 'mmap_filter' in tracer.options:
             result = tracer.options.mmap_filter(capture)
             if isinstance(result, dict):
@@ -117,24 +146,6 @@ class MmapExtension(Extension):
                 capture.enable_capture = result
         else:
             capture.enable_capture = tracer.options.save_mmap
-        syscall.process['regions'].append(capture)
-
-        if file_backed:
-            mmap = MmapTracer(syscall.process['pid'], start, size,
-                              syscall.arguments[2].value,
-                              syscall.arguments[3].value)
-
-            syscall.process.mmap(syscall.arguments[4].value, mmap)
-            mmap.file = syscall.process.descriptors.get(fd)
-
-            mmap.region_id = capture.id
-
-    # TODO: add support for unmaping just part of region
-    @register_syscall("munmap")
-    def munmap(self, syscall):
-        region = get_region(syscall.process, syscall.arguments[0].value)
-        if region:
-            region.unmapped = True
 
     def on_tick(self, tracer):
         for pid, proc in tracer.data.processes.items():
