@@ -4,8 +4,10 @@ file = "/tmp/file"
 
 
 def clean():
-    os.unlink(file)
-    pass
+    try:
+        os.unlink(file)
+    except OSError:
+        pass
 
 
 clean()
