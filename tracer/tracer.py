@@ -84,11 +84,6 @@ class Tracer:
             logging.error("Could not resolve executable file %s", self.options.program)
             sys.exit(1)
 
-        if self.options.pid is None and not self.options.program:
-            print(self.options)
-            parser.print_help()
-            sys.exit(1)
-
     def parse_core_options(self):
         parser = self.create_core_parser(add_help=False)
         parser.add_argument('-h', action='store_true')
@@ -223,6 +218,5 @@ class Tracer:
 
         for name, obj in globals().items():
             if isinstance(obj, type):
-                print(obj)
                 if issubclass(obj, Extension) and not obj.__module__.startswith('tracer.extensions'):
                     self.register_extension(obj())
