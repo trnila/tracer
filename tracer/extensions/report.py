@@ -17,7 +17,7 @@ class ReportExtension(Extension):
     def on_start(self, tracer):
         if not tracer.options.output:
             directory_name = 'tracer_{executable}_{date}'.format(
-                executable=tracer.options.program[0].split('/')[-1],
+                executable=tracer.options.program.split('/')[-1],
                 date=datetime.now().strftime("%d-%m-%Y_%H:%M:%S.%f")
             )
 
