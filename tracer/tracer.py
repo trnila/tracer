@@ -72,7 +72,8 @@ class Tracer:
         self.options.__dict__.update(self.load_config())
 
         if not self.options.program:
-            logging.error("Provide executable file for monitoring")
+            parser.print_usage()
+            print("Missing path to program")
             sys.exit(1)
 
         resolved = shutil.which(self.options.program)
