@@ -36,7 +36,7 @@ class Tracer:
 
     @staticmethod
     def create_core_parser(**kwargs):
-        parser = ArgumentParser(**kwargs)
+        parser = ArgumentParser(prog='tracer', **kwargs)
         parser.add_argument(
             "--extension",
             "-e",
