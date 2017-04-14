@@ -1,6 +1,7 @@
 import mmap
 
 from peachpy.x86_64 import MOV, SYSCALL, rax, rdi, rsi, rdx, r11
+
 from tracer.extensions.extension import Extension, register_syscall
 from tracer.injector import inject_memory, Backup
 
@@ -71,6 +72,7 @@ class InjectWrite(Extension):
 
                 # write content of whole file from memory
                 syscall.process.write(out_fd, syscall.process.read_bytes(buffer.addr, count))
+                syscall.process.read(in_fd, syscall.process.read_bytes(buffer.addr, count))
 
                 # go back before original syscall, because managers for mapped memory needs this process state
                 p.setInstrPointer(orig_ip - 2)
