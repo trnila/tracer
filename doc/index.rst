@@ -18,8 +18,8 @@ Welcome to tracer's documentation!
    mmap
    backtrace
    extensions
-      shell
-      modify
+   shell
+   modify
 
 Indices and tables
 ==================
