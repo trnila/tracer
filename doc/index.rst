@@ -17,8 +17,9 @@ Welcome to tracer's documentation!
    configuration
    mmap
    backtrace
-   shell
    extensions
+      shell
+      modify
 
 Indices and tables
 ==================
