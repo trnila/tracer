@@ -9,6 +9,7 @@ from tracer.report import Report
 
 class ReportExtension(Extension):
     def create_options(self, parser):
+        parser.add_argument('--no-report', '-n', help='Do not save any report', action='store_true', default=False)
         parser.add_argument('--output', '-o', help='Place monitored data directly in this directory')
         parser.add_argument('--directory', '-d', help='Create directory with monitored data in specified directory')
         parser.add_argument('--show-data', '-s', help='Print captured data to stdout', action="store_true",
@@ -26,9 +27,12 @@ class ReportExtension(Extension):
                 target_dir = tracer.options.directory
 
             tracer.options.output = os.path.join(target_dir, directory_name)
-        tracer.data = Report(tracer.options.output)
+        tracer.data = Report(None if tracer.options.no_report else tracer.options.output)
 
     def on_save(self, tracer):
+        if tracer.options.no_report:
+            return
+
         tracer.data.save()
         if tracer.options.show_data:
             tracer.data.save(sys.stdout)

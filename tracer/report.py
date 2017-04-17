@@ -161,7 +161,8 @@ class Report(AttributeTrait):
         self.path = path
         self.descriptor_groups = {}
 
-        os.makedirs(path, exist_ok=True)
+        if self.path:
+            os.makedirs(path, exist_ok=True)
 
     def new_process(self, pid, parent, is_thread, tracer):
         if not is_thread:
@@ -201,6 +202,9 @@ class Report(AttributeTrait):
         return self['processes']
 
     def append_file(self, file_id, content):
+        if not self.path:
+            return
+
         with open(os.path.join(self.path, file_id), 'ab') as file:
             file.write(content)
 
