@@ -57,7 +57,10 @@ class ReplaceExecve(Extension):
         if syscall.result:
             return
 
-        execve = Execve(syscall)
+        try:
+            execve = Execve(syscall)
+        except RuntimeError:
+            return
 
         fn = getattr(syscall.process.tracer.options, 'replace_execve', None)
         if not fn:
