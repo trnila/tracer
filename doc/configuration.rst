@@ -8,7 +8,8 @@ Third party arguments shall be defined after core parameters, otherwise parsing 
 
 After configuration parameters are parsed from arguments then they are merged with configurations stored in *~/.tracerrc* and *tracer.conf.py* stored in current working directory or file provided by *-c*.
 
-Configuration file is plain python script that can set any option listed in tracer arguments and additionally can set some functions that influences tracing.`Example configuration files <https://github.com/trnila/tracer/tree/master/examples/settings>` shows some usage.
+Configuration file is plain python script that can set any option listed in tracer arguments and additionally can set some functions that influences tracing.
+`Example configuration files <https://github.com/trnila/tracer/tree/master/examples/settings>`_ shows some usage.
 
 You can for example set *program*, *arguments* and *output* and invoke tracing by calling only `$ tracer`.
 

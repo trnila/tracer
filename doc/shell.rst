@@ -2,7 +2,7 @@
 Shell extension
 ===============
 This extension is usefull for stepping though system calls with descriptor information for example.
-Extension can be enabled with *--shell-enable*. Additionaly you can provide *--shell-syscalls* with comma separated names of syscalls to limit syscalls that you are interested in.
+Extension can be enabled with ``--shell-enable``. Additionaly you can provide ``--shell-syscalls`` with comma separated names of syscalls to limit syscalls that you are interested in.
 When tracer breaks before or after syscall, this extension drops you to the interactive python shell, where you can examine syscall, process, descriptors and more.
 You can also write shell_filter function in configuration file to filter out unwanted syscalls. At any time you can set tracer.options.shell_filter = lambda syscall: syscall.name in ["close", "mmap"] to change filter function directly in interactive shell.
 

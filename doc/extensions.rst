@@ -2,7 +2,7 @@
 Extension
 =========
 Extensions could be inserted to tracer to collect user-defined additional data. 
-When you run `$ tracer -e my_extension.py ls`, the extension will be enabled.
+When you run ``$ tracer -e my_extension.py ls``, the extension will be enabled.
 Each extension must subclass from Extension class and optionally implement some functions:
 
 create_options(parser)

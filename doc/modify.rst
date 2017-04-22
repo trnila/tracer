@@ -42,6 +42,7 @@ Place following code snippet to your *tracer.conf.py* and run tracing again.
     18
 
 Tool replaced call *cat /etc/passwd* with *sed s/bash/sh/g /etc/passwd*.
+You may need to replace ``/usr/bin/`` with ``/bin/`` depending on your system.
 
 It can be usefull if you want to add some flags to compilation when build system doesn't allow it.
 
@@ -56,3 +57,18 @@ For example you can change */etc/hosts* with your own:
     $ tracer -e examples/extensions/replace_open_path.py -n --replace-path /etc/hosts:$(pwd)/fakehosts curl -v example.org
     * Rebuilt URL to: example.org/
     *   Trying 198.51.100.1...
+
+
+Sendfile capture
+================
+At first install PeachPy.
+
+.. code-block::bash
+   $ pip install --upgrade git+https://github.com/Maratyszcza/PeachPy
+
+And then you can try capturing content on sendfile like this:
+
+.. code-block::bash
+
+    $ tracer -e examples/extensions/sendfile.py -o /tmp/report ./examples/files/sendfile
+    $ tracergui /tmp/report

@@ -7,12 +7,12 @@ Additional you can enable tracking pages or tracking whole content.
 
 Tracking pages
 ==============
-By invoking tracer with *--trace-mmap* option, tracer will collect pages of file-backed mmaps that are accessed and thus available in memory.
+By invoking tracer with ``--trace-mmap`` option, tracer will collect pages of file-backed mmaps that are accessed and thus available in memory.
 This can be used for roughly estimates about which regions of mapped files are accessed.
 
 Capture content
 ===============
-When you invoke tracer with *--save-mmap* option, tracer will capture all mapped regions each time they change.
+When you invoke tracer with ``--save-mmap`` option, tracer will capture all mapped regions each time they change.
 It could be used for IPC inspection that uses shared mmap.
 
 Captured regions could be also filtered by adding function *mmap_filter* to your configuration file.
