@@ -1,4 +1,5 @@
 import hashlib
+import logging
 
 from tracer import maps
 from tracer.extensions.extension import Extension, register_syscall
@@ -163,9 +164,9 @@ class MmapExtension(Extension):
                         try:
                             region.capture(f)
                         except Exception as e:
-                            print(e, region.address, region.size)
+                            logging.info("mmap capture fail: %s - %s", region.address, str(e))
         except Exception as e:
-            print(e)
+            logging.info("failed to open mem for pid %s", pid)
 
     def check_read_pages(self, proc):
         for capture in proc['descriptors']:
