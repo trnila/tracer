@@ -63,12 +63,13 @@ Sendfile capture
 ================
 At first install PeachPy.
 
-.. code-block::bash
+.. code-block:: bash
+
    $ pip install --upgrade git+https://github.com/Maratyszcza/PeachPy
 
 And then you can try capturing content on sendfile like this:
 
-.. code-block::bash
+.. code-block:: bash
 
     $ tracer -e examples/extensions/sendfile.py -o /tmp/report ./examples/files/sendfile
     $ tracergui /tmp/report
