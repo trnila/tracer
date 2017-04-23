@@ -68,7 +68,7 @@ class CoreExtension(Extension):
         descriptor['socket_type'] = maps.SOCKET_TYPES.get(syscall.arguments[1].value)
         syscall.process.descriptors.open(descriptor)
 
-    @register_syscall("pipe")
+    @register_syscall(["pipe", "syscall<293>"])
     def handler_pipe(self, syscall):
         pipe_fd = syscall.process.read_bytes(syscall.arguments[0].value, 8)
         fd1, fd2 = unpack("ii", pipe_fd)
